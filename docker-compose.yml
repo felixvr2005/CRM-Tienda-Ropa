@@ -1,0 +1,52 @@
+# FashionStore - Docker Compose
+# Configuración para desarrollo local y producción
+
+services:
+  # ===========================
+  # Aplicación Principal
+  # ===========================
+  fashionstore:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - PUBLIC_SUPABASE_URL=${PUBLIC_SUPABASE_URL}
+        - PUBLIC_SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
+        - PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
+    container_name: fashionstore-app
+    ports:
+      - "4321:4321"
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4321
+      # Variables de Supabase
+      - PUBLIC_SUPABASE_URL=${PUBLIC_SUPABASE_URL}
+      - PUBLIC_SUPABASE_ANON_KEY=${PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      # Variables de Stripe
+      - PUBLIC_STRIPE_PUBLISHABLE_KEY=${PUBLIC_STRIPE_PUBLISHABLE_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4321/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - fashionstore-network
+    labels:
+      # Labels para Coolify
+      - "coolify.managed=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.fashionstore.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.services.fashionstore.loadbalancer.server.port=4321"
+
+# ===========================
+# Red
+# ===========================
+networks:
+  fashionstore-network:
+    driver: bridge

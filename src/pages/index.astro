@@ -1,0 +1,169 @@
+---
+/**
+ * Homepage - SSG
+ * Página principal con hero, categorías destacadas y productos
+ */
+import PublicLayout from '@layouts/PublicLayout.astro';
+import ProductCard from '@components/product/ProductCard.astro';
+import Button from '@components/ui/Button.astro';
+import { getFeaturedProducts, getCategories, getFlashOffers } from '@lib/supabase';
+
+// SSG - se genera en build time
+export const prerender = true;
+
+const featuredProducts = await getFeaturedProducts();
+const categories = await getCategories();
+const flashOffers = await getFlashOffers();
+---
+
+<PublicLayout title="Inicio">
+  <!-- Hero Section -->
+  <section class="relative h-[85vh] min-h-[600px] overflow-hidden">
+    <img 
+      src="https://images.unsplash.com/photo-1617137968427-85924c800a22?w=1920&q=80"
+      alt="Nueva Colección"
+      class="absolute inset-0 w-full h-full object-cover"
+    />
+    <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+    
+    <div class="relative h-full max-w-[1800px] mx-auto px-4 lg:px-8 flex items-center">
+      <div class="max-w-xl">
+        <p class="text-white/80 text-sm tracking-[0.3em] uppercase mb-4 animate-fade-in">
+          Nueva temporada
+        </p>
+        <h1 class="font-display text-display-lg md:text-display-xl text-white mb-6 animate-slide-up">
+          Colección<br />Primavera 2026
+        </h1>
+        <p class="text-white/90 text-lg mb-8 animate-slide-up" style="animation-delay: 100ms">
+          Descubre las últimas tendencias en moda masculina premium
+        </p>
+        <div class="flex gap-4 animate-slide-up" style="animation-delay: 200ms">
+          <Button href="/productos" variant="secondary" size="lg">
+            Ver colección
+          </Button>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Categories Grid -->
+  <section class="max-w-[1800px] mx-auto px-4 lg:px-8 py-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <a href="/categoria/camisas" class="group relative aspect-[4/5] overflow-hidden bg-primary-100">
+        <img 
+          src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&q=80"
+          alt="Camisas"
+          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+        <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+        <div class="absolute bottom-8 left-8">
+          <h3 class="font-display text-2xl text-white mb-2">Camisas</h3>
+          <span class="text-white/90 text-sm tracking-wider uppercase border-b border-white/50 pb-1 group-hover:border-white transition-colors">
+            Ver todo
+          </span>
+        </div>
+      </a>
+      
+      <a href="/categoria/pantalones" class="group relative aspect-[4/5] overflow-hidden bg-primary-100">
+        <img 
+          src="https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800&q=80"
+          alt="Pantalones"
+          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+        <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+        <div class="absolute bottom-8 left-8">
+          <h3 class="font-display text-2xl text-white mb-2">Pantalones</h3>
+          <span class="text-white/90 text-sm tracking-wider uppercase border-b border-white/50 pb-1 group-hover:border-white transition-colors">
+            Ver todo
+          </span>
+        </div>
+      </a>
+      
+      <a href="/categoria/accesorios" class="group relative aspect-[4/5] overflow-hidden bg-primary-100">
+        <img 
+          src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80"
+          alt="Accesorios"
+          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+        <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+        <div class="absolute bottom-8 left-8">
+          <h3 class="font-display text-2xl text-white mb-2">Accesorios</h3>
+          <span class="text-white/90 text-sm tracking-wider uppercase border-b border-white/50 pb-1 group-hover:border-white transition-colors">
+            Ver todo
+          </span>
+        </div>
+      </a>
+    </div>
+  </section>
+  
+  <!-- Flash Offers -->
+  {flashOffers.length > 0 && (
+    <section class="bg-primary-950 py-16">
+      <div class="max-w-[1800px] mx-auto px-4 lg:px-8">
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <span class="text-red-500 text-sm tracking-widest uppercase mb-2 block">⚡ Tiempo limitado</span>
+            <h2 class="font-display text-3xl text-white">Ofertas Flash</h2>
+          </div>
+          <Button href="/categoria/ofertas" variant="outline" class="border-white text-white hover:bg-white hover:text-primary-900">
+            Ver todas
+          </Button>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {flashOffers.map((product) => (
+            <ProductCard product={product} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+  
+  <!-- Featured Products -->
+  <section class="max-w-[1800px] mx-auto px-4 lg:px-8 py-16">
+    <div class="flex items-center justify-between mb-8">
+      <h2 class="font-display text-3xl">Lo más vendido</h2>
+      <Button href="/productos" variant="ghost">
+        Ver todo →
+      </Button>
+    </div>
+    
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
+      {featuredProducts.map((product) => (
+        <ProductCard product={product} showQuickAdd />
+      ))}
+    </div>
+  </section>
+  
+  <!-- Brand Story Banner -->
+  <section class="relative py-24 overflow-hidden">
+    <div class="absolute inset-0 bg-primary-100" />
+    <div class="relative max-w-[1800px] mx-auto px-4 lg:px-8 text-center">
+      <h2 class="font-display text-4xl md:text-5xl mb-6">Calidad sin compromiso</h2>
+      <p class="text-primary-600 max-w-2xl mx-auto mb-8 text-lg">
+        Cada prenda está diseñada con los mejores materiales y fabricada con atención al detalle. 
+        Porque creemos que la verdadera elegancia está en la calidad.
+      </p>
+      <Button href="/productos" variant="secondary">
+        Descubrir más
+      </Button>
+    </div>
+  </section>
+  
+  <!-- Instagram Grid -->
+  <section class="max-w-[1800px] mx-auto px-4 lg:px-8 py-16">
+    <h2 class="font-display text-3xl text-center mb-8">@fashionstore</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <a href="#" class="aspect-square overflow-hidden bg-primary-100 group">
+          <img 
+            src={`https://images.unsplash.com/photo-${1600000000000 + i * 100000}?w=400&q=80`}
+            alt={`Instagram post ${i}`}
+            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            onerror="this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80'"
+          />
+        </a>
+      ))}
+    </div>
+  </section>
+</PublicLayout>

@@ -1,0 +1,129 @@
+---
+/**
+ * ProductGallery Component
+ * Galería de imágenes del producto estilo Zara
+ */
+interface Props {
+  images: string[];
+  productName: string;
+}
+
+const { images, productName } = Astro.props;
+const displayImages = images.length > 0 ? images : ['/images/products/placeholder.jpg'];
+---
+
+<div class="product-gallery">
+  <!-- Main Image -->
+  <div class="relative aspect-[3/4] overflow-hidden bg-primary-100 mb-4">
+    <img 
+      id="main-gallery-image"
+      src={displayImages[0]}
+      alt={productName}
+      class="w-full h-full object-cover transition-opacity duration-300"
+    />
+    
+    <!-- Navigation Arrows -->
+    {displayImages.length > 1 && (
+      <>
+        <button 
+          id="gallery-prev"
+          class="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white flex items-center justify-center transition-colors"
+          aria-label="Imagen anterior"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button 
+          id="gallery-next"
+          class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white flex items-center justify-center transition-colors"
+          aria-label="Imagen siguiente"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </>
+    )}
+    
+    <!-- Image Counter -->
+    {displayImages.length > 1 && (
+      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 px-3 py-1 text-xs">
+        <span id="gallery-current">1</span> / {displayImages.length}
+      </div>
+    )}
+  </div>
+  
+  <!-- Thumbnails -->
+  {displayImages.length > 1 && (
+    <div class="grid grid-cols-4 gap-2">
+      {displayImages.map((image, index) => (
+        <button 
+          class={`aspect-[3/4] overflow-hidden bg-primary-100 gallery-thumb ${index === 0 ? 'ring-2 ring-primary-900' : 'hover:ring-1 ring-primary-300'}`}
+          data-index={index}
+          data-src={image}
+        >
+          <img 
+            src={image}
+            alt={`${productName} - Imagen ${index + 1}`}
+            class="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </button>
+      ))}
+    </div>
+  )}
+</div>
+
+<script define:vars={{ displayImages }}>
+  let currentIndex = 0;
+  const images = displayImages;
+  
+  function updateGallery(index) {
+    currentIndex = index;
+    const mainImage = document.getElementById('main-gallery-image');
+    const counter = document.getElementById('gallery-current');
+    const thumbs = document.querySelectorAll('.gallery-thumb');
+    
+    if (mainImage) {
+      mainImage.style.opacity = '0';
+      setTimeout(() => {
+        mainImage.src = images[index];
+        mainImage.style.opacity = '1';
+      }, 150);
+    }
+    
+    if (counter) {
+      counter.textContent = String(index + 1);
+    }
+    
+    thumbs.forEach((thumb, i) => {
+      if (i === index) {
+        thumb.classList.add('ring-2', 'ring-primary-900');
+        thumb.classList.remove('hover:ring-1', 'ring-primary-300');
+      } else {
+        thumb.classList.remove('ring-2', 'ring-primary-900');
+        thumb.classList.add('hover:ring-1', 'ring-primary-300');
+      }
+    });
+  }
+  
+  // Navigation
+  document.getElementById('gallery-prev')?.addEventListener('click', () => {
+    const newIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
+    updateGallery(newIndex);
+  });
+  
+  document.getElementById('gallery-next')?.addEventListener('click', () => {
+    const newIndex = currentIndex === images.length - 1 ? 0 : currentIndex + 1;
+    updateGallery(newIndex);
+  });
+  
+  // Thumbnails
+  document.querySelectorAll('.gallery-thumb').forEach((thumb) => {
+    thumb.addEventListener('click', () => {
+      const index = parseInt(thumb.dataset.index || '0');
+      updateGallery(index);
+    });
+  });
+</script>

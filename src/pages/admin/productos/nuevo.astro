@@ -1,0 +1,311 @@
+---
+/**
+ * Admin Create Product - SSR
+ */
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { supabase } from '@lib/supabase';
+
+export const prerender = false;
+
+const { data: categories } = await supabase
+  .from('categories')
+  .select('id, name')
+  .order('name');
+---
+
+<AdminLayout title="Nuevo Producto">
+  <div class="max-w-4xl">
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-8">
+      <a href="/admin/productos" class="text-primary-500 hover:text-primary-900">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </a>
+      <h1 class="text-2xl font-display">Nuevo Producto</h1>
+    </div>
+    
+    <form id="productForm" class="space-y-6">
+      <!-- Basic Info -->
+      <div class="bg-white border border-primary-200 p-6 space-y-4">
+        <h2 class="font-medium mb-4">Información básica</h2>
+        
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Nombre *
+          </label>
+          <input 
+            type="text" 
+            name="name" 
+            required
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+          />
+          <p class="text-xs text-primary-400 mt-1">El SKU se generará automáticamente</p>
+        </div>
+        
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Descripción
+          </label>
+          <textarea 
+            name="description"
+            rows="4"
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+          ></textarea>
+        </div>
+        
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Categoría
+          </label>
+          <select 
+            name="category_id"
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+          >
+            <option value="">Sin categoría</option>
+            {categories?.map((cat) => (
+              <option value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      
+      <!-- Pricing -->
+      <div class="bg-white border border-primary-200 p-6 space-y-4">
+        <h2 class="font-medium mb-4">Precio</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+              Precio *
+            </label>
+            <div class="relative">
+              <input 
+                type="number" 
+                name="price" 
+                required
+                step="0.01"
+                min="0"
+                class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900 pr-8"
+              />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-primary-400">€</span>
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+              Descuento (%)
+            </label>
+            <input 
+              type="number" 
+              name="discount_percentage"
+              min="0"
+              max="100"
+              value="0"
+              class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+            />
+          </div>
+        </div>
+      </div>
+      
+      <!-- Images -->
+      <div class="bg-white border border-primary-200 p-6 space-y-4">
+        <h2 class="font-medium mb-4">Imágenes</h2>
+        
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            URL de imagen principal
+          </label>
+          <input 
+            type="url" 
+            name="image_url"
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+            placeholder="https://..."
+          />
+        </div>
+        
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            URLs de imágenes adicionales (una por línea)
+          </label>
+          <textarea 
+            name="images"
+            rows="3"
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+            placeholder="https://imagen1.jpg&#10;https://imagen2.jpg"
+          ></textarea>
+        </div>
+      </div>
+      
+      <!-- Status -->
+      <div class="bg-white border border-primary-200 p-6 space-y-4">
+        <h2 class="font-medium mb-4">Estado</h2>
+        
+        <div class="flex flex-wrap gap-6">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="is_active" checked class="w-4 h-4" />
+            <span class="text-sm">Activo</span>
+          </label>
+          
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="is_featured" class="w-4 h-4" />
+            <span class="text-sm">Destacado</span>
+          </label>
+          
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="is_new" class="w-4 h-4" />
+            <span class="text-sm">Nuevo</span>
+          </label>
+          
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="is_flash_offer" class="w-4 h-4" />
+            <span class="text-sm">Oferta flash</span>
+          </label>
+        </div>
+      </div>
+      
+      <!-- Variants -->
+      <div class="bg-white border border-primary-200 p-6 space-y-4">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-medium">Variantes</h2>
+          <button 
+            type="button"
+            onclick="window.addVariant()"
+            class="text-sm text-primary-600 hover:text-primary-900"
+          >
+            + Añadir variante
+          </button>
+        </div>
+        
+        <div id="variantsContainer" class="space-y-4">
+          <!-- Variantes se añaden aquí dinámicamente -->
+        </div>
+        
+        <p class="text-xs text-primary-500">
+          Añade tallas y colores con su stock disponible
+        </p>
+      </div>
+      
+      <!-- Error message -->
+      <div id="errorMessage" class="text-red-600 text-sm hidden"></div>
+      
+      <!-- Actions -->
+      <div class="flex items-center gap-4">
+        <button 
+          type="submit"
+          class="bg-primary-900 text-white px-6 py-2 text-sm tracking-widest uppercase hover:bg-primary-800 transition-colors"
+        >
+          Crear producto
+        </button>
+        <a href="/admin/productos" class="text-primary-500 hover:text-primary-900 text-sm">
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+  
+  <script is:inline>
+    let variantIndex = 0;
+    
+    // Exponer funciones globalmente
+    window.addVariant = function() {
+      const container = document.getElementById('variantsContainer');
+      const variantHtml = `
+        <div class="flex items-center gap-4 p-4 border border-primary-200" data-variant="${variantIndex}">
+          <div class="flex-1">
+            <label class="block text-xs text-primary-500 mb-1">Talla</label>
+            <select name="variants[${variantIndex}][size]" class="w-full border border-primary-300 px-3 py-1.5 text-sm">
+              <option value="XS">XS</option>
+              <option value="S">S</option>
+              <option value="M" selected>M</option>
+              <option value="L">L</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+            </select>
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs text-primary-500 mb-1">Color</label>
+            <input type="text" name="variants[${variantIndex}][color]" class="w-full border border-primary-300 px-3 py-1.5 text-sm" placeholder="Negro" />
+          </div>
+          <div class="w-24">
+            <label class="block text-xs text-primary-500 mb-1">Stock</label>
+            <input type="number" name="variants[${variantIndex}][stock]" min="0" value="0" class="w-full border border-primary-300 px-3 py-1.5 text-sm" />
+          </div>
+          <button type="button" onclick="window.removeVariant(${variantIndex})" class="text-red-600 hover:text-red-800 mt-5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', variantHtml);
+      variantIndex++;
+    };
+    
+    window.removeVariant = function(index) {
+      const variant = document.querySelector(`[data-variant="${index}"]`);
+      if (variant) variant.remove();
+    };
+    
+    // Add initial variant
+    window.addVariant();
+    
+    // Form submission
+    const form = document.getElementById('productForm');
+    const errorDiv = document.getElementById('errorMessage');
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorDiv.classList.add('hidden');
+      
+      const formData = new FormData(form);
+      
+      // Parse form data
+      const product = {
+        name: formData.get('name'),
+        description: formData.get('description') || null,
+        category_id: formData.get('category_id') || null,
+        price: parseFloat(formData.get('price')),
+        discount_percentage: parseInt(formData.get('discount_percentage')) || 0,
+        image_url: formData.get('image_url') || null,
+        images: formData.get('images') ? formData.get('images').split('\n').filter(url => url.trim()) : [],
+        is_active: formData.get('is_active') === 'on',
+        is_featured: formData.get('is_featured') === 'on',
+        is_new: formData.get('is_new') === 'on',
+        is_flash_offer: formData.get('is_flash_offer') === 'on',
+      };
+      
+      // Parse variants
+      const variants = [];
+      const variantElements = document.querySelectorAll('[data-variant]');
+      variantElements.forEach((el, i) => {
+        const size = el.querySelector(`[name*="[size]"]`).value;
+        const color = el.querySelector(`[name*="[color]"]`).value || '';
+        const stock = parseInt(el.querySelector(`[name*="[stock]"]`).value) || 0;
+        if (size) {
+          variants.push({ size, color, stock });
+        }
+      });
+      
+      try {
+        const response = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product, variants }),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          window.location.href = '/admin/productos';
+        } else {
+          errorDiv.textContent = data.error || 'Error al crear el producto';
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (error) {
+        errorDiv.textContent = 'Error de conexión';
+        errorDiv.classList.remove('hidden');
+      }
+    });
+  </script>
+</AdminLayout>

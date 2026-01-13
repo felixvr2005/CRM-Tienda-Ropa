@@ -1,0 +1,107 @@
+---
+/**
+ * ProductCard Component
+ * Tarjeta de producto estilo Zara con hover effects
+ */
+import type { Product } from '@lib/database.types';
+import { formatPrice, calculateDiscountedPrice, getTotalStock } from '@lib/utils';
+
+interface Props {
+  product: Product;
+  showQuickAdd?: boolean;
+}
+
+const { product, showQuickAdd = false } = Astro.props;
+
+const finalPrice = calculateDiscountedPrice(product.price, product.discount_percentage);
+const hasDiscount = product.discount_percentage > 0;
+const stock = getTotalStock(product.variants || []);
+const isLowStock = stock > 0 && stock <= 5;
+---
+
+<article class="group relative">
+  <!-- Image Container -->
+  <a href={`/productos/${product.slug}`} class="block aspect-[3/4] overflow-hidden bg-primary-100">
+    <img 
+      src={product.image_url || '/images/products/placeholder.jpg'}
+      alt={product.name}
+      loading="lazy"
+      class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+    />
+    
+    <!-- Badges -->
+    <div class="absolute top-3 left-3 flex flex-col gap-2">
+      {product.is_new && (
+        <span class="bg-primary-900 text-white text-2xs tracking-widest uppercase px-2 py-1">
+          Nuevo
+        </span>
+      )}
+      {hasDiscount && (
+        <span class="bg-red-600 text-white text-2xs tracking-widest uppercase px-2 py-1">
+          -{product.discount_percentage}%
+        </span>
+      )}
+      {isLowStock && (
+        <span class="bg-amber-500 text-white text-2xs tracking-widest uppercase px-2 py-1">
+          Últimas unidades
+        </span>
+      )}
+    </div>
+    
+    <!-- Quick Add Button (opcional) -->
+    {showQuickAdd && stock > 0 && (
+      <div class="absolute bottom-0 left-0 right-0 p-4 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+        <button 
+          class="w-full bg-white/95 backdrop-blur text-primary-900 text-xs tracking-widest uppercase py-3 hover:bg-primary-900 hover:text-white transition-colors"
+          data-product-id={product.id}
+        >
+          Añadir rápido
+        </button>
+      </div>
+    )}
+  </a>
+  
+  <!-- Product Info -->
+  <div class="mt-4 space-y-1">
+    <a href={`/productos/${product.slug}`} class="block">
+      <h3 class="text-sm font-medium text-primary-900 line-clamp-1 group-hover:underline">
+        {product.name}
+      </h3>
+    </a>
+    
+    {product.category && (
+      <p class="text-xs text-primary-500 uppercase tracking-wider">
+        {product.category.name}
+      </p>
+    )}
+    
+    <div class="flex items-center gap-2">
+      <span class={`text-sm ${hasDiscount ? 'text-red-600 font-medium' : 'text-primary-900'}`}>
+        {formatPrice(finalPrice)}
+      </span>
+      {hasDiscount && (
+        <span class="text-sm text-primary-400 line-through">
+          {formatPrice(product.price)}
+        </span>
+      )}
+    </div>
+    
+    <!-- Color Swatches Preview -->
+    {product.variants && product.variants.length > 0 && (
+      <div class="flex items-center gap-1 pt-1">
+        {[...new Set(product.variants.map(v => v.color_hex).filter(Boolean))].slice(0, 4).map((color) => (
+          <span 
+            class="w-3 h-3 rounded-full border border-primary-200"
+            style={`background-color: ${color}`}
+            title={product.variants?.find(v => v.color_hex === color)?.color}
+          />
+        ))}
+        {[...new Set(product.variants.map(v => v.color_hex))].length > 4 && (
+          <span class="text-2xs text-primary-400">
+            +{[...new Set(product.variants.map(v => v.color_hex))].length - 4}
+          </span>
+        )}
+      </div>
+    )}
+  </div>
+</article>

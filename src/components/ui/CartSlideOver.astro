@@ -1,0 +1,97 @@
+---
+/**
+ * CartSlideOver Component
+ * Panel lateral del carrito estilo Zara
+ */
+import CartContent from '@components/islands/CartContent';
+---
+
+<div 
+  id="cart-slideover" 
+  class="fixed inset-0 z-50 hidden"
+  aria-labelledby="cart-title"
+  role="dialog"
+  aria-modal="true"
+>
+  <!-- Overlay -->
+  <div 
+    class="absolute inset-0 bg-black/40 transition-opacity duration-300 opacity-0"
+    id="cart-overlay"
+  ></div>
+  
+  <!-- Panel -->
+  <div 
+    class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300"
+    id="cart-panel"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between h-16 px-6 border-b border-primary-200">
+      <h2 id="cart-title" class="text-sm tracking-widest uppercase font-medium">
+        Tu cesta
+      </h2>
+      <button 
+        id="close-cart-btn"
+        class="p-2 hover:bg-primary-100 rounded-full transition-colors"
+        aria-label="Cerrar carrito"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Cart Content (React Island) -->
+    <CartContent client:load />
+  </div>
+</div>
+
+<script>
+  // Cart slideover functionality
+  function setupCartSlideOver() {
+    const slideover = document.getElementById('cart-slideover');
+    const overlay = document.getElementById('cart-overlay');
+    const panel = document.getElementById('cart-panel');
+    const closeBtn = document.getElementById('close-cart-btn');
+    
+    function openCart() {
+      slideover?.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      
+      requestAnimationFrame(() => {
+        overlay?.classList.remove('opacity-0');
+        panel?.classList.remove('translate-x-full');
+      });
+    }
+    
+    function closeCart() {
+      overlay?.classList.add('opacity-0');
+      panel?.classList.add('translate-x-full');
+      document.body.style.overflow = '';
+      
+      setTimeout(() => {
+        slideover?.classList.add('hidden');
+      }, 300);
+    }
+    
+    // Event listeners
+    closeBtn?.addEventListener('click', closeCart);
+    overlay?.addEventListener('click', closeCart);
+    
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !slideover?.classList.contains('hidden')) {
+        closeCart();
+      }
+    });
+    
+    // Expose globally for React components
+    (window as any).openCart = openCart;
+    (window as any).closeCart = closeCart;
+  }
+  
+  // Run on page load
+  setupCartSlideOver();
+  
+  // Re-run on Astro navigation
+  document.addEventListener('astro:page-load', setupCartSlideOver);
+</script>

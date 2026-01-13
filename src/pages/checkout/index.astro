@@ -1,0 +1,681 @@
+---
+import PublicLayout from '@layouts/PublicLayout.astro';
+import { supabase } from '@lib/supabase';
+
+export const prerender = false;
+
+// Obtener token de cookies para verificar autenticación
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+let user = null;
+let customer = null;
+let defaultAddress = null;
+
+if (accessToken) {
+  const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
+  user = authUser;
+  
+  if (user) {
+    // Obtener perfil del cliente
+    const { data: customerData } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .single();
+    
+    customer = customerData;
+    if (customer?.addresses && customer.addresses.length > 0) {
+      defaultAddress = customer.addresses.find((a: any) => a.is_default) || customer.addresses[0];
+    }
+  }
+}
+
+// Provincias de España
+const provinces = [
+  'A Coruña', 'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila',
+  'Badajoz', 'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria', 'Castellón',
+  'Ciudad Real', 'Córdoba', 'Cuenca', 'Girona', 'Granada', 'Guadalajara',
+  'Guipúzcoa', 'Huelva', 'Huesca', 'Illes Balears', 'Jaén', 'La Rioja',
+  'Las Palmas', 'León', 'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia',
+  'Navarra', 'Ourense', 'Palencia', 'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife',
+  'Segovia', 'Sevilla', 'Soria', 'Tarragona', 'Teruel', 'Toledo', 'Valencia',
+  'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza', 'Ceuta', 'Melilla'
+];
+---
+
+<PublicLayout title="Checkout | FashionStore">
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm mb-6">
+      <ol class="flex items-center gap-2 text-primary-500">
+        <li><a href="/" class="hover:text-primary-900">Inicio</a></li>
+        <li>/</li>
+        <li><a href="/carrito" class="hover:text-primary-900">Carrito</a></li>
+        <li>/</li>
+        <li class="text-primary-900">Checkout</li>
+      </ol>
+    </nav>
+
+    <h1 class="text-2xl font-light mb-8">FINALIZAR COMPRA</h1>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+      <!-- Checkout Form -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Login prompt for guests -->
+        {!user && (
+          <div class="bg-primary-50 border border-primary-200 p-4 flex items-center justify-between">
+            <p class="text-sm">¿Ya tienes cuenta? Inicia sesión para un checkout más rápido</p>
+            <a 
+              href={`/cuenta/login?redirect=/checkout`}
+              class="px-4 py-2 bg-primary-900 text-white text-sm hover:bg-primary-800 transition-colors"
+            >
+              INICIAR SESIÓN
+            </a>
+          </div>
+        )}
+
+        <form id="checkoutForm" class="space-y-6">
+          <!-- Contact Information -->
+          <section class="bg-white border border-primary-200 p-6">
+            <h2 class="text-lg font-medium mb-4">Información de contacto</h2>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+              <div>
+                <label for="email" class="block text-sm font-medium text-primary-700 mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={user?.email || ''}
+                  required
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                />
+              </div>
+              <div>
+                <label for="phone" class="block text-sm font-medium text-primary-700 mb-1">
+                  Teléfono *
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={customer?.phone || ''}
+                  required
+                  placeholder="+34 600 000 000"
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                />
+              </div>
+            </div>
+          </section>
+
+          <!-- Shipping Address -->
+          <section class="bg-white border border-primary-200 p-6">
+            <h2 class="text-lg font-medium mb-4">Dirección de envío</h2>
+            
+            {customer?.addresses && customer.addresses.length > 0 && (
+              <div class="mb-6">
+                <label class="block text-sm font-medium text-primary-700 mb-2">
+                  Usar dirección guardada
+                </label>
+                <select
+                  id="savedAddress"
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                >
+                  <option value="">Nueva dirección</option>
+                  {customer.addresses.map((addr: any, i: number) => (
+                    <option 
+                      value={JSON.stringify(addr)} 
+                      selected={addr.is_default}
+                    >
+                      {addr.name} - {addr.street}, {addr.city}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div class="grid md:grid-cols-2 gap-4">
+              <div>
+                <label for="firstName" class="block text-sm font-medium text-primary-700 mb-1">
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  name="firstName"
+                  value={defaultAddress?.name?.split(' ')[0] || customer?.first_name || ''}
+                  required
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                />
+              </div>
+              <div>
+                <label for="lastName" class="block text-sm font-medium text-primary-700 mb-1">
+                  Apellidos *
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  value={defaultAddress?.name?.split(' ').slice(1).join(' ') || customer?.last_name || ''}
+                  required
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                />
+              </div>
+              <div class="md:col-span-2">
+                <label for="street" class="block text-sm font-medium text-primary-700 mb-1">
+                  Dirección *
+                </label>
+                <input
+                  type="text"
+                  id="street"
+                  name="street"
+                  value={defaultAddress?.street || ''}
+                  required
+                  placeholder="Calle, número, piso, puerta"
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                />
+              </div>
+              <div class="md:col-span-2">
+                <label for="street2" class="block text-sm font-medium text-primary-700 mb-1">
+                  Información adicional
+                </label>
+                <input
+                  type="text"
+                  id="street2"
+                  name="street2"
+                  value={defaultAddress?.street2 || ''}
+                  placeholder="Escalera, bloque, urbanización..."
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                />
+              </div>
+              <div>
+                <label for="postalCode" class="block text-sm font-medium text-primary-700 mb-1">
+                  Código Postal *
+                </label>
+                <input
+                  type="text"
+                  id="postalCode"
+                  name="postalCode"
+                  value={defaultAddress?.postal_code || ''}
+                  required
+                  pattern="[0-9]{5}"
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                />
+              </div>
+              <div>
+                <label for="city" class="block text-sm font-medium text-primary-700 mb-1">
+                  Ciudad *
+                </label>
+                <input
+                  type="text"
+                  id="city"
+                  name="city"
+                  value={defaultAddress?.city || ''}
+                  required
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                />
+              </div>
+              <div>
+                <label for="province" class="block text-sm font-medium text-primary-700 mb-1">
+                  Provincia *
+                </label>
+                <select
+                  id="province"
+                  name="province"
+                  required
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                >
+                  <option value="">Selecciona</option>
+                  {provinces.map((p) => (
+                    <option value={p} selected={defaultAddress?.province === p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label for="country" class="block text-sm font-medium text-primary-700 mb-1">
+                  País
+                </label>
+                <select
+                  id="country"
+                  name="country"
+                  class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
+                >
+                  <option value="España" selected>España</option>
+                  <option value="Portugal">Portugal</option>
+                </select>
+              </div>
+            </div>
+
+            {user && (
+              <label class="flex items-center gap-2 mt-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="saveAddress"
+                  name="saveAddress"
+                  class="w-4 h-4 border-primary-300 text-primary-900 focus:ring-primary-900"
+                />
+                <span class="text-sm">Guardar esta dirección para futuras compras</span>
+              </label>
+            )}
+          </section>
+
+          <!-- Shipping Method -->
+          <section class="bg-white border border-primary-200 p-6">
+            <h2 class="text-lg font-medium mb-4">Método de envío</h2>
+            
+            <div class="space-y-3">
+              <label class="flex items-center gap-4 p-4 border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors">
+                <input
+                  type="radio"
+                  name="shippingMethod"
+                  value="standard"
+                  checked
+                  class="w-4 h-4 text-primary-900 focus:ring-primary-900"
+                />
+                <div class="flex-1">
+                  <p class="font-medium">Envío Estándar</p>
+                  <p class="text-sm text-primary-500">3-5 días laborables</p>
+                </div>
+                <span class="font-medium" id="standardPrice">4,95 €</span>
+              </label>
+
+              <label class="flex items-center gap-4 p-4 border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors">
+                <input
+                  type="radio"
+                  name="shippingMethod"
+                  value="express"
+                  class="w-4 h-4 text-primary-900 focus:ring-primary-900"
+                />
+                <div class="flex-1">
+                  <p class="font-medium">Envío Express</p>
+                  <p class="text-sm text-primary-500">24-48 horas</p>
+                </div>
+                <span class="font-medium">9,95 €</span>
+              </label>
+
+              <label class="flex items-center gap-4 p-4 border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors">
+                <input
+                  type="radio"
+                  name="shippingMethod"
+                  value="store"
+                  class="w-4 h-4 text-primary-900 focus:ring-primary-900"
+                />
+                <div class="flex-1">
+                  <p class="font-medium">Recogida en Tienda</p>
+                  <p class="text-sm text-primary-500">Disponible en 24 horas</p>
+                </div>
+                <span class="font-medium text-green-600">Gratis</span>
+              </label>
+            </div>
+          </section>
+
+          <!-- Payment Method -->
+          <section class="bg-white border border-primary-200 p-6">
+            <h2 class="text-lg font-medium mb-4">Método de pago</h2>
+            
+            <div class="space-y-3">
+              <label class="flex items-center gap-4 p-4 border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="card"
+                  checked
+                  class="w-4 h-4 text-primary-900 focus:ring-primary-900"
+                />
+                <div class="flex-1">
+                  <p class="font-medium">Tarjeta de crédito/débito</p>
+                  <div class="flex gap-2 mt-1">
+                    <span class="text-xs bg-primary-100 px-2 py-0.5 rounded">Visa</span>
+                    <span class="text-xs bg-primary-100 px-2 py-0.5 rounded">Mastercard</span>
+                    <span class="text-xs bg-primary-100 px-2 py-0.5 rounded">Amex</span>
+                  </div>
+                </div>
+                <span class="text-2xl">💳</span>
+              </label>
+
+              <label class="flex items-center gap-4 p-4 border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="paypal"
+                  class="w-4 h-4 text-primary-900 focus:ring-primary-900"
+                />
+                <div class="flex-1">
+                  <p class="font-medium">PayPal</p>
+                  <p class="text-sm text-primary-500">Paga de forma segura con PayPal</p>
+                </div>
+                <span class="text-2xl">🅿️</span>
+              </label>
+            </div>
+          </section>
+
+          <!-- Terms -->
+          <div class="space-y-4">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                id="terms"
+                name="terms"
+                required
+                class="w-4 h-4 mt-0.5 border-primary-300 text-primary-900 focus:ring-primary-900"
+              />
+              <span class="text-sm text-primary-600">
+                He leído y acepto los <a href="/terminos" class="underline hover:text-primary-900">términos y condiciones</a> 
+                y la <a href="/privacidad" class="underline hover:text-primary-900">política de privacidad</a> *
+              </span>
+            </label>
+
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                id="newsletter"
+                name="newsletter"
+                class="w-4 h-4 mt-0.5 border-primary-300 text-primary-900 focus:ring-primary-900"
+              />
+              <span class="text-sm text-primary-600">
+                Quiero recibir ofertas exclusivas y novedades por email
+              </span>
+            </label>
+          </div>
+
+          <div id="errorMessage" class="hidden p-4 bg-red-50 border border-red-200 text-red-800 text-sm"></div>
+
+          <button
+            type="submit"
+            id="submitBtn"
+            class="w-full py-4 bg-primary-900 text-white text-lg hover:bg-primary-800 transition-colors disabled:opacity-50"
+          >
+            PAGAR AHORA
+          </button>
+
+          <p class="text-xs text-primary-500 text-center">
+            🔒 Pago 100% seguro. Tus datos están protegidos.
+          </p>
+        </form>
+      </div>
+
+      <!-- Order Summary -->
+      <aside class="lg:col-span-1">
+        <div class="bg-white border border-primary-200 p-6 sticky top-4">
+          <h2 class="text-lg font-medium mb-4">Resumen del pedido</h2>
+          
+          <div id="cartSummary" class="space-y-4 mb-6">
+            <p class="text-primary-500 text-sm">Cargando productos...</p>
+          </div>
+
+          <div class="border-t border-primary-200 pt-4 space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-primary-500">Subtotal</span>
+              <span id="subtotal">0,00 €</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-primary-500">Envío</span>
+              <span id="shippingCost">4,95 €</span>
+            </div>
+            <div id="discountRow" class="hidden flex justify-between text-green-600">
+              <span>Descuento</span>
+              <span id="discount">-0,00 €</span>
+            </div>
+          </div>
+
+          <!-- Coupon -->
+          <div class="border-t border-primary-200 mt-4 pt-4">
+            <div class="flex gap-2">
+              <input
+                type="text"
+                id="couponCode"
+                placeholder="Código de descuento"
+                class="flex-1 px-3 py-2 border border-primary-300 text-sm focus:border-primary-900 focus:ring-0 outline-none"
+              />
+              <button
+                type="button"
+                id="applyCoupon"
+                class="px-4 py-2 border border-primary-900 text-primary-900 text-sm hover:bg-primary-900 hover:text-white transition-colors"
+              >
+                APLICAR
+              </button>
+            </div>
+            <p id="couponMessage" class="text-xs mt-2 hidden"></p>
+          </div>
+
+          <div class="border-t border-primary-200 mt-4 pt-4">
+            <div class="flex justify-between text-lg font-medium">
+              <span>Total</span>
+              <span id="total">0,00 €</span>
+            </div>
+            <p class="text-xs text-primary-500 mt-1">IVA incluido</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</PublicLayout>
+
+<script>
+  import { $cart, $cartTotal, $cartCount } from '../../stores/cart';
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(price);
+  };
+
+  // Obtener datos del carrito
+  const items = $cart.get();
+  const subtotal = $cartTotal.get();
+
+  // Si el carrito está vacío, redirigir
+  if (items.length === 0) {
+    window.location.href = '/carrito';
+  }
+
+  // Renderizar resumen del carrito
+  const cartSummary = document.getElementById('cartSummary');
+  if (cartSummary && items.length > 0) {
+    cartSummary.innerHTML = items.map(item => `
+      <div class="flex gap-3">
+        <div class="w-16 h-20 bg-primary-100 flex-shrink-0 relative">
+          ${item.image ? `<img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover" />` : ''}
+          <span class="absolute -top-2 -right-2 w-5 h-5 bg-primary-900 text-white text-xs rounded-full flex items-center justify-center">${item.quantity}</span>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-medium truncate">${item.name}</p>
+          <p class="text-xs text-primary-500">${item.color} / ${item.size}</p>
+          <p class="text-sm font-medium mt-1">${formatPrice(item.price * item.quantity)}</p>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Actualizar precios
+  let shippingCost = 4.95;
+  let discount = 0;
+  let appliedCoupon: any = null;
+
+  const updateTotals = () => {
+    const subtotalEl = document.getElementById('subtotal');
+    const shippingEl = document.getElementById('shippingCost');
+    const discountEl = document.getElementById('discount');
+    const discountRow = document.getElementById('discountRow');
+    const totalEl = document.getElementById('total');
+
+    if (subtotalEl) subtotalEl.textContent = formatPrice(subtotal);
+    
+    // Envío gratis a partir de 50€
+    if (subtotal >= 50) {
+      shippingCost = 0;
+      const standardPrice = document.getElementById('standardPrice');
+      if (standardPrice) standardPrice.textContent = 'Gratis';
+    }
+    
+    if (shippingEl) shippingEl.textContent = shippingCost > 0 ? formatPrice(shippingCost) : 'Gratis';
+    
+    if (discount > 0 && discountRow && discountEl) {
+      discountRow.classList.remove('hidden');
+      discountEl.textContent = `-${formatPrice(discount)}`;
+    }
+
+    const total = subtotal + shippingCost - discount;
+    if (totalEl) totalEl.textContent = formatPrice(total);
+  };
+
+  updateTotals();
+
+  // Cambiar método de envío
+  document.querySelectorAll('input[name="shippingMethod"]').forEach((radio) => {
+    radio.addEventListener('change', (e) => {
+      const method = (e.target as HTMLInputElement).value;
+      if (method === 'express') shippingCost = 9.95;
+      else if (method === 'store') shippingCost = 0;
+      else shippingCost = subtotal >= 50 ? 0 : 4.95;
+      updateTotals();
+    });
+  });
+
+  // Aplicar cupón
+  document.getElementById('applyCoupon')?.addEventListener('click', async () => {
+    const couponInput = document.getElementById('couponCode') as HTMLInputElement;
+    const couponMessage = document.getElementById('couponMessage');
+    const code = couponInput.value.trim().toUpperCase();
+
+    if (!code) return;
+
+    // Simular verificación de cupón
+    // En producción, esto sería una llamada al servidor
+    const validCoupons: Record<string, { type: string; value: number; minPurchase: number }> = {
+      'WELCOME10': { type: 'percentage', value: 10, minPurchase: 0 },
+      'SAVE20': { type: 'percentage', value: 20, minPurchase: 50 },
+      'ENVIOGRATIS': { type: 'shipping', value: 0, minPurchase: 0 }
+    };
+
+    const coupon = validCoupons[code];
+
+    if (couponMessage) {
+      if (!coupon) {
+        couponMessage.textContent = 'Cupón no válido';
+        couponMessage.className = 'text-xs mt-2 text-red-600';
+        couponMessage.classList.remove('hidden');
+        return;
+      }
+
+      if (subtotal < coupon.minPurchase) {
+        couponMessage.textContent = `Mínimo de compra: ${formatPrice(coupon.minPurchase)}`;
+        couponMessage.className = 'text-xs mt-2 text-red-600';
+        couponMessage.classList.remove('hidden');
+        return;
+      }
+
+      // Aplicar cupón
+      appliedCoupon = { code, ...coupon };
+      
+      if (coupon.type === 'percentage') {
+        discount = subtotal * (coupon.value / 100);
+        couponMessage.textContent = `¡${coupon.value}% de descuento aplicado!`;
+      } else if (coupon.type === 'shipping') {
+        shippingCost = 0;
+        couponMessage.textContent = '¡Envío gratis aplicado!';
+      }
+
+      couponMessage.className = 'text-xs mt-2 text-green-600';
+      couponMessage.classList.remove('hidden');
+      couponInput.disabled = true;
+
+      updateTotals();
+    }
+  });
+
+  // Dirección guardada
+  const savedAddressSelect = document.getElementById('savedAddress') as HTMLSelectElement;
+  savedAddressSelect?.addEventListener('change', () => {
+    const value = savedAddressSelect.value;
+    if (!value) return;
+
+    try {
+      const address = JSON.parse(value);
+      const nameParts = address.name?.split(' ') || [];
+      
+      (document.getElementById('firstName') as HTMLInputElement).value = nameParts[0] || '';
+      (document.getElementById('lastName') as HTMLInputElement).value = nameParts.slice(1).join(' ') || '';
+      (document.getElementById('street') as HTMLInputElement).value = address.street || '';
+      (document.getElementById('street2') as HTMLInputElement).value = address.street2 || '';
+      (document.getElementById('postalCode') as HTMLInputElement).value = address.postal_code || '';
+      (document.getElementById('city') as HTMLInputElement).value = address.city || '';
+      (document.getElementById('province') as HTMLSelectElement).value = address.province || '';
+      (document.getElementById('country') as HTMLSelectElement).value = address.country || 'España';
+      (document.getElementById('phone') as HTMLInputElement).value = address.phone || '';
+    } catch (e) {
+      console.error('Error parsing address', e);
+    }
+  });
+
+  // Submit form
+  const form = document.getElementById('checkoutForm') as HTMLFormElement;
+  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+  const errorMessage = document.getElementById('errorMessage');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'PROCESANDO...';
+    errorMessage?.classList.add('hidden');
+
+    const formData = new FormData(form);
+    
+    const orderData = {
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      shippingAddress: {
+        name: `${formData.get('firstName')} ${formData.get('lastName')}`,
+        street: formData.get('street'),
+        street2: formData.get('street2'),
+        city: formData.get('city'),
+        province: formData.get('province'),
+        postal_code: formData.get('postalCode'),
+        country: formData.get('country'),
+        phone: formData.get('phone')
+      },
+      shippingMethod: formData.get('shippingMethod'),
+      paymentMethod: formData.get('paymentMethod'),
+      couponCode: appliedCoupon?.code,
+      items: items.map(item => ({
+        variantId: item.variantId,
+        quantity: item.quantity,
+        price: item.price
+      })),
+      subtotal,
+      shippingCost,
+      discount,
+      total: subtotal + shippingCost - discount
+    };
+
+    try {
+      // Crear sesión de Stripe
+      const response = await fetch('/api/checkout/create-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Redirigir a Stripe
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      if (errorMessage) {
+        errorMessage.textContent = error.message || 'Error al procesar el pedido';
+        errorMessage.classList.remove('hidden');
+      }
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'PAGAR AHORA';
+    }
+  });
+</script>

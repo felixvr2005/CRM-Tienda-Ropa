@@ -1,0 +1,188 @@
+---
+/**
+ * Product Detail Page - SSG
+ * Página de detalle de producto
+ */
+import PublicLayout from '@layouts/PublicLayout.astro';
+import ProductGallery from '@components/product/ProductGallery.astro';
+import ProductCard from '@components/product/ProductCard.astro';
+import AddToCartButton from '@components/islands/AddToCartButton';
+import { getProducts, getProductBySlug } from '@lib/supabase';
+import { formatPrice, calculateDiscountedPrice } from '@lib/utils';
+
+export const prerender = true;
+
+// Generar rutas para todos los productos
+export async function getStaticPaths() {
+  const products = await getProducts();
+  return products.map((product) => ({
+    params: { slug: product.slug },
+    props: { product },
+  }));
+}
+
+const { product } = Astro.props;
+
+if (!product) {
+  return Astro.redirect('/productos');
+}
+
+const finalPrice = calculateDiscountedPrice(product.price, product.discount_percentage);
+const hasDiscount = product.discount_percentage > 0;
+
+// Productos relacionados (misma categoría)
+const allProducts = await getProducts();
+const relatedProducts = allProducts
+  .filter(p => p.category_id === product.category_id && p.id !== product.id)
+  .slice(0, 4);
+
+// Imágenes del producto
+const productImages = product.images?.length > 0 
+  ? product.images 
+  : product.image_url 
+    ? [product.image_url] 
+    : ['/images/products/placeholder.jpg'];
+---
+
+<PublicLayout title={product.name}>
+  <div class="max-w-[1800px] mx-auto px-4 lg:px-8 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-primary-500 mb-8">
+      <a href="/" class="hover:text-primary-900">Inicio</a>
+      <span class="mx-2">/</span>
+      <a href="/productos" class="hover:text-primary-900">Colección</a>
+      {product.category && (
+        <>
+          <span class="mx-2">/</span>
+          <a href={`/categoria/${product.category.slug}`} class="hover:text-primary-900">
+            {product.category.name}
+          </a>
+        </>
+      )}
+      <span class="mx-2">/</span>
+      <span class="text-primary-900">{product.name}</span>
+    </nav>
+    
+    <!-- Product Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+      <!-- Gallery -->
+      <div class="lg:sticky lg:top-24 lg:self-start">
+        <ProductGallery images={productImages} productName={product.name} />
+      </div>
+      
+      <!-- Product Info -->
+      <div class="py-4">
+        <!-- Badges -->
+        <div class="flex gap-2 mb-4">
+          {product.is_new && (
+            <span class="bg-primary-900 text-white text-2xs tracking-widest uppercase px-2 py-1">
+              Nuevo
+            </span>
+          )}
+          {hasDiscount && (
+            <span class="bg-red-600 text-white text-2xs tracking-widest uppercase px-2 py-1">
+              -{product.discount_percentage}%
+            </span>
+          )}
+        </div>
+        
+        <!-- Title & Price -->
+        <h1 class="font-display text-3xl md:text-4xl text-primary-900 mb-2">
+          {product.name}
+        </h1>
+        
+        {product.category && (
+          <p class="text-sm text-primary-500 uppercase tracking-wider mb-4">
+            {product.category.name}
+          </p>
+        )}
+        
+        <div class="flex items-baseline gap-3 mb-6">
+          <span class={`text-2xl ${hasDiscount ? 'text-red-600' : 'text-primary-900'}`}>
+            {formatPrice(finalPrice)}
+          </span>
+          {hasDiscount && (
+            <span class="text-lg text-primary-400 line-through">
+              {formatPrice(product.price)}
+            </span>
+          )}
+        </div>
+        
+        <!-- Description -->
+        {product.description && (
+          <div class="prose prose-sm max-w-none text-primary-600 mb-8">
+            <p>{product.description}</p>
+          </div>
+        )}
+        
+        <!-- Add to Cart (React Island) -->
+        <AddToCartButton
+          client:load
+          productId={product.id}
+          productName={product.name}
+          productSlug={product.slug}
+          productPrice={product.price}
+          productDiscount={product.discount_percentage}
+          productImage={product.image_url || '/images/products/placeholder.jpg'}
+          variants={product.variants || []}
+        />
+        
+        <!-- Accordion -->
+        <div class="mt-8 border-t border-primary-200">
+          <details class="group">
+            <summary class="flex items-center justify-between py-4 cursor-pointer">
+              <span class="text-sm font-medium uppercase tracking-wider">Descripción del producto</span>
+              <svg class="w-5 h-5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="pb-4 text-sm text-primary-600">
+              {product.description || 'Prenda de alta calidad diseñada con los mejores materiales.'}
+            </div>
+          </details>
+          
+          <details class="group border-t border-primary-200">
+            <summary class="flex items-center justify-between py-4 cursor-pointer">
+              <span class="text-sm font-medium uppercase tracking-wider">Composición y cuidados</span>
+              <svg class="w-5 h-5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="pb-4 text-sm text-primary-600 space-y-2">
+              <p>100% Algodón premium</p>
+              <p>Lavar a máquina máx. 30°C</p>
+              <p>No usar secadora</p>
+              <p>Planchar a temperatura media</p>
+            </div>
+          </details>
+          
+          <details class="group border-t border-primary-200">
+            <summary class="flex items-center justify-between py-4 cursor-pointer">
+              <span class="text-sm font-medium uppercase tracking-wider">Envío y devoluciones</span>
+              <svg class="w-5 h-5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="pb-4 text-sm text-primary-600 space-y-2">
+              <p>Envío estándar: 2-4 días laborables (5,95€)</p>
+              <p>Envío gratis en pedidos superiores a 100€</p>
+              <p>Devolución gratuita en 30 días</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Related Products -->
+    {relatedProducts.length > 0 && (
+      <section class="mt-20">
+        <h2 class="font-display text-2xl mb-8">También te puede gustar</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8">
+          {relatedProducts.map((p) => (
+            <ProductCard product={p} />
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+</PublicLayout>

@@ -1,0 +1,25 @@
+---
+/**
+ * Cart Page - SSR
+ * Página del carrito con checkout
+ */
+import PublicLayout from '@layouts/PublicLayout.astro';
+import CartPageContent from '@components/islands/CartPageContent';
+
+export const prerender = false;
+---
+
+<PublicLayout title="Tu cesta" showPromoBar={false}>
+  <div class="max-w-[1400px] mx-auto px-4 lg:px-8 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-primary-500 mb-8">
+      <a href="/" class="hover:text-primary-900">Inicio</a>
+      <span class="mx-2">/</span>
+      <span class="text-primary-900">Cesta</span>
+    </nav>
+    
+    <h1 class="font-display text-3xl md:text-4xl mb-8">Tu cesta</h1>
+    
+    <CartPageContent client:load />
+  </div>
+</PublicLayout>

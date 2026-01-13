@@ -1,0 +1,338 @@
+---
+import PublicLayout from '@layouts/PublicLayout.astro';
+import { supabase } from '@lib/supabase';
+
+export const prerender = false;
+
+// Obtener token de cookies
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+
+if (!accessToken) {
+  return Astro.redirect('/cuenta/login?redirect=/cuenta/favoritos');
+}
+
+// Verificar autenticación con el token
+const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+if (authError || !user) {
+  Astro.cookies.delete('sb-access-token', { path: '/' });
+  Astro.cookies.delete('sb-refresh-token', { path: '/' });
+  return Astro.redirect('/cuenta/login?redirect=/cuenta/favoritos');
+}
+
+// Obtener cliente
+const { data: customer } = await supabase
+  .from('customers')
+  .select('id')
+  .eq('auth_user_id', user.id)
+  .single();
+
+// Obtener favoritos con detalles de productos
+const { data: wishlistItems } = await supabase
+  .from('wishlists')
+  .select(`
+    id,
+    created_at,
+    product:products (
+      id,
+      name,
+      slug,
+      description,
+      images,
+      category:categories!products_category_id_fkey (
+        name,
+        slug
+      ),
+      variants:product_variants (
+        id,
+        color,
+        size,
+        price,
+        original_price,
+        stock
+      )
+    )
+  `)
+  .eq('customer_id', customer?.id)
+  .order('created_at', { ascending: false });
+
+// Formatear productos para ProductCard
+const favoriteProducts = wishlistItems?.map((item: any) => {
+  const product = item.product;
+  const variants = product?.variants || [];
+  
+  // Obtener precio mínimo y original
+  const minPrice = variants.length > 0 
+    ? Math.min(...variants.map((v: any) => v.price))
+    : 0;
+  const minOriginalPrice = variants.length > 0
+    ? Math.min(...variants.map((v: any) => v.original_price || v.price))
+    : 0;
+
+  // Colores únicos disponibles
+  const colors = [...new Set(variants.map((v: any) => v.color))];
+
+  return {
+    ...product,
+    price: minPrice,
+    originalPrice: minOriginalPrice > minPrice ? minOriginalPrice : null,
+    colors,
+    wishlistId: item.id,
+    addedAt: item.created_at
+  };
+}).filter((p: any) => p && p.id) || [];
+
+// Formatear precio
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR'
+  }).format(price);
+};
+---
+
+<PublicLayout title="Mis Favoritos | FashionStore">
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm mb-6">
+      <ol class="flex items-center gap-2 text-primary-500">
+        <li><a href="/" class="hover:text-primary-900">Inicio</a></li>
+        <li>/</li>
+        <li><a href="/cuenta" class="hover:text-primary-900">Mi Cuenta</a></li>
+        <li>/</li>
+        <li class="text-primary-900">Favoritos</li>
+      </ol>
+    </nav>
+
+    <div class="grid lg:grid-cols-4 gap-8">
+      <!-- Sidebar -->
+      <aside class="lg:col-span-1">
+        <nav class="space-y-1 bg-white border border-primary-200 p-4">
+          <a href="/cuenta" class="block px-4 py-2 text-primary-600 hover:bg-primary-50 transition-colors">
+            Dashboard
+          </a>
+          <a href="/cuenta/pedidos" class="block px-4 py-2 text-primary-600 hover:bg-primary-50 transition-colors">
+            Mis Pedidos
+          </a>
+          <a href="/cuenta/favoritos" class="block px-4 py-2 bg-primary-900 text-white">
+            Favoritos
+          </a>
+          <a href="/cuenta/direcciones" class="block px-4 py-2 text-primary-600 hover:bg-primary-50 transition-colors">
+            Direcciones
+          </a>
+          <a href="/cuenta/perfil" class="block px-4 py-2 text-primary-600 hover:bg-primary-50 transition-colors">
+            Mi Perfil
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="lg:col-span-3">
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-light">
+            MIS FAVORITOS
+            {favoriteProducts.length > 0 && (
+              <span class="text-primary-400 text-lg ml-2">({favoriteProducts.length})</span>
+            )}
+          </h1>
+        </div>
+
+        {favoriteProducts.length === 0 ? (
+          <div class="bg-white border border-primary-200 p-12 text-center">
+            <svg class="w-16 h-16 mx-auto mb-4 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+            <h2 class="text-xl font-light mb-2">Tu lista de favoritos está vacía</h2>
+            <p class="text-primary-500 mb-6">Guarda tus productos favoritos para encontrarlos fácilmente</p>
+            <a href="/productos" class="inline-block bg-primary-900 text-white px-8 py-3 hover:bg-primary-800 transition-colors">
+              EXPLORAR PRODUCTOS
+            </a>
+          </div>
+        ) : (
+          <>
+            <!-- Actions -->
+            <div class="flex gap-4 mb-6">
+              <button
+                id="addAllToCartBtn"
+                class="px-4 py-2 border border-primary-900 text-primary-900 hover:bg-primary-900 hover:text-white transition-colors text-sm"
+              >
+                AÑADIR TODO AL CARRITO
+              </button>
+              <button
+                id="clearWishlistBtn"
+                class="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors text-sm"
+              >
+                VACIAR FAVORITOS
+              </button>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {favoriteProducts.map((product: any) => (
+                <div class="relative group">
+                  <!-- Remove Button -->
+                  <button
+                    class="remove-wishlist-btn absolute top-2 right-2 z-10 w-8 h-8 bg-white/90 hover:bg-red-500 rounded-full flex items-center justify-center transition-colors group-hover:opacity-100 opacity-0"
+                    data-wishlist-id={product.wishlistId}
+                    data-product-name={product.name}
+                    aria-label="Eliminar de favoritos"
+                  >
+                    <svg class="w-4 h-4 text-primary-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                  
+                  <!-- Product Card -->
+                  <a href={`/productos/${product.slug}`} class="block">
+                    <div class="aspect-[3/4] bg-primary-100 mb-3 overflow-hidden">
+                      {product.images?.[0] ? (
+                        <img 
+                          src={product.images[0]} 
+                          alt={product.name}
+                          class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div class="w-full h-full flex items-center justify-center text-primary-300">
+                          Sin imagen
+                        </div>
+                      )}
+                    </div>
+                    <h3 class="text-sm font-medium truncate">{product.name}</h3>
+                    <p class="text-xs text-primary-500 mb-1">{product.category?.name}</p>
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium">{formatPrice(product.price)}</span>
+                      {product.originalPrice && (
+                        <span class="text-sm text-primary-400 line-through">
+                          {formatPrice(product.originalPrice)}
+                        </span>
+                      )}
+                    </div>
+                    {product.colors?.length > 0 && (
+                      <div class="flex gap-1 mt-2">
+                        {product.colors.slice(0, 4).map((color: string) => (
+                          <span 
+                            class="w-4 h-4 rounded-full border border-primary-200"
+                            style={`background-color: ${getColorHex(color)}`}
+                            title={color}
+                          />
+                        ))}
+                        {product.colors.length > 4 && (
+                          <span class="text-xs text-primary-500">+{product.colors.length - 4}</span>
+                        )}
+                      </div>
+                    )}
+                  </a>
+
+                  <!-- Quick Add to Cart -->
+                  <button
+                    class="quick-add-btn w-full mt-2 py-2 bg-primary-900 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                    data-product-id={product.id}
+                    data-product-slug={product.slug}
+                  >
+                    AÑADIR AL CARRITO
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  </main>
+</PublicLayout>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  // Eliminar de favoritos
+  document.querySelectorAll('.remove-wishlist-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const wishlistId = (btn as HTMLElement).dataset.wishlistId;
+      const productName = (btn as HTMLElement).dataset.productName;
+
+      if (!confirm(`¿Eliminar "${productName}" de favoritos?`)) return;
+
+      const { error } = await supabase
+        .from('wishlists')
+        .delete()
+        .eq('id', wishlistId);
+
+      if (error) {
+        alert('Error al eliminar: ' + error.message);
+      } else {
+        // Eliminar visualmente
+        btn.closest('.relative')?.remove();
+        
+        // Verificar si quedan productos
+        const remaining = document.querySelectorAll('.remove-wishlist-btn').length;
+        if (remaining === 0) {
+          window.location.reload();
+        }
+      }
+    });
+  });
+
+  // Vaciar favoritos
+  document.getElementById('clearWishlistBtn')?.addEventListener('click', async () => {
+    if (!confirm('¿Eliminar todos los productos de favoritos?')) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (!customer) return;
+
+    const { error } = await supabase
+      .from('wishlists')
+      .delete()
+      .eq('customer_id', customer.id);
+
+    if (error) {
+      alert('Error al vaciar favoritos: ' + error.message);
+    } else {
+      window.location.reload();
+    }
+  });
+
+  // Quick add to cart - redirige al producto
+  document.querySelectorAll('.quick-add-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const slug = (btn as HTMLElement).dataset.productSlug;
+      window.location.href = `/productos/${slug}`;
+    });
+  });
+</script>
+
+<script is:inline>
+  // Función auxiliar para colores
+  function getColorHex(colorName) {
+    const colors = {
+      'Negro': '#000000',
+      'Blanco': '#FFFFFF',
+      'Gris': '#6B7280',
+      'Azul Marino': '#1E3A5F',
+      'Azul': '#3B82F6',
+      'Rojo': '#DC2626',
+      'Verde': '#16A34A',
+      'Beige': '#D4C4A8',
+      'Marrón': '#78350F',
+      'Rosa': '#EC4899',
+      'Amarillo': '#EAB308',
+      'Naranja': '#F97316',
+      'Morado': '#7C3AED',
+      'Crema': '#FEF3C7',
+      'Camel': '#C19A6B'
+    };
+    return colors[colorName] || '#E5E7EB';
+  }
+</script>

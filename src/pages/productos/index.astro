@@ -1,0 +1,377 @@
+---
+/**
+ * Product Listing Page - Con filtros interactivos
+ * Catálogo completo de productos
+ */
+import PublicLayout from '@layouts/PublicLayout.astro';
+import ProductCard from '@components/product/ProductCard.astro';
+import { getFilteredProducts, getAvailableFilters, getCategories } from '@lib/supabase';
+
+// Obtener parámetros de URL
+const url = new URL(Astro.request.url);
+const categorySlug = url.searchParams.get('categoria') || undefined;
+const search = url.searchParams.get('q') || undefined;
+const minPrice = url.searchParams.get('min') ? Number(url.searchParams.get('min')) : undefined;
+const maxPrice = url.searchParams.get('max') ? Number(url.searchParams.get('max')) : undefined;
+const colorsParam = url.searchParams.get('colores');
+const sizesParam = url.searchParams.get('tallas');
+const onSale = url.searchParams.get('oferta') === '1';
+const sortBy = (url.searchParams.get('orden') as any) || 'newest';
+
+const colors = colorsParam ? colorsParam.split(',') : [];
+const sizes = sizesParam ? sizesParam.split(',') : [];
+
+// Obtener productos filtrados
+const products = await getFilteredProducts({
+  category: categorySlug,
+  search,
+  minPrice,
+  maxPrice,
+  colors,
+  sizes,
+  onSale,
+  sortBy
+});
+
+// Obtener filtros disponibles y categorías
+const availableFilters = await getAvailableFilters(categorySlug);
+const categories = await getCategories();
+
+// Categorías principales (sin parent)
+const mainCategories = categories.filter((c: any) => !c.parent_id);
+
+// Título de página
+const pageTitle = categorySlug 
+  ? categories.find((c: any) => c.slug === categorySlug)?.name || 'Colección'
+  : search 
+    ? `Resultados para "${search}"`
+    : 'Colección';
+
+// Mapa de colores para mostrar en UI
+const colorHex: Record<string, string> = {
+  'Negro': '#000000', 'Blanco': '#FFFFFF', 'Beige': '#F5F5DC',
+  'Burdeos': '#800020', 'Azul Marino': '#1E3A5F', 'Celeste': '#B0E0E6',
+  'Rosa': '#FFB6C1', 'Crema': '#FFFDD0', 'Camel': '#C19A6B', 'Marrón': '#8B4513'
+};
+---
+
+<PublicLayout title={pageTitle}>
+  <div class="max-w-[1800px] mx-auto px-4 lg:px-8 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-primary-500 mb-8">
+      <a href="/" class="hover:text-primary-900">Inicio</a>
+      <span class="mx-2">/</span>
+      {categorySlug ? (
+        <>
+          <a href="/productos" class="hover:text-primary-900">Colección</a>
+          <span class="mx-2">/</span>
+          <span class="text-primary-900">{pageTitle}</span>
+        </>
+      ) : (
+        <span class="text-primary-900">Colección</span>
+      )}
+    </nav>
+    
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div>
+        <h1 class="font-display text-3xl md:text-4xl">{pageTitle}</h1>
+        {search && <p class="text-primary-500 mt-1">Mostrando resultados para "{search}"</p>}
+      </div>
+      <span class="text-sm text-primary-500">{products.length} productos</span>
+    </div>
+    
+    <div class="flex gap-8">
+      <!-- Sidebar Filters -->
+      <aside class="hidden lg:block w-64 flex-shrink-0">
+        <div class="sticky top-24 space-y-8">
+          <!-- Categories -->
+          <div>
+            <h3 class="text-xs uppercase tracking-wider text-primary-500 mb-4">Categorías</h3>
+            <ul class="space-y-2">
+              <li>
+                <a 
+                  href="/productos" 
+                  class:list={['text-sm', !categorySlug ? 'text-primary-900 font-medium' : 'text-primary-600 hover:text-primary-900']}
+                >
+                  Todos los productos
+                </a>
+              </li>
+              {mainCategories.map((category: any) => (
+                <li>
+                  <a 
+                    href={'/productos?categoria=' + category.slug}
+                    class:list={['text-sm', categorySlug === category.slug ? 'text-primary-900 font-medium' : 'text-primary-600 hover:text-primary-900']}
+                  >
+                    {category.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <!-- Ordenar -->
+          <div>
+            <h3 class="text-xs uppercase tracking-wider text-primary-500 mb-3">Ordenar por</h3>
+            <select
+              id="sortSelect"
+              class="w-full border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
+            >
+              <option value="newest" selected={sortBy === 'newest'}>Más recientes</option>
+              <option value="price-asc" selected={sortBy === 'price-asc'}>Precio: menor a mayor</option>
+              <option value="price-desc" selected={sortBy === 'price-desc'}>Precio: mayor a menor</option>
+              <option value="popular" selected={sortBy === 'popular'}>Más populares</option>
+            </select>
+          </div>
+
+          <!-- En oferta -->
+          <div>
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                id="saleFilter"
+                checked={onSale}
+                class="w-5 h-5 accent-primary-900"
+              />
+              <span class="text-sm">Solo productos en oferta</span>
+            </label>
+          </div>
+
+          <!-- Colores -->
+          {availableFilters.colors.length > 0 && (
+            <div>
+              <h3 class="text-xs uppercase tracking-wider text-primary-500 mb-3">Color</h3>
+              <div class="flex flex-wrap gap-2" id="colorFilters">
+                {availableFilters.colors.map((color) => (
+                  <button
+                    data-color={color}
+                    class:list={['color-filter flex items-center gap-2 px-3 py-1.5 border text-sm transition-colors', colors.includes(color) ? 'border-primary-900 bg-primary-900 text-white' : 'border-primary-300 hover:border-primary-500']}
+                    title={color}
+                  >
+                    <span
+                      class="w-4 h-4 rounded-full border border-primary-300"
+                      style={`background-color: ${colorHex[color] || '#ccc'}`}
+                    />
+                    {color}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <!-- Tallas -->
+          {availableFilters.sizes.length > 0 && (
+            <div>
+              <h3 class="text-xs uppercase tracking-wider text-primary-500 mb-3">Talla</h3>
+              <div class="flex flex-wrap gap-2" id="sizeFilters">
+                {availableFilters.sizes.map((size) => (
+                  <button
+                    data-size={size}
+                    class:list={['size-filter min-w-[40px] px-3 py-2 border text-sm transition-colors', sizes.includes(size) ? 'border-primary-900 bg-primary-900 text-white' : 'border-primary-300 hover:border-primary-500']}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <!-- Precio -->
+          <div>
+            <h3 class="text-xs uppercase tracking-wider text-primary-500 mb-3">Precio</h3>
+            <div class="space-y-4">
+              <div class="flex items-center gap-4">
+                <div class="flex-1">
+                  <label class="text-xs text-primary-400 mb-1 block">Mínimo</label>
+                  <input
+                    type="number"
+                    id="minPrice"
+                    value={minPrice || availableFilters.priceRange.min}
+                    min={availableFilters.priceRange.min}
+                    class="w-full border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
+                  />
+                </div>
+                <span class="text-primary-400 pt-4">-</span>
+                <div class="flex-1">
+                  <label class="text-xs text-primary-400 mb-1 block">Máximo</label>
+                  <input
+                    type="number"
+                    id="maxPrice"
+                    value={maxPrice || availableFilters.priceRange.max}
+                    max={availableFilters.priceRange.max}
+                    class="w-full border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
+                  />
+                </div>
+              </div>
+              <button
+                id="applyPrice"
+                class="w-full btn btn-outline text-sm py-2"
+              >
+                Aplicar precio
+              </button>
+            </div>
+          </div>
+
+          <!-- Limpiar filtros -->
+          {(colors.length > 0 || sizes.length > 0 || onSale || minPrice || maxPrice) && (
+            <div class="pt-4 border-t border-primary-200">
+              <a
+                href={categorySlug ? '/productos?categoria=' + categorySlug : '/productos'}
+                class="text-sm text-primary-600 hover:text-primary-900 underline"
+              >
+                Limpiar todos los filtros
+              </a>
+            </div>
+          )}
+        </div>
+      </aside>
+      
+      <!-- Mobile Filter Button -->
+      <div class="lg:hidden fixed bottom-4 left-4 right-4 z-40">
+        <button
+          id="mobileFilterBtn"
+          class="w-full btn btn-primary py-3 flex items-center justify-center gap-2 shadow-lg"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filtros y Ordenar
+          {(colors.length + sizes.length + (onSale ? 1 : 0)) > 0 && (
+            <span class="bg-white text-primary-900 text-xs px-2 py-0.5 rounded-full">
+              {colors.length + sizes.length + (onSale ? 1 : 0)}
+            </span>
+          )}
+        </button>
+      </div>
+      
+      <!-- Product Grid -->
+      <div class="flex-1">
+        {products.length > 0 ? (
+          <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {products.map((product: any) => (
+              <ProductCard product={product} />
+            ))}
+          </div>
+        ) : (
+          <div class="text-center py-20">
+            <svg class="w-20 h-20 mx-auto text-primary-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 class="text-xl font-medium mb-2">No hay productos</h2>
+            <p class="text-primary-500 mb-6">No encontramos productos con los filtros seleccionados</p>
+            <a href="/productos" class="btn btn-primary">Ver todos los productos</a>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</PublicLayout>
+
+<script>
+  // Función para construir URL con filtros actuales
+  function buildFilterUrl() {
+    const url = new URL(window.location.href);
+    return url;
+  }
+
+  // Función para actualizar filtros y recargar
+  function updateFilters() {
+    const url = buildFilterUrl();
+    const params = url.searchParams;
+    
+    // Colores activos
+    const activeColors: string[] = [];
+    document.querySelectorAll('.color-filter').forEach(btn => {
+      if (btn.classList.contains('bg-primary-900')) {
+        activeColors.push((btn as HTMLElement).dataset.color || '');
+      }
+    });
+    if (activeColors.length > 0) {
+      params.set('colores', activeColors.join(','));
+    } else {
+      params.delete('colores');
+    }
+    
+    // Tallas activas
+    const activeSizes: string[] = [];
+    document.querySelectorAll('.size-filter').forEach(btn => {
+      if (btn.classList.contains('bg-primary-900')) {
+        activeSizes.push((btn as HTMLElement).dataset.size || '');
+      }
+    });
+    if (activeSizes.length > 0) {
+      params.set('tallas', activeSizes.join(','));
+    } else {
+      params.delete('tallas');
+    }
+    
+    // Solo ofertas
+    const saleFilter = document.getElementById('saleFilter') as HTMLInputElement;
+    if (saleFilter?.checked) {
+      params.set('oferta', '1');
+    } else {
+      params.delete('oferta');
+    }
+    
+    // Ordenar
+    const sortSelect = document.getElementById('sortSelect') as HTMLSelectElement;
+    if (sortSelect?.value && sortSelect.value !== 'newest') {
+      params.set('orden', sortSelect.value);
+    } else {
+      params.delete('orden');
+    }
+    
+    window.location.href = url.toString();
+  }
+
+  // Toggle clase activa en filtros de color
+  document.querySelectorAll('.color-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('border-primary-900');
+      btn.classList.toggle('bg-primary-900');
+      btn.classList.toggle('text-white');
+      btn.classList.toggle('border-primary-300');
+      updateFilters();
+    });
+  });
+
+  // Toggle clase activa en filtros de talla
+  document.querySelectorAll('.size-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('border-primary-900');
+      btn.classList.toggle('bg-primary-900');
+      btn.classList.toggle('text-white');
+      btn.classList.toggle('border-primary-300');
+      updateFilters();
+    });
+  });
+
+  // Filtro de oferta
+  document.getElementById('saleFilter')?.addEventListener('change', updateFilters);
+  
+  // Ordenar
+  document.getElementById('sortSelect')?.addEventListener('change', updateFilters);
+
+  // Filtro de precio
+  document.getElementById('applyPrice')?.addEventListener('click', () => {
+    const url = buildFilterUrl();
+    const minPrice = (document.getElementById('minPrice') as HTMLInputElement)?.value;
+    const maxPrice = (document.getElementById('maxPrice') as HTMLInputElement)?.value;
+    
+    if (minPrice) url.searchParams.set('min', minPrice);
+    else url.searchParams.delete('min');
+    
+    if (maxPrice) url.searchParams.set('max', maxPrice);
+    else url.searchParams.delete('max');
+    
+    window.location.href = url.toString();
+  });
+
+  // Mobile filter button - mostrar sidebar en móvil
+  const mobileFilterBtn = document.getElementById('mobileFilterBtn');
+  mobileFilterBtn?.addEventListener('click', () => {
+    // Scroll arriba para ver filtros (versión simple)
+    // En versión completa, abriríamos un modal
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+</script>

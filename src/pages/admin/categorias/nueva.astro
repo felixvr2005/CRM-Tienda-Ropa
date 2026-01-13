@@ -1,0 +1,162 @@
+---
+/**
+ * Admin - Nueva Categoría
+ */
+import AdminLayout from '@layouts/AdminLayout.astro';
+
+export const prerender = false;
+---
+
+<AdminLayout title="Nueva Categoría">
+  <div class="max-w-2xl">
+    <div class="mb-6">
+      <a href="/admin/categorias" class="text-primary-500 hover:text-primary-900 text-sm">
+        ← Volver a categorías
+      </a>
+    </div>
+
+    <div class="bg-white border border-primary-200 p-6">
+      <h1 class="text-2xl font-display mb-6">Nueva Categoría</h1>
+
+      <form id="categoryForm" class="space-y-6">
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Nombre *
+          </label>
+          <input 
+            type="text" 
+            name="name" 
+            required
+            class="w-full border border-primary-300 px-4 py-3 text-sm focus:outline-none focus:border-primary-900"
+            placeholder="Ej: Camisas"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Slug *
+          </label>
+          <input 
+            type="text" 
+            name="slug" 
+            required
+            class="w-full border border-primary-300 px-4 py-3 text-sm focus:outline-none focus:border-primary-900 font-mono"
+            placeholder="Ej: camisas"
+          />
+          <p class="text-xs text-primary-400 mt-1">URL amigable (sin espacios ni caracteres especiales)</p>
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Descripción
+          </label>
+          <textarea 
+            name="description" 
+            rows="3"
+            class="w-full border border-primary-300 px-4 py-3 text-sm focus:outline-none focus:border-primary-900"
+            placeholder="Descripción de la categoría..."
+          ></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            URL de imagen
+          </label>
+          <input 
+            type="url" 
+            name="image_url"
+            class="w-full border border-primary-300 px-4 py-3 text-sm focus:outline-none focus:border-primary-900"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Orden
+          </label>
+          <input 
+            type="number" 
+            name="sort_order"
+            value="0"
+            class="w-full border border-primary-300 px-4 py-3 text-sm focus:outline-none focus:border-primary-900"
+          />
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input 
+            type="checkbox" 
+            name="is_active" 
+            id="is_active"
+            checked
+            class="w-5 h-5 accent-primary-900"
+          />
+          <label for="is_active" class="text-sm">Categoría activa</label>
+        </div>
+
+        <div id="errorMessage" class="p-4 bg-red-50 border border-red-200 text-red-700 text-sm hidden"></div>
+
+        <div class="flex gap-4">
+          <button 
+            type="submit"
+            class="bg-primary-900 text-white px-6 py-3 text-sm uppercase tracking-wider hover:bg-primary-800 transition-colors"
+          >
+            Crear categoría
+          </button>
+          <a 
+            href="/admin/categorias"
+            class="border border-primary-300 px-6 py-3 text-sm uppercase tracking-wider hover:border-primary-900 transition-colors"
+          >
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { supabase } from '@lib/supabase';
+
+  const form = document.getElementById('categoryForm') as HTMLFormElement;
+  const errorDiv = document.getElementById('errorMessage') as HTMLDivElement;
+  const nameInput = form.querySelector('input[name="name"]') as HTMLInputElement;
+  const slugInput = form.querySelector('input[name="slug"]') as HTMLInputElement;
+
+  // Auto-generar slug desde el nombre
+  nameInput.addEventListener('input', () => {
+    const slug = nameInput.value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    slugInput.value = slug;
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorDiv.classList.add('hidden');
+
+    const formData = new FormData(form);
+    
+    const categoryData = {
+      name: formData.get('name') as string,
+      slug: formData.get('slug') as string,
+      description: formData.get('description') as string || null,
+      image_url: formData.get('image_url') as string || null,
+      sort_order: parseInt(formData.get('sort_order') as string) || 0,
+      is_active: formData.has('is_active'),
+    };
+
+    const { error } = await supabase
+      .from('categories')
+      .insert(categoryData);
+
+    if (error) {
+      errorDiv.textContent = error.message;
+      errorDiv.classList.remove('hidden');
+    } else {
+      window.location.href = '/admin/categorias';
+    }
+  });
+</script>

@@ -1,0 +1,195 @@
+---
+/**
+ * Sobre Nosotros Page
+ */
+import PublicLayout from '@layouts/PublicLayout.astro';
+
+export const prerender = true;
+---
+
+<PublicLayout title="Sobre Nosotros | FashionStore">
+  <div class="max-w-7xl mx-auto px-4 lg:px-8 py-12">
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-primary-500 mb-8">
+      <a href="/" class="hover:text-primary-900">Inicio</a>
+      <span class="mx-2">/</span>
+      <span class="text-primary-900">Sobre Nosotros</span>
+    </nav>
+    
+    <!-- Hero Section -->
+    <div class="text-center mb-16">
+      <h1 class="font-display text-4xl md:text-5xl mb-4">NUESTRA HISTORIA</h1>
+      <p class="text-primary-600 max-w-2xl mx-auto text-lg">
+        Más que una tienda de moda, somos un estilo de vida
+      </p>
+    </div>
+
+    <!-- Story Section -->
+    <div class="grid lg:grid-cols-2 gap-12 mb-16 items-center">
+      <div>
+        <img 
+          src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80" 
+          alt="Nuestra tienda"
+          class="w-full h-96 object-cover"
+        />
+      </div>
+      <div>
+        <h2 class="font-display text-3xl mb-6">El origen de FashionStore</h2>
+        <p class="text-primary-600 mb-4 leading-relaxed">
+          FashionStore nació en 2020 con una visión clara: democratizar la moda de calidad. 
+          Creemos que vestir bien no debería ser un lujo, sino una forma de expresar 
+          quién eres.
+        </p>
+        <p class="text-primary-600 mb-4 leading-relaxed">
+          Desde nuestros inicios, nos hemos comprometido a ofrecer prendas que combinan 
+          diseño atemporal, materiales de calidad y precios accesibles. Cada colección 
+          es cuidadosamente seleccionada para asegurar que encuentres exactamente 
+          lo que buscas.
+        </p>
+        <p class="text-primary-600 leading-relaxed">
+          Hoy, miles de clientes confían en nosotros para renovar su armario y 
+          descubrir nuevas tendencias sin comprometer su presupuesto.
+        </p>
+      </div>
+    </div>
+
+    <!-- Values Section -->
+    <div class="bg-primary-50 py-16 px-8 mb-16">
+      <h2 class="font-display text-3xl text-center mb-12">Nuestros Valores</h2>
+      
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="w-16 h-16 mx-auto mb-4 bg-primary-900 text-white flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <h3 class="font-display text-xl mb-3">Calidad</h3>
+          <p class="text-primary-600">
+            Seleccionamos cuidadosamente cada prenda para garantizar materiales 
+            duraderos y acabados impecables.
+          </p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 mx-auto mb-4 bg-primary-900 text-white flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h3 class="font-display text-xl mb-3">Sostenibilidad</h3>
+          <p class="text-primary-600">
+            Trabajamos con proveedores comprometidos con prácticas éticas y 
+            respetuosas con el medio ambiente.
+          </p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-16 h-16 mx-auto mb-4 bg-primary-900 text-white flex items-center justify-center">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+          </div>
+          <h3 class="font-display text-xl mb-3">Pasión</h3>
+          <p class="text-primary-600">
+            Amamos la moda y nos apasiona ayudar a nuestros clientes a 
+            encontrar su estilo único.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Section -->
+    <div class="mb-16">
+      <h2 class="font-display text-3xl text-center mb-12">Nuestro Equipo</h2>
+      
+      <div class="grid md:grid-cols-4 gap-8">
+        <div class="text-center">
+          <div class="w-32 h-32 mx-auto mb-4 bg-primary-200 rounded-full overflow-hidden">
+            <img 
+              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80" 
+              alt="Ana García"
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <h3 class="font-medium">Ana García</h3>
+          <p class="text-primary-500 text-sm">CEO & Fundadora</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-32 h-32 mx-auto mb-4 bg-primary-200 rounded-full overflow-hidden">
+            <img 
+              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" 
+              alt="Carlos Ruiz"
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <h3 class="font-medium">Carlos Ruiz</h3>
+          <p class="text-primary-500 text-sm">Director Creativo</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-32 h-32 mx-auto mb-4 bg-primary-200 rounded-full overflow-hidden">
+            <img 
+              src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80" 
+              alt="María López"
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <h3 class="font-medium">María López</h3>
+          <p class="text-primary-500 text-sm">Atención al Cliente</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-32 h-32 mx-auto mb-4 bg-primary-200 rounded-full overflow-hidden">
+            <img 
+              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80" 
+              alt="David Martín"
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <h3 class="font-medium">David Martín</h3>
+          <p class="text-primary-500 text-sm">Logística</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="bg-primary-900 text-white py-16 px-8 mb-16">
+      <div class="grid md:grid-cols-4 gap-8 text-center">
+        <div>
+          <div class="font-display text-5xl mb-2">10K+</div>
+          <p class="text-primary-300">Clientes satisfechos</p>
+        </div>
+        <div>
+          <div class="font-display text-5xl mb-2">500+</div>
+          <p class="text-primary-300">Productos</p>
+        </div>
+        <div>
+          <div class="font-display text-5xl mb-2">4.8</div>
+          <p class="text-primary-300">Valoración media</p>
+        </div>
+        <div>
+          <div class="font-display text-5xl mb-2">24h</div>
+          <p class="text-primary-300">Envío express</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="text-center">
+      <h2 class="font-display text-3xl mb-4">¿Preparado para descubrir tu estilo?</h2>
+      <p class="text-primary-600 mb-8 max-w-xl mx-auto">
+        Explora nuestra colección y encuentra las prendas perfectas para ti.
+      </p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="/productos" class="bg-primary-900 text-white px-8 py-3 hover:bg-primary-800 transition-colors">
+          VER COLECCIÓN
+        </a>
+        <a href="/contacto" class="border border-primary-900 px-8 py-3 hover:bg-primary-50 transition-colors">
+          CONTACTAR
+        </a>
+      </div>
+    </div>
+  </div>
+</PublicLayout>

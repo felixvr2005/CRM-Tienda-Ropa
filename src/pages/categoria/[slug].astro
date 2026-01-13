@@ -1,0 +1,57 @@
+---
+/**
+ * Category Page - SSG
+ * Productos filtrados por categoría
+ */
+import PublicLayout from '@layouts/PublicLayout.astro';
+import ProductCard from '@components/product/ProductCard.astro';
+import { getCategories, getProductsByCategory } from '@lib/supabase';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const categories = await getCategories();
+  return categories.map((category) => ({
+    params: { slug: category.slug },
+    props: { category },
+  }));
+}
+
+const { category } = Astro.props;
+const products = await getProductsByCategory(category.slug);
+---
+
+<PublicLayout title={category.name}>
+  <div class="max-w-[1800px] mx-auto px-4 lg:px-8 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-primary-500 mb-8">
+      <a href="/" class="hover:text-primary-900">Inicio</a>
+      <span class="mx-2">/</span>
+      <a href="/productos" class="hover:text-primary-900">Colección</a>
+      <span class="mx-2">/</span>
+      <span class="text-primary-900">{category.name}</span>
+    </nav>
+    
+    <!-- Category Header -->
+    <div class="text-center mb-12">
+      <h1 class="font-display text-4xl md:text-5xl mb-4">{category.name}</h1>
+      {category.description && (
+        <p class="text-primary-600 max-w-2xl mx-auto">{category.description}</p>
+      )}
+    </div>
+    
+    <!-- Products Grid -->
+    {products.length > 0 ? (
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
+        {products.map((product) => (
+          <ProductCard product={product} showQuickAdd />
+        ))}
+      </div>
+    ) : (
+      <div class="text-center py-16">
+        <p class="text-primary-500 mb-4">No hay productos en esta categoría</p>
+        <a href="/productos" class="text-sm underline hover:no-underline">Ver todos los productos</a>
+      </div>
+    )}
+  </div>
+</PublicLayout>
