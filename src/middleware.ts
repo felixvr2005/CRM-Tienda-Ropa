@@ -7,6 +7,25 @@ import { defineMiddleware } from 'astro:middleware';
 import { supabase, supabaseAdmin } from './lib/supabase';
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // Permitir CORS para formularios desde cualquier origen
+  const request = context.request as any;
+  
+  // Modificar request para manejar tanto FormData como JSON
+  const originalJson = request.json;
+  let cachedBody: any = null;
+  
+  // Hacer que request.json() sea reutilizable
+  request.json = async function() {
+    if (!cachedBody) {
+      try {
+        cachedBody = await originalJson.call(this);
+      } catch {
+        cachedBody = {};
+      }
+    }
+    return cachedBody;
+  };
+  
   const { pathname } = context.url;
 
   // Rutas protegidas de admin (excepto login)
