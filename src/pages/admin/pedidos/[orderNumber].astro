@@ -331,15 +331,21 @@ const shippingAddress = order.shipping_address as any;
   </div>
 </AdminLayout>
 
-<script>
-  // Manejar cambio de estado
+<script is:inline>
+  // Manejar cambio de estado con fetch directo
   const statusForm = document.getElementById('statusForm');
   if (statusForm) {
     statusForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const statusSelect = document.getElementById('statusSelect') as HTMLSelectElement;
+      const statusSelect = document.getElementById('statusSelect');
+      if (!statusSelect) return;
+      
       const orderNumber = window.location.pathname.split('/').pop();
+      const button = statusForm.querySelector('button[type="submit"]');
+      const originalText = button?.textContent;
+      
+      if (button) button.textContent = 'Procesando...';
       
       try {
         const response = await fetch('/api/admin/orders/update-status', {
@@ -356,22 +362,28 @@ const shippingAddress = order.shipping_address as any;
         } else {
           const error = await response.json();
           alert('Error: ' + error.error);
+          if (button) button.textContent = originalText;
         }
       } catch (error) {
-        alert('Error al actualizar estado: ' + error);
+        alert('Error: ' + error);
+        if (button) button.textContent = originalText;
       }
     });
   }
   
-  // Manejar tracking
+  // Manejar tracking con fetch directo
   const trackingForm = document.getElementById('trackingForm');
   if (trackingForm) {
     trackingForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const trackingNumber = (document.getElementById('trackingNumber') as HTMLInputElement).value;
-      const trackingUrl = (document.getElementById('trackingUrl') as HTMLInputElement).value;
+      const trackingNumber = document.getElementById('trackingNumber');
+      const trackingUrl = document.getElementById('trackingUrl');
       const orderNumber = window.location.pathname.split('/').pop();
+      const button = trackingForm.querySelector('button[type="submit"]');
+      const originalText = button?.textContent;
+      
+      if (button) button.textContent = 'Procesando...';
       
       try {
         const response = await fetch('/api/admin/orders/update-tracking', {
@@ -379,8 +391,8 @@ const shippingAddress = order.shipping_address as any;
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             orderNumber,
-            trackingNumber,
-            trackingUrl
+            trackingNumber: trackingNumber?.value || '',
+            trackingUrl: trackingUrl?.value || ''
           })
         });
         
@@ -389,9 +401,11 @@ const shippingAddress = order.shipping_address as any;
         } else {
           const error = await response.json();
           alert('Error: ' + error.error);
+          if (button) button.textContent = originalText;
         }
       } catch (error) {
-        alert('Error al actualizar tracking: ' + error);
+        alert('Error: ' + error);
+        if (button) button.textContent = originalText;
       }
     });
   }

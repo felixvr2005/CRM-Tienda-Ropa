@@ -58,55 +58,52 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
 </body>
 </html>
 
-<script>
-  // Inicializar manejo global de CSRF para formularios POST
-  document.addEventListener('submit', async (e) => {
-    const form = e.target as HTMLFormElement;
-    
-    // Interceptar formularios POST que NO sean a APIs
-    if (form.method.toUpperCase() === 'POST' && !form.action.includes('/api/')) {
-      e.preventDefault();
+<script is:inline>
+  // Inicializar manejo de CSRF para formularios POST inmediatamente
+  function initFormHandler() {
+    document.addEventListener('submit', function(e) {
+      const form = e.target;
       
-      const formData = new FormData(form);
-      const data: Record<string, any> = {};
-      
-      // Convertir FormData a objeto
-      for (const [key, value] of formData.entries()) {
-        data[key] = value;
-      }
-      
-      console.log('[CSRF Handler] Intercepting POST to:', form.action || window.location.pathname);
-      
-      try {
-        // Enviar como JSON con headers para evitar CSRF
-        const response = await fetch(form.action || window.location.pathname, {
+      // Interceptar formularios POST que NO sean a APIs
+      if (form.method && form.method.toUpperCase() === 'POST' && !form.action?.includes('/api/')) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = {};
+        
+        // Convertir FormData a objeto
+        for (const [key, value] of formData.entries()) {
+          data[key] = value;
+        }
+        
+        console.log('[CSRF] Intercepting POST to:', form.action || window.location.pathname);
+        
+        fetch(form.action || window.location.pathname, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
           },
           body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-          // Recargar o redirigir
-          const redirectUrl = (form as any).dataset.redirect;
-          if (redirectUrl) {
-            window.location.href = redirectUrl;
-          } else {
+        }).then(response => {
+          if (response.ok) {
             window.location.reload();
+          } else {
+            alert('Error: ' + response.statusText);
           }
-        } else {
-          const errorText = await response.text();
-          console.error('[CSRF Handler] Error response:', response.status, errorText);
-          alert('Error: ' + (response.statusText || 'Error al procesar'));
-        }
-      } catch (error) {
-        console.error('[CSRF Handler] Error:', error);
-        alert('Error de conexión: ' + error);
+        }).catch(error => {
+          alert('Error: ' + error.message);
+        });
       }
-    }
-  }, true);
+    }, true);
+  }
+  
+  // Ejecutar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFormHandler);
+  } else {
+    initFormHandler();
+  }
 </script>
 
 <style is:global>
