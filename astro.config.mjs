@@ -22,5 +22,9 @@ export default defineConfig({
   // Deshabilitar validación CSRF para permitir formularios POST en producción
   security: {
     checkOrigin: false
+  },
+  // Configuración adicional para Astro 5+
+  env: {
+    schema: {}
   }
 });
