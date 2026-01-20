@@ -64,11 +64,12 @@ export const POST: APIRoute = async ({ request }) => {
       const variantData = variant as any;
       const productData = variantData?.product as any;
       
-      // El precio enviado desde el cliente es en euros
-      // Stripe necesita centavos (multiplicar por 100)
+      // El precio viene en euros desde el cliente
+      // Stripe necesita céntimos (multiplicar por 100)
+      // item.price ya está en euros, así que solo multiplicar por 100
       const priceInCents = Math.round(item.price * 100);
       
-      console.log(`Item: ${productData?.name}, price from client: ${item.price}€, in cents: ${priceInCents}`);
+      console.log(`Item: ${productData?.name}, price from client: €${item.price}, in cents: ${priceInCents}`);
       
       return {
         price_data: {

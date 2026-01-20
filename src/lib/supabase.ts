@@ -87,7 +87,6 @@ export const supabaseAdmin = new Proxy({} as SupabaseClient<Database>, {
     return value;
   }
 });
-
 // Funciones helper para productos
 export async function getProducts(limit?: number) {
   const client = getClient();
@@ -110,7 +109,17 @@ export async function getProducts(limit?: number) {
     console.error('Error fetching products:', error);
     return [];
   }
-  return data || [];
+  
+  // Normalizar precios de céntimos a euros
+  return (data || []).map(product => ({
+    ...product,
+    price: product.price / 100,
+    original_price: product.original_price ? product.original_price / 100 : undefined,
+    variants: (product.variants || []).map((v: any) => ({
+      ...v,
+      price: v.price / 100,
+    })),
+  }));
 }
 
 export async function getProductBySlug(slug: string) {
@@ -127,7 +136,17 @@ export async function getProductBySlug(slug: string) {
     .single();
 
   if (error) return null;
-  return data;
+  
+  // Normalizar precios
+  return {
+    ...data,
+    price: data.price / 100,
+    original_price: data.original_price ? data.original_price / 100 : undefined,
+    variants: (data.variants || []).map((v: any) => ({
+      ...v,
+      price: v.price / 100,
+    })),
+  };
 }
 
 export async function getProductsByCategory(categorySlug: string) {
@@ -153,7 +172,17 @@ export async function getProductsByCategory(categorySlug: string) {
     .order('created_at', { ascending: false });
 
   if (error) return [];
-  return data || [];
+  
+  // Normalizar precios
+  return (data || []).map(product => ({
+    ...product,
+    price: product.price / 100,
+    original_price: product.original_price ? product.original_price / 100 : undefined,
+    variants: (product.variants || []).map((v: any) => ({
+      ...v,
+      price: v.price / 100,
+    })),
+  }));
 }
 
 export async function getCategories() {
@@ -183,7 +212,17 @@ export async function getFeaturedProducts() {
     .limit(8);
 
   if (error) return [];
-  return data || [];
+  
+  // Normalizar precios
+  return (data || []).map(product => ({
+    ...product,
+    price: product.price / 100,
+    original_price: product.original_price ? product.original_price / 100 : undefined,
+    variants: (product.variants || []).map((v: any) => ({
+      ...v,
+      price: v.price / 100,
+    })),
+  }));
 }
 
 export async function getFlashOffers() {
@@ -215,7 +254,17 @@ export async function getFlashOffers() {
     .limit(6);
 
   if (error) return [];
-  return data || [];
+  
+  // Normalizar precios
+  return (data || []).map(product => ({
+    ...product,
+    price: product.price / 100,
+    original_price: product.original_price ? product.original_price / 100 : undefined,
+    variants: (product.variants || []).map((v: any) => ({
+      ...v,
+      price: v.price / 100,
+    })),
+  }));
 }
 
 // ============================================
