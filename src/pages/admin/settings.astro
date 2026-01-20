@@ -14,11 +14,23 @@ let errorMessage = '';
 
 if (Astro.request.method === 'POST') {
   try {
-    const formData = await Astro.request.formData();
-    const action = formData.get('action');
+    // Aceptar tanto FormData como JSON
+    let data: Record<string, any> = {};
+    const contentType = Astro.request.headers.get('content-type');
+    
+    if (contentType?.includes('application/json')) {
+      data = await Astro.request.json();
+    } else {
+      const formData = await Astro.request.formData();
+      for (const [key, value] of formData.entries()) {
+        data[key] = value;
+      }
+    }
+
+    const action = data.action;
 
     if (action === 'updateOfertasFlash') {
-      const ofertasActivas = formData.get('ofertas_activas') === 'on';
+      const ofertasActivas = data.ofertas_activas === 'on' || data.ofertas_activas === true;
       
       // Actualizar o insertar configuración
       const { error } = await supabase
@@ -40,10 +52,10 @@ if (Astro.request.method === 'POST') {
     }
 
     if (action === 'updateGeneral') {
-      const siteName = formData.get('site_name') as string;
-      const siteDescription = formData.get('site_description') as string;
-      const contactEmail = formData.get('contact_email') as string;
-      const contactPhone = formData.get('contact_phone') as string;
+      const siteName = data.site_name as string;
+      const siteDescription = data.site_description as string;
+      const contactEmail = data.contact_email as string;
+      const contactPhone = data.contact_phone as string;
 
       // Actualizar configuraciones
       const configs = [

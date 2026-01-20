@@ -26,12 +26,24 @@ let errorMessage = '';
 
 if (Astro.request.method === 'POST') {
   try {
-    const formData = await Astro.request.formData();
-    const firstName = formData.get('firstName') as string;
-    const lastName = formData.get('lastName') as string;
-    const phone = formData.get('phone') as string;
-    const birthDate = formData.get('birthDate') as string;
-    const newsletter = formData.get('newsletter') === 'on';
+    // Aceptar tanto FormData como JSON
+    let data: Record<string, any> = {};
+    const contentType = Astro.request.headers.get('content-type');
+    
+    if (contentType?.includes('application/json')) {
+      data = await Astro.request.json();
+    } else {
+      const formData = await Astro.request.formData();
+      for (const [key, value] of formData.entries()) {
+        data[key] = value;
+      }
+    }
+
+    const firstName = data.firstName as string;
+    const lastName = data.lastName as string;
+    const phone = data.phone as string;
+    const birthDate = data.birthDate as string;
+    const newsletter = data.newsletter === 'on' || data.newsletter === true;
 
     console.log('Actualizando perfil para user.id:', user.id);
     console.log('Datos a actualizar:', { firstName, lastName, phone, birthDate, newsletter });

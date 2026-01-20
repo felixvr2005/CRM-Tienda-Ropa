@@ -26,8 +26,20 @@ let errorMessage = '';
 
 if (Astro.request.method === 'POST') {
   try {
-    const formData = await Astro.request.formData();
-    const action = formData.get('action');
+    // Aceptar tanto FormData como JSON
+    let data: Record<string, any> = {};
+    const contentType = Astro.request.headers.get('content-type');
+    
+    if (contentType?.includes('application/json')) {
+      data = await Astro.request.json();
+    } else {
+      const formData = await Astro.request.formData();
+      for (const [key, value] of formData.entries()) {
+        data[key] = value;
+      }
+    }
+
+    const action = data.action;
 
     // Obtener direcciones actuales AHORA (no antes)
     const { data: currentCustomer } = await supabase
@@ -40,16 +52,16 @@ if (Astro.request.method === 'POST') {
 
     if (action === 'add' || action === 'edit') {
       const addressData = {
-        id: action === 'edit' ? formData.get('addressId') : crypto.randomUUID(),
-        name: formData.get('name'),
-        street: formData.get('street'),
-        street2: formData.get('street2') || '',
-        city: formData.get('city'),
-        province: formData.get('province'),
-        postal_code: formData.get('postalCode'),
-        country: formData.get('country') || 'España',
-        phone: formData.get('phone') || '',
-        is_default: formData.get('isDefault') === 'on'
+        id: action === 'edit' ? data.addressId : crypto.randomUUID(),
+        name: data.name,
+        street: data.street,
+        street2: data.street2 || '',
+        city: data.city,
+        province: data.province,
+        postal_code: data.postalCode,
+        country: data.country || 'España',
+        phone: data.phone || '',
+        is_default: data.isDefault === 'on' || data.isDefault === true
       };
 
       let newAddresses = [...currentAddresses];
@@ -81,7 +93,7 @@ if (Astro.request.method === 'POST') {
     }
 
     if (action === 'delete') {
-      const addressId = formData.get('addressId');
+      const addressId = data.addressId;
       const newAddresses = currentAddresses.filter((a: any) => a.id !== addressId);
 
       const { error } = await supabase
@@ -94,7 +106,7 @@ if (Astro.request.method === 'POST') {
     }
 
     if (action === 'setDefault') {
-      const addressId = formData.get('addressId');
+      const addressId = data.addressId;
       const newAddresses = currentAddresses.map((a: any) => ({
         ...a,
         is_default: a.id === addressId

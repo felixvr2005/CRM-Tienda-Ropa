@@ -18,5 +18,9 @@ export default defineConfig({
     ssr: {
       noExternal: ['@supabase/supabase-js']
     }
+  },
+  // Deshabilitar validación CSRF para permitir formularios POST en producción
+  security: {
+    checkOrigin: false
   }
 });
