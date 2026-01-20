@@ -11,6 +11,8 @@ export default function CartPageContent() {
   const cart = useStore($cart);
   const [isProcessing, setIsProcessing] = useState(false);
   const [promoCode, setPromoCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponError, setCouponError] = useState('');
   const [timeRemaining, setTimeRemaining] = useState(0);
 
   // Timer de cuenta atrás
@@ -36,13 +38,50 @@ export default function CartPageContent() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Aplicar cupón
+  const handleApplyCoupon = async () => {
+    if (!promoCode.trim()) {
+      setCouponError('Ingresa un código');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.valid) {
+        setAppliedCoupon(data);
+        setCouponError('');
+        alert(`✅ Cupón aplicado: ${data.discountPercentage}% de descuento`);
+      } else {
+        setCouponError(data.error || 'Código inválido');
+        setAppliedCoupon(null);
+      }
+    } catch (error) {
+      setCouponError('Error al validar el código');
+      setAppliedCoupon(null);
+    }
+  };
+
   // item.price ya tiene el descuento aplicado
   const subtotal = cart.reduce((acc, item) => {
     return acc + item.price * item.quantity;
   }, 0);
 
   const shipping = subtotal >= 100 ? 0 : 5.95;
-  const total = subtotal + shipping;
+  
+  // Aplicar descuento del cupón si existe
+  let discountAmount = 0;
+  if (appliedCoupon && appliedCoupon.discountType === 'percentage') {
+    discountAmount = (subtotal * appliedCoupon.discountPercentage) / 100;
+  }
+  
+  const total = subtotal - discountAmount + shipping;
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
@@ -52,7 +91,11 @@ export default function CartPageContent() {
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: cart }),
+        body: JSON.stringify({ 
+          items: cart,
+          couponCode: appliedCoupon?.code || null,
+          discountAmount: discountAmount 
+        }),
       });
 
       const data = await response.json();
@@ -233,14 +276,24 @@ export default function CartPageContent() {
               <input
                 type="text"
                 value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
+                onChange={(e) => {
+                  setPromoCode(e.target.value);
+                  setCouponError('');
+                }}
                 placeholder="Introduce tu código"
                 className="flex-1 border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
+                disabled={appliedCoupon !== null}
               />
-              <button className="border border-primary-900 px-4 py-2 text-sm hover:bg-primary-900 hover:text-white transition-colors">
-                Aplicar
+              <button 
+                onClick={handleApplyCoupon}
+                disabled={appliedCoupon !== null}
+                className="border border-primary-900 px-4 py-2 text-sm hover:bg-primary-900 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {appliedCoupon ? '✅' : 'Aplicar'}
               </button>
             </div>
+            {couponError && <p className="text-xs text-red-600 mt-1">{couponError}</p>}
+            {appliedCoupon && <p className="text-xs text-green-600 mt-1">✅ {appliedCoupon.description}</p>}
           </div>
 
           {/* Totals */}
@@ -249,6 +302,12 @@ export default function CartPageContent() {
               <span className="text-primary-600">Subtotal</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
+            {appliedCoupon && (
+              <div className="flex justify-between text-green-600 font-medium">
+                <span>Descuento ({appliedCoupon.discountPercentage}%)</span>
+                <span>-{formatPrice(discountAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-primary-600">Envío</span>
               <span>{shipping === 0 ? 'Gratis' : formatPrice(shipping)}</span>

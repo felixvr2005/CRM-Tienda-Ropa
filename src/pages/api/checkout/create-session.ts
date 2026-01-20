@@ -20,7 +20,8 @@ export const POST: APIRoute = async ({ request }) => {
       subtotal,
       shippingCost,
       discount,
-      total
+      total,
+      discountAmount
     } = body;
 
     // Validaciones
@@ -100,16 +101,21 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    // Configurar descuento si hay cupón
+    // Configurar descuento si hay cupón o descuento
     const discounts: any[] = [];
-    if (couponCode && discount > 0) {
+    if (couponCode && (discountAmount || discount)) {
+      // Usar el descuento enviado desde el cliente
+      const discountInCents = Math.round((discountAmount || discount) * 100);
+      
       // Crear un cupón temporal en Stripe
       const coupon = await stripe.coupons.create({
-        amount_off: Math.round(discount * 100),
+        amount_off: discountInCents,
         currency: 'eur',
         duration: 'once',
         name: couponCode,
       });
+      
+      console.log(`Cupón ${couponCode} creado: ${discountInCents} céntimos`);
       discounts.push({ coupon: coupon.id });
     }
 
