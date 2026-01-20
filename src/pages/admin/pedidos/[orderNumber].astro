@@ -334,27 +334,28 @@ const shippingAddress = order.shipping_address as any;
 </AdminLayout>
 
 <script is:inline>
-  // Manejar cambio de estado con fetch directo
-  const statusForm = document.getElementById('statusForm');
-  if (statusForm) {
-    statusForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
+  // Handler para actualizar estado del pedido
+  const updateStatusBtn = document.getElementById('updateStatusBtn');
+  if (updateStatusBtn) {
+    updateStatusBtn.addEventListener('click', async () => {
+      const originalText = updateStatusBtn.textContent;
       const statusSelect = document.getElementById('statusSelect');
-      if (!statusSelect) return;
       
-      const orderNumber = window.location.pathname.split('/').pop();
-      const button = statusForm.querySelector('button[type="submit"]');
-      const originalText = button?.textContent;
-      
-      if (button) button.textContent = 'Procesando...';
-      
+      if (!statusSelect || !statusSelect.value) {
+        alert('Por favor, selecciona un estado');
+        return;
+      }
+
+      updateStatusBtn.disabled = true;
+      updateStatusBtn.textContent = 'Procesando...';
+
       try {
+        const orderNumber = window.location.pathname.split('/').pop();
         const response = await fetch('/api/admin/orders/update-status', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            orderNumber,
+            orderNumber: orderNumber,
             status: statusSelect.value
           })
         });
@@ -364,50 +365,13 @@ const shippingAddress = order.shipping_address as any;
         } else {
           const error = await response.json();
           alert('Error: ' + error.error);
-          if (button) button.textContent = originalText;
+          updateStatusBtn.disabled = false;
+          updateStatusBtn.textContent = originalText;
         }
       } catch (error) {
         alert('Error: ' + error);
-        if (button) button.textContent = originalText;
-      }
-    });
-  }
-  
-  // Manejar tracking con fetch directo
-  const trackingForm = document.getElementById('trackingForm');
-  if (trackingForm) {
-    trackingForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const trackingNumber = document.getElementById('trackingNumber');
-      const trackingUrl = document.getElementById('trackingUrl');
-      const orderNumber = window.location.pathname.split('/').pop();
-      const button = trackingForm.querySelector('button[type="submit"]');
-      const originalText = button?.textContent;
-      
-      if (button) button.textContent = 'Procesando...';
-      
-      try {
-        const response = await fetch('/api/admin/orders/update-tracking', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orderNumber,
-            trackingNumber: trackingNumber?.value || '',
-            trackingUrl: trackingUrl?.value || ''
-          })
-        });
-        
-        if (response.ok) {
-          window.location.reload();
-        } else {
-          const error = await response.json();
-          alert('Error: ' + error.error);
-          if (button) button.textContent = originalText;
-        }
-      } catch (error) {
-        alert('Error: ' + error);
-        if (button) button.textContent = originalText;
+        updateStatusBtn.disabled = false;
+        updateStatusBtn.textContent = originalText;
       }
     });
   }
