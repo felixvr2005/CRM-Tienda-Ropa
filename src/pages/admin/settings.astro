@@ -311,6 +311,24 @@ const ofertasActivas = getConfig('ofertas_activas', 'false') === 'true';
       </form>
     </div>
 
+    <!-- Sincronización de precios Stripe -->
+    <div class="bg-white border border-primary-200 p-6">
+      <h2 class="text-lg font-medium mb-2">Sincronización de Stripe</h2>
+      <p class="text-sm text-primary-500 mb-4">
+        Sincroniza los precios de los productos con Stripe. Si los precios no coinciden, se actualizarán automáticamente.
+      </p>
+      
+      <button 
+        id="syncStripeBtn"
+        type="button"
+        class="bg-indigo-600 text-white px-6 py-2 text-sm hover:bg-indigo-700 transition-colors disabled:opacity-50"
+      >
+        Sincronizar precios con Stripe
+      </button>
+
+      <div id="syncResult" class="mt-4 hidden p-4 rounded border"></div>
+    </div>
+
     <!-- Estado de configuraciones -->
     <div class="bg-white border border-primary-200 p-6">
       <h2 class="text-lg font-medium mb-4">Todas las configuraciones</h2>
@@ -356,3 +374,80 @@ const ofertasActivas = getConfig('ofertas_activas', 'false') === 'true';
     </div>
   </div>
 </AdminLayout>
+
+<script is:inline>
+  // Handler para sincronización de Stripe
+  const syncBtn = document.getElementById('syncStripeBtn');
+  const syncResult = document.getElementById('syncResult');
+
+  if (syncBtn) {
+    syncBtn.addEventListener('click', async () => {
+      const originalText = syncBtn.textContent;
+      syncBtn.disabled = true;
+      syncBtn.textContent = 'Sincronizando...';
+      
+      if (syncResult) syncResult.className = 'mt-4 hidden p-4 rounded border';
+
+      try {
+        const response = await fetch('/api/admin/products/sync-stripe-prices', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          syncResult.innerHTML = `
+            <div class="space-y-2">
+              <p class="font-medium text-green-800">✅ ${data.message}</p>
+              <p class="text-sm text-green-700">Sincronizados: ${data.results.synced}/${data.results.total}</p>
+              ${data.results.errors.length > 0 ? `
+                <details class="mt-2">
+                  <summary class="cursor-pointer text-sm font-medium text-yellow-700">Errores (${data.results.errors.length})</summary>
+                  <ul class="mt-2 text-xs text-yellow-600 space-y-1">
+                    ${data.results.errors.map(e => `<li>• ${e}</li>`).join('')}
+                  </ul>
+                </details>
+              ` : ''}
+              ${data.results.details.length > 0 ? `
+                <details class="mt-2">
+                  <summary class="cursor-pointer text-sm font-medium">Detalles (${data.results.details.length})</summary>
+                  <div class="mt-2 text-xs space-y-1 max-h-64 overflow-y-auto">
+                    ${data.results.details.map(d => `
+                      <div class="p-1 bg-gray-50 rounded">
+                        <strong>${d.product}</strong>
+                        ${d.variant ? `<div class="text-gray-600">${d.variant}</div>` : ''}
+                        ${d.price ? `<div class="text-green-600">${d.price}</div>` : ''}
+                        ${d.oldPrice ? `<div class="text-red-600">${d.oldPrice}</div>` : ''}
+                        ${d.newPrice ? `<div class="text-green-600">${d.newPrice}</div>` : ''}
+                        <div class="text-gray-500">${d.status}</div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </details>
+              ` : ''}
+            </div>
+          `;
+          syncResult.className = 'mt-4 p-4 rounded border bg-green-50 border-green-200';
+        } else {
+          syncResult.innerHTML = `
+            <p class="font-medium text-red-800">❌ Error: ${data.error}</p>
+          `;
+          syncResult.className = 'mt-4 p-4 rounded border bg-red-50 border-red-200';
+        }
+
+        if (syncResult) syncResult.classList.remove('hidden');
+      } catch (error: any) {
+        syncResult.innerHTML = `<p class="font-medium text-red-800">❌ Error: ${error.message}</p>`;
+        syncResult.className = 'mt-4 p-4 rounded border bg-red-50 border-red-200';
+        if (syncResult) syncResult.classList.remove('hidden');
+      } finally {
+        syncBtn.disabled = false;
+        syncBtn.textContent = originalText;
+      }
+    });
+  }
+</script>
