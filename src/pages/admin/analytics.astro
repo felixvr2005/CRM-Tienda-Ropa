@@ -1,0 +1,42 @@
+---
+import { supabase } from '@/lib/supabase';
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import SalesAnalyticsDashboard from '@/components/islands/SalesAnalyticsDashboard';
+
+// Check if user is authenticated
+const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+if (!user) {
+  return Astro.redirect('/admin/login');
+}
+
+// Check if user is admin
+const { data: adminData, error: adminError } = await supabase
+  .from('user_roles')
+  .select('role')
+  .eq('user_id', user.id)
+  .single();
+
+if (!adminData || adminData.role !== 'admin') {
+  return Astro.redirect('/');
+}
+---
+
+<AdminLayout title="Analíticas de Ventas">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold">Analíticas de Ventas</h1>
+        <p class="text-primary-600 mt-1">Estadísticas de ventas y rendimiento</p>
+      </div>
+    </div>
+
+    <SalesAnalyticsDashboard client:load />
+  </div>
+</AdminLayout>
+
+<style>
+  :global(body) {
+    background-color: #f5f3ff;
+  }
+</style>

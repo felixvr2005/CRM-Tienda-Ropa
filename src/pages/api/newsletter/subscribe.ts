@@ -3,14 +3,12 @@ import nodemailer from 'nodemailer';
 
 export const prerender = false;
 
-// Configurar nodemailer
+// Configurar nodemailer con Gmail (usando las credenciales que ya funcionan)
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
+  service: 'gmail',
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD
   }
 });
 
@@ -73,7 +71,7 @@ async function sendNewsletterWelcomeEmail(email: string, discountCode: string) {
 
   try {
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'noreply@fashionstore.com',
+      from: process.env.GMAIL_USER || 'noreply@fashionstore.com',
       to: email,
       subject: '¡Bienvenido! Tu código de descuento especial - Fashion Store',
       html: htmlContent
