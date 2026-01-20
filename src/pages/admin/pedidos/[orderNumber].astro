@@ -1,0 +1,425 @@
+---
+/**
+ * Admin - Detalle de Pedido
+ * Ver y gestionar un pedido específico
+ */
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { supabaseAdmin } from '@lib/supabase';
+
+export const prerender = false;
+
+const { orderNumber } = Astro.params;
+
+// Manejar actualización de estado
+let successMessage = '';
+let errorMessage = '';
+
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action');
+    
+    if (action === 'updateStatus') {
+      const newStatus = formData.get('status') as string;
+      
+      // Obtener el pedido primero para tener su ID
+      const { data: orderData, error: fetchError } = await supabaseAdmin
+        .from('orders')
+        .select('id')
+        .eq('order_number', orderNumber)
+        .single();
+      
+      if (fetchError || !orderData) throw new Error('Pedido no encontrado');
+      
+      // Llamar a la API que envía el email
+      const origin = `${Astro.url.protocol}//${Astro.url.host}`;
+      const apiResponse = await fetch(`${origin}/api/admin/orders/update-status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: orderData.id,
+          status: newStatus
+        })
+      });
+      
+      const result = await apiResponse.json();
+      
+      if (!apiResponse.ok || result.error) {
+        throw new Error(result.error || 'Error al actualizar el estado');
+      }
+      
+      successMessage = 'Estado del pedido actualizado correctamente. Email enviado al cliente.';
+    }
+    
+    if (action === 'updateTracking') {
+      const trackingNumber = formData.get('trackingNumber') as string;
+      const trackingUrl = formData.get('trackingUrl') as string;
+      
+      // Obtener el pedido primero para tener su ID
+      const { data: orderData, error: fetchError } = await supabaseAdmin
+        .from('orders')
+        .select('id')
+        .eq('order_number', orderNumber)
+        .single();
+      
+      if (fetchError || !orderData) throw new Error('Pedido no encontrado');
+      
+      // Llamar a la API para actualizar estado a 'shipped'
+      const origin = `${Astro.url.protocol}//${Astro.url.host}`;
+      const apiResponse = await fetch(`${origin}/api/admin/orders/update-status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: orderData.id,
+          status: 'shipped'
+        })
+      });
+      
+      const result = await apiResponse.json();
+      
+      if (!apiResponse.ok || result.error) {
+        throw new Error(result.error || 'Error al actualizar el estado');
+      }
+      
+      // Actualizar tracking number y URL
+      const { error: trackingError } = await supabaseAdmin
+        .from('orders')
+        .update({
+          tracking_number: trackingNumber,
+          tracking_url: trackingUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('order_number', orderNumber);
+      
+      if (trackingError) throw trackingError;
+      
+      successMessage = 'Información de envío actualizada. Email enviado al cliente.';
+    }
+  } catch (err: any) {
+    console.error('Error updating order:', err);
+    errorMessage = err.message || 'Error al actualizar el pedido';
+  }
+}
+
+// Obtener pedido con items
+const { data: order, error: orderError } = await supabaseAdmin
+  .from('orders')
+  .select('*')
+  .eq('order_number', orderNumber)
+  .single();
+
+if (orderError || !order) {
+  return Astro.redirect('/admin/pedidos');
+}
+
+// Obtener items del pedido
+const { data: orderItems } = await supabaseAdmin
+  .from('order_items')
+  .select('*')
+  .eq('order_id', order.id);
+
+const items = orderItems || [];
+
+// Estados disponibles
+const statusOptions = [
+  { value: 'pending', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'confirmed', label: 'Confirmado', color: 'bg-blue-100 text-blue-800' },
+  { value: 'processing', label: 'Procesando', color: 'bg-purple-100 text-purple-800' },
+  { value: 'shipped', label: 'Enviado', color: 'bg-indigo-100 text-indigo-800' },
+  { value: 'delivered', label: 'Entregado', color: 'bg-green-100 text-green-800' },
+  { value: 'cancelled', label: 'Cancelado', color: 'bg-red-100 text-red-800' },
+];
+
+const currentStatus = statusOptions.find(s => s.value === order.status) || statusOptions[0];
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatPrice(price: number) {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR'
+  }).format(price);
+}
+
+const shippingAddress = order.shipping_address as any;
+---
+
+<AdminLayout title={`Pedido #${orderNumber}`}>
+  <div class="max-w-6xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/admin/pedidos" class="text-primary-500 hover:text-primary-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
+        <div>
+          <h1 class="text-2xl font-display">Pedido #{orderNumber}</h1>
+          <p class="text-sm text-primary-500">{formatDate(order.created_at)}</p>
+        </div>
+      </div>
+      <span class={`px-3 py-1 rounded-full text-sm font-medium ${currentStatus.color}`}>
+        {currentStatus.label}
+      </span>
+    </div>
+
+    {successMessage && (
+      <div class="p-4 bg-green-50 border border-green-200 text-green-800">
+        {successMessage}
+      </div>
+    )}
+
+    {errorMessage && (
+      <div class="p-4 bg-red-50 border border-red-200 text-red-800">
+        {errorMessage}
+      </div>
+    )}
+
+    <div class="grid lg:grid-cols-3 gap-6">
+      <!-- Main Content -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Items del pedido -->
+        <div class="bg-white border border-primary-200 p-6">
+          <h2 class="font-medium mb-4">Productos ({items.length})</h2>
+          
+          <div class="divide-y divide-primary-100">
+            {items.map((item: any) => (
+              <div class="py-4 flex gap-4">
+                {item.image_url ? (
+                  <img 
+                    src={item.image_url} 
+                    alt={item.product_name}
+                    class="w-20 h-20 object-cover bg-primary-100"
+                  />
+                ) : (
+                  <div class="w-20 h-20 bg-primary-100 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
+                <div class="flex-1">
+                  <h3 class="font-medium">{item.product_name}</h3>
+                  <p class="text-sm text-primary-500">{item.variant_info}</p>
+                  <div class="mt-2 flex items-center justify-between">
+                    <span class="text-sm">Cantidad: {item.quantity}</span>
+                    <span class="font-medium">{formatPrice(item.total_price)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <!-- Totales -->
+          <div class="border-t border-primary-200 mt-4 pt-4 space-y-2">
+            <div class="flex justify-between text-sm">
+              <span>Subtotal</span>
+              <span>{formatPrice(order.subtotal)}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span>Envío</span>
+              <span>{order.shipping_cost === 0 ? 'Gratis' : formatPrice(order.shipping_cost)}</span>
+            </div>
+            {order.discount_amount > 0 && (
+              <div class="flex justify-between text-sm text-green-600">
+                <span>Descuento</span>
+                <span>-{formatPrice(order.discount_amount)}</span>
+              </div>
+            )}
+            <div class="flex justify-between font-medium text-lg pt-2 border-t border-primary-200">
+              <span>Total</span>
+              <span>{formatPrice(order.total_amount)}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Información de pago -->
+        <div class="bg-white border border-primary-200 p-6">
+          <h2 class="font-medium mb-4">Información de pago</h2>
+          <dl class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <dt class="text-primary-500">Estado del pago</dt>
+              <dd class="mt-1 font-medium capitalize">{order.payment_status}</dd>
+            </div>
+            <div>
+              <dt class="text-primary-500">Método</dt>
+              <dd class="mt-1 capitalize">{order.payment_method || 'Stripe'}</dd>
+            </div>
+            {order.stripe_session_id && (
+              <div class="col-span-2">
+                <dt class="text-primary-500">ID Sesión Stripe</dt>
+                <dd class="mt-1 font-mono text-xs break-all">{order.stripe_session_id}</dd>
+              </div>
+            )}
+            {order.stripe_payment_intent && (
+              <div class="col-span-2">
+                <dt class="text-primary-500">Payment Intent</dt>
+                <dd class="mt-1 font-mono text-xs break-all">{order.stripe_payment_intent}</dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <!-- Cliente -->
+        <div class="bg-white border border-primary-200 p-6">
+          <h2 class="font-medium mb-4">Cliente</h2>
+          <div class="space-y-3 text-sm">
+            <div>
+              <span class="text-primary-500">Nombre:</span>
+              <p class="font-medium">{order.customer_name || 'No especificado'}</p>
+            </div>
+            <div>
+              <span class="text-primary-500">Email:</span>
+              <p>{order.customer_email}</p>
+            </div>
+            {order.customer_phone && (
+              <div>
+                <span class="text-primary-500">Teléfono:</span>
+                <p>{order.customer_phone}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <!-- Dirección de envío -->
+        <div class="bg-white border border-primary-200 p-6">
+          <h2 class="font-medium mb-4">Dirección de envío</h2>
+          {shippingAddress ? (
+            <address class="not-italic text-sm space-y-1">
+              <p class="font-medium">{shippingAddress.name}</p>
+              <p>{shippingAddress.street}</p>
+              {shippingAddress.street2 && <p>{shippingAddress.street2}</p>}
+              <p>{shippingAddress.postal_code} {shippingAddress.city}</p>
+              <p>{shippingAddress.province}, {shippingAddress.country}</p>
+              {shippingAddress.phone && <p class="mt-2">Tel: {shippingAddress.phone}</p>}
+            </address>
+          ) : (
+            <p class="text-sm text-primary-500">No hay dirección registrada</p>
+          )}
+        </div>
+
+        <!-- Actualizar estado -->
+        <div class="bg-white border border-primary-200 p-6">
+          <h2 class="font-medium mb-4">Actualizar estado</h2>
+          <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="updateStatus" />
+            
+            <div>
+              <label class="block text-sm font-medium text-primary-700 mb-1">
+                Nuevo estado
+              </label>
+              <select 
+                name="status"
+                class="w-full border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
+              >
+                {statusOptions.map((status) => (
+                  <option value={status.value} selected={status.value === order.status}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button 
+              type="submit"
+              class="w-full bg-primary-900 text-white py-2 text-sm hover:bg-primary-800 transition-colors"
+            >
+              Actualizar estado
+            </button>
+          </form>
+        </div>
+
+        <!-- Información de envío -->
+        <div class="bg-white border border-primary-200 p-6">
+          <h2 class="font-medium mb-4">Seguimiento de envío</h2>
+          <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="updateTracking" />
+            
+            <div>
+              <label class="block text-sm font-medium text-primary-700 mb-1">
+                Número de seguimiento
+              </label>
+              <input 
+                type="text"
+                name="trackingNumber"
+                value={order.tracking_number || ''}
+                class="w-full border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
+                placeholder="Ej: 1Z999AA10123456784"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-primary-700 mb-1">
+                URL de seguimiento
+              </label>
+              <input 
+                type="url"
+                name="trackingUrl"
+                value={order.tracking_url || ''}
+                class="w-full border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
+                placeholder="https://..."
+              />
+            </div>
+
+            <button 
+              type="submit"
+              class="w-full bg-indigo-600 text-white py-2 text-sm hover:bg-indigo-700 transition-colors"
+            >
+              Guardar y marcar como enviado
+            </button>
+          </form>
+
+          {order.tracking_number && (
+            <div class="mt-4 p-3 bg-primary-50 text-sm">
+              <p class="font-medium">Tracking: {order.tracking_number}</p>
+              {order.tracking_url && (
+                <a 
+                  href={order.tracking_url} 
+                  target="_blank"
+                  class="text-indigo-600 hover:underline"
+                >
+                  Ver seguimiento →
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+
+        <!-- Timeline -->
+        <div class="bg-white border border-primary-200 p-6">
+          <h2 class="font-medium mb-4">Historial</h2>
+          <div class="space-y-4 text-sm">
+            <div class="flex gap-3">
+              <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5"></div>
+              <div>
+                <p class="font-medium">Pedido creado</p>
+                <p class="text-primary-500">{formatDate(order.created_at)}</p>
+              </div>
+            </div>
+            {order.updated_at !== order.created_at && (
+              <div class="flex gap-3">
+                <div class="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
+                <div>
+                  <p class="font-medium">Última actualización</p>
+                  <p class="text-primary-500">{formatDate(order.updated_at)}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>

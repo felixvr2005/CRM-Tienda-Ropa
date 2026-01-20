@@ -6,6 +6,10 @@ interface ImportMetaEnv {
   readonly SUPABASE_SERVICE_KEY: string;
   readonly PUBLIC_STRIPE_PUBLISHABLE_KEY: string;
   readonly STRIPE_SECRET_KEY: string;
+  // Cloudinary
+  readonly PUBLIC_CLOUDINARY_CLOUD_NAME: string;
+  readonly PUBLIC_CLOUDINARY_API_KEY: string;
+  readonly CLOUDINARY_API_SECRET: string;
 }
 
 interface ImportMeta {

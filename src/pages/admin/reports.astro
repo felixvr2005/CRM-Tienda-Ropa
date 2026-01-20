@@ -1,0 +1,522 @@
+---
+// Admin Dashboard Component - Reportes y Descargas
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabase, supabaseAdmin } from '../../lib/supabase';
+
+// Verificar autenticación y que sea admin
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+if (!accessToken) {
+  return Astro.redirect('/admin/login');
+}
+
+const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+if (authError || !user) {
+  return Astro.redirect('/admin/login');
+}
+
+// Verificar que sea admin activo
+const { data: adminUser } = await supabaseAdmin
+  .from('admin_users')
+  .select('id, is_active, email')
+  .eq('auth_user_id', user.id)
+  .eq('is_active', true)
+  .single();
+
+if (!adminUser) {
+  console.warn(`[Security] Usuario ${user.email} intentó acceder a reportes sin permisos`);
+  Astro.cookies.delete('sb-access-token', { path: '/' });
+  Astro.cookies.delete('sb-refresh-token', { path: '/' });
+  return Astro.redirect('/cuenta/login?error=unauthorized');
+}
+
+// Usar el email del admin para enviar reportes
+const defaultAdminEmail = adminUser.email;
+---
+
+<AdminLayout title="Panel de Reportes - Administrador">
+    <div class="admin-reports-container">
+        <!-- Header -->
+        <div class="reports-header">
+            <h1>📊 Panel de Reportes y Análisis</h1>
+            <p>Genera y descarga reportes de ventas, pedidos y envíos en diferentes períodos</p>
+        </div>
+
+        <!-- Sección de Generación de Reportes -->
+        <section class="reports-section">
+            <div class="section-title">📋 Generar y Enviar Reporte</div>
+
+            <div class="report-form">
+                <div class="form-group">
+                    <label for="report-period">Período del Reporte:</label>
+                    <select id="report-period">
+                        <option value="day">Reporte Diario</option>
+                        <option value="week">Reporte Semanal</option>
+                        <option value="month" selected>Reporte Mensual</option>
+                        <option value="year">Reporte Anual</option>
+                        <option value="custom">Período Personalizado</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="custom-dates" style="display: none;">
+                    <label for="start-date">Fecha de Inicio:</label>
+                    <input type="date" id="start-date" />
+
+                    <label for="end-date">Fecha de Fin:</label>
+                    <input type="date" id="end-date" />
+                </div>
+
+                <div class="form-group">
+                    <label for="admin-email">Correo del Administrador:</label>
+                    <input type="email" id="admin-email" placeholder="admin@example.com" value={defaultAdminEmail} />
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" id="send-report">
+                        Enviar Reporte
+                    </button>
+                    <button class="btn btn-secondary" id="preview-report">
+                        👁️ Vista Previa
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección de Descarga de Datos -->
+        <section class="reports-section">
+            <div class="section-title">💾 Descargar Datos</div>
+
+            <div class="export-form">
+                <div class="form-group">
+                    <label for="export-period">Período para Descargar:</label>
+                    <select id="export-period">
+                        <option value="day">Hoy</option>
+                        <option value="week">Esta Semana</option>
+                        <option value="month" selected>Este Mes</option>
+                        <option value="year">Este Año</option>
+                        <option value="custom">Personalizado</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="export-custom-dates" style="display: none;">
+                    <label for="export-start-date">Fecha de Inicio:</label>
+                    <input type="date" id="export-start-date" />
+
+                    <label for="export-end-date">Fecha de Fin:</label>
+                    <input type="date" id="export-end-date" />
+                </div>
+
+                <div class="format-options">
+                    <label>Formato de Descarga:</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="export-format" value="csv" checked />
+                            <span>CSV (Excel)</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="export-format" value="json" />
+                            <span>JSON</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn btn-success" id="download-data">
+                    ⬇️ Descargar Datos
+                </button>
+            </div>
+        </section>
+
+        <!-- Sección de Vista Previa -->
+        <section class="reports-section" id="preview-section" style="display: none;">
+            <div class="section-title">👁️ Vista Previa del Reporte</div>
+            <div id="preview-content" class="preview-content"></div>
+        </section>
+
+        <!-- Sección de Historial -->
+        <section class="reports-section">
+            <div class="section-title">📜 Reportes Recientes</div>
+            <div class="recent-reports">
+                <p class="text-center">Aquí aparecerán los reportes que hayas generado recientemente</p>
+            </div>
+        </section>
+    </div>
+</Layout>
+
+<style>
+    .admin-reports-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .reports-header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+    }
+
+    .reports-header h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+
+    .reports-header p {
+        font-size: 16px;
+        opacity: 0.9;
+    }
+
+    .reports-section {
+        background: white;
+        padding: 30px;
+        margin-bottom: 30px;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #667eea;
+    }
+
+    .report-form,
+    .export-form {
+        display: grid;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 10px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .button-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 10px;
+    }
+
+    .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background-color: #667eea;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #764ba2;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        background-color: #f0f0f0;
+        color: #667eea;
+        border: 2px solid #667eea;
+    }
+
+    .btn-secondary:hover {
+        background-color: #667eea;
+        color: white;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .btn-success:hover {
+        background-color: #20c997;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    }
+
+    .format-options {
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+    }
+
+    .format-options label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 20px;
+    }
+
+    .radio-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: normal;
+        margin: 0;
+    }
+
+    .radio-group input[type='radio'] {
+        cursor: pointer;
+    }
+
+    .preview-content {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 6px;
+        max-height: 500px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #333;
+    }
+
+    .recent-reports {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        text-align: center;
+        color: #666;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .loading {
+        display: inline-block;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    @media (max-width: 768px) {
+        .button-group {
+            grid-template-columns: 1fr;
+        }
+
+        .reports-header h1 {
+            font-size: 24px;
+        }
+
+        .radio-group {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<script>
+    // Mostrar/ocultar fechas personalizadas para reporte
+    const reportPeriod = document.getElementById('report-period');
+    const customDates = document.getElementById('custom-dates');
+
+    if (reportPeriod && customDates) {
+        reportPeriod.addEventListener('change', (e) => {
+            if ((e.target as HTMLSelectElement).value === 'custom') {
+                customDates.style.display = 'grid';
+            } else {
+                customDates.style.display = 'none';
+            }
+        });
+    }
+
+    // Mostrar/ocultar fechas personalizadas para descarga
+    const exportPeriod = document.getElementById('export-period');
+    const exportCustomDates = document.getElementById('export-custom-dates');
+
+    if (exportPeriod && exportCustomDates) {
+        exportPeriod.addEventListener('change', (e) => {
+            if ((e.target as HTMLSelectElement).value === 'custom') {
+                exportCustomDates.style.display = 'grid';
+            } else {
+                exportCustomDates.style.display = 'none';
+            }
+        });
+    }
+
+    // Enviar reporte
+    const sendReportBtn = document.getElementById('send-report');
+    if (sendReportBtn) {
+        sendReportBtn.addEventListener('click', async () => {
+            const dateRange = (document.getElementById('report-period') as HTMLSelectElement)
+                .value;
+            const adminEmail = (document.getElementById('admin-email') as HTMLInputElement)
+                .value;
+            const startDate = (document.getElementById('start-date') as HTMLInputElement)?.value;
+            const endDate = (document.getElementById('end-date') as HTMLInputElement)?.value;
+
+            if (!adminEmail) {
+                alert('Por favor, ingresa tu correo electrónico');
+                return;
+            }
+
+            sendReportBtn.textContent = '⏳ Enviando...';
+            sendReportBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/admin/report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        dateRange,
+                        adminEmail,
+                        startDate,
+                        endDate,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(
+                        `✓ Reporte enviado exitosamente a ${adminEmail}`
+                    );
+                } else {
+                    alert(`✗ Error: ${data.error || 'No se pudo enviar el reporte'}`);
+                }
+            } catch (error) {
+                alert(
+                    `✗ Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}`
+                );
+            } finally {
+                sendReportBtn.textContent = 'Enviar Reporte';
+                sendReportBtn.disabled = false;
+            }
+        });
+    }
+
+    // Vista previa del reporte
+    const previewReportBtn = document.getElementById('preview-report');
+    const previewSection = document.getElementById('preview-section');
+    const previewContent = document.getElementById('preview-content');
+
+    if (previewReportBtn && previewSection && previewContent) {
+        previewReportBtn.addEventListener('click', async () => {
+            const dateRange = (document.getElementById('report-period') as HTMLSelectElement)
+                .value;
+            const startDate = (document.getElementById('start-date') as HTMLInputElement)?.value;
+            const endDate = (document.getElementById('end-date') as HTMLInputElement)?.value;
+
+            previewReportBtn.textContent = '⏳ Cargando...';
+            previewReportBtn.disabled = true;
+
+            try {
+                const params = new URLSearchParams({
+                    dateRange,
+                    ...(startDate && { startDate }),
+                    ...(endDate && { endDate }),
+                });
+
+                const response = await fetch(`/api/admin/report?${params}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    previewContent.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    previewSection.style.display = 'block';
+                    previewSection.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert(`✗ Error: ${data.error || 'No se pudo cargar la vista previa'}`);
+                }
+            } catch (error) {
+                alert(
+                    `✗ Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}`
+                );
+            } finally {
+                previewReportBtn.textContent = '👁️ Vista Previa';
+                previewReportBtn.disabled = false;
+            }
+        });
+    }
+
+    // Descargar datos
+    const downloadBtn = document.getElementById('download-data');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+            const period = (document.getElementById('export-period') as HTMLSelectElement)
+                .value;
+            const format = (
+                document.querySelector('input[name="export-format"]:checked') as HTMLInputElement
+            ).value;
+            const startDate = (document.getElementById('export-start-date') as HTMLInputElement)
+                ?.value;
+            const endDate = (document.getElementById('export-end-date') as HTMLInputElement)?.value;
+
+            const params = new URLSearchParams({
+                dateRange: period,
+                format,
+                ...(startDate && { startDate }),
+                ...(endDate && { endDate }),
+            });
+
+            window.location.href = `/api/admin/export?${params}`;
+        });
+    }
+</script>
+</AdminLayout>

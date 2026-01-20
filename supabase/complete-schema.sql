@@ -881,6 +881,44 @@ INSERT INTO coupons (code, description, discount_type, discount_value, min_purch
 ON CONFLICT (code) DO NOTHING;
 
 -- ============================================
+-- NEWSLETTER SUBSCRIBERS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  discount_code VARCHAR(50),
+  subscribed_at TIMESTAMPTZ DEFAULT NOW(),
+  used BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_newsletter_email ON newsletter_subscribers(email);
+CREATE INDEX idx_newsletter_code ON newsletter_subscribers(discount_code);
+
+-- ============================================
+-- RETURN REQUESTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS return_requests (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'label_sent', 'in_return', 'received', 'refunded', 'rejected')),
+  reason TEXT,
+  return_label_url TEXT,
+  return_tracking_number VARCHAR(100),
+  received_at TIMESTAMPTZ,
+  refunded_at TIMESTAMPTZ,
+  refund_amount DECIMAL(10,2),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_return_requests_order ON return_requests(order_id);
+CREATE INDEX idx_return_requests_customer ON return_requests(customer_id);
+CREATE INDEX idx_return_requests_status ON return_requests(status);
+
+-- ============================================
 -- GRANT PUBLIC ACCESS FOR ANON KEY
 -- ============================================
 -- Esto permite que el anon key pueda leer datos públicos

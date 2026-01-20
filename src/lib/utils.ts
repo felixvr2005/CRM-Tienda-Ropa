@@ -4,10 +4,14 @@
 
 // Formatear precio en EUR
 export function formatPrice(price: number): string {
+  // Convertir de céntimos a euros si es necesario
+  // Si el precio es mayor a 1000, asumimos que está en céntimos y lo dividimos
+  const priceInEuros = price > 1000 ? price / 100 : price;
+  
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: 'EUR',
-  }).format(price);
+  }).format(priceInEuros);
 }
 
 // Calcular precio con descuento

@@ -1,5 +1,32 @@
 # FashionMarket - Documentación Técnica
 
+## 🎉 NUEVO: Panel Unificado de Variantes
+
+**¡Se ha agregado un Panel Unificado para personalizar variantes de productos!**
+
+### ⚡ Acceso Rápido
+```
+/admin/productos → Selecciona un producto → "✎ Editar Variantes"
+```
+
+### ✨ Características
+- ✅ Color picker RGB integrado
+- ✅ Drag & drop para imágenes
+- ✅ Galería responsive
+- ✅ Auto-salvado
+- ✅ Mensajes de feedback
+
+### 📚 Documentación
+- **Para usuarios:** [INICIO-RAPIDO.md](INICIO-RAPIDO.md) (2 min)
+- **Para guía completa:** [GUIA-PANEL-UNIFICADO.md](GUIA-PANEL-UNIFICADO.md)
+- **Para técnica:** [DOCUMENTACION-VARIANTS-PANEL.md](DOCUMENTACION-VARIANTS-PANEL.md)
+- **Para índice:** [INDICE-DOCUMENTACION.md](INDICE-DOCUMENTACION.md)
+
+### 📍 Archivo Principal
+- `/src/components/islands/VariantsPanel.tsx` (650+ líneas)
+
+---
+
 ## 📋 Introducción
 
 **FashionMarket** es una tienda online de moda masculina premium construida con:

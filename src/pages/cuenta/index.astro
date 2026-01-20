@@ -3,7 +3,7 @@
  * Mi Cuenta - Dashboard del Cliente
  */
 import PublicLayout from '@layouts/PublicLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -24,6 +24,19 @@ if (authError || !user) {
   return Astro.redirect('/cuenta/login?redirect=/cuenta');
 }
 
+// Verificar que no sea admin
+const { data: adminUser } = await supabaseAdmin
+  .from('admin_users')
+  .select('id, is_active')
+  .eq('auth_user_id', user.id)
+  .eq('is_active', true)
+  .single();
+
+if (adminUser) {
+  // Es admin, no puede acceder a cuenta de cliente
+  return Astro.redirect('/admin');
+}
+
 // Obtener perfil del cliente
 const { data: customer } = await supabase
   .from('customers')
@@ -38,6 +51,16 @@ const { data: orders } = await supabase
   .eq('customer_id', customer?.id)
   .order('created_at', { ascending: false })
   .limit(5);
+
+// Calcular total gastado en tiempo real
+const { data: allOrders } = await supabase
+  .from('orders')
+  .select('total_amount, subtotal')
+  .eq('customer_id', customer?.id);
+
+const totalSpent = (allOrders || []).reduce((sum, order) => {
+  return sum + (order.total_amount || order.subtotal || 0);
+}, 0);
 
 const orderStatusMap: Record<string, string> = {
   pending: 'Pendiente',
@@ -124,6 +147,14 @@ const orderStatusColors: Record<string, string> = {
                 Mi Perfil
               </a>
             </li>
+            <li>
+              <a href="/cuenta/cambiar-contraseña" class="flex items-center gap-3 px-4 py-3 hover:bg-primary-50 text-primary-600 hover:text-primary-900 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Cambiar Contraseña
+              </a>
+            </li>
           </ul>
         </nav>
 
@@ -137,7 +168,7 @@ const orderStatusColors: Record<string, string> = {
             </div>
             <div class="bg-white border border-primary-200 p-6">
               <p class="text-sm text-primary-500 uppercase tracking-wider">Total Gastado</p>
-              <p class="text-3xl font-display font-medium mt-2">{(customer?.total_spent || 0).toFixed(2)}€</p>
+              <p class="text-3xl font-display font-medium mt-2">{totalSpent.toFixed(2)}€</p>
             </div>
             <div class="bg-white border border-primary-200 p-6 col-span-2 md:col-span-1">
               <p class="text-sm text-primary-500 uppercase tracking-wider">Miembro desde</p>
@@ -174,7 +205,7 @@ const orderStatusColors: Record<string, string> = {
                       <span class={`inline-block px-3 py-1 text-xs font-medium rounded-full ${orderStatusColors[order.status]}`}>
                         {orderStatusMap[order.status]}
                       </span>
-                      <p class="font-medium mt-2">{order.total_amount.toFixed(2)}€</p>
+                      <p class="font-medium mt-2">{(order.total_amount || order.subtotal || 0).toFixed(2)}€</p>
                     </div>
                   </a>
                 ))}

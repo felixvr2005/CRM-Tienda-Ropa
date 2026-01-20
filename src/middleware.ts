@@ -1,9 +1,10 @@
 /**
  * Auth Middleware
  * Protege rutas /admin y /cuenta requiriendo autenticación
+ * Valida que admin sea admin y cliente sea cliente
  */
 import { defineMiddleware } from 'astro:middleware';
-import { supabase } from './lib/supabase';
+import { supabase, supabaseAdmin } from './lib/supabase';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
@@ -68,6 +69,29 @@ export const onRequest = defineMiddleware(async (context, next) => {
       } else {
         context.locals.user = user;
       }
+
+      // ✨ VALIDACIÓN DE ROLES
+      // Si es ruta admin, verificar que sea admin
+      if (isAdminRoute) {
+        const { data: adminUser } = await supabaseAdmin
+          .from('admin_users')
+          .select('id, is_active')
+          .eq('auth_user_id', user.id)
+          .eq('is_active', true)
+          .single();
+        
+        if (!adminUser) {
+          console.warn(`[Auth] Usuario ${user.email} intentó acceder a ruta admin sin permisos`);
+          context.cookies.delete('sb-access-token', { path: '/' });
+          context.cookies.delete('sb-refresh-token', { path: '/' });
+          return context.redirect('/cuenta/login?error=unauthorized');
+        }
+
+        // Guardar info de admin en locals
+        context.locals.isAdmin = true;
+        context.locals.adminId = adminUser.id;
+      }
+      
     } catch (e) {
       console.error('Auth middleware error:', e);
       return context.redirect(`${loginRedirect}?redirect=${pathname}`);

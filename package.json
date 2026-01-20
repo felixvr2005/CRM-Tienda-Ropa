@@ -8,7 +8,8 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "seed:products": "node scripts/seed-products.js"
   },
   "dependencies": {
     "@astrojs/node": "^9.0.0",
@@ -17,8 +18,12 @@
     "@nanostores/react": "^0.8.4",
     "@stripe/stripe-js": "^5.5.0",
     "@supabase/supabase-js": "^2.49.1",
+    "@types/nodemailer": "^7.0.5",
     "astro": "^5.1.5",
+    "cloudinary": "^2.9.0",
+    "dotenv": "^17.2.3",
     "nanostores": "^0.11.3",
+    "nodemailer": "^7.0.12",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "stripe": "^17.5.0"

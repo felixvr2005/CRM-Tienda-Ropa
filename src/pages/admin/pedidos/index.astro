@@ -3,12 +3,12 @@
  * Admin - Lista de Pedidos
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
-// Obtener pedidos
-const { data: orders } = await supabase
+// Obtener pedidos (usando supabaseAdmin para bypass RLS)
+const { data: orders } = await supabaseAdmin
   .from('orders')
   .select('*')
   .order('created_at', { ascending: false });

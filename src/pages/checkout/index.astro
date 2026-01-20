@@ -1,6 +1,6 @@
 ---
 import PublicLayout from '@layouts/PublicLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -9,12 +9,27 @@ const accessToken = Astro.cookies.get('sb-access-token')?.value;
 let user = null;
 let customer = null;
 let defaultAddress = null;
+let isAdmin = false;
 
 if (accessToken) {
   const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
   user = authUser;
   
   if (user) {
+    // Verificar si es admin - si lo es, redirigir a tienda
+    const { data: adminUser } = await supabaseAdmin
+      .from('admin_users')
+      .select('id, is_active')
+      .eq('auth_user_id', user.id)
+      .eq('is_active', true)
+      .single();
+    
+    if (adminUser) {
+      isAdmin = true;
+      // Admin no puede hacer checkout, redirigir a tienda
+      return Astro.redirect('/');
+    }
+    
     // Obtener perfil del cliente
     const { data: customerData } = await supabase
       .from('customers')
@@ -453,7 +468,7 @@ const provinces = [
 </PublicLayout>
 
 <script>
-  import { $cart, $cartTotal, $cartCount } from '../../stores/cart';
+  import { $cart, $cartSubtotal, $cartCount } from '../../stores/cart';
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -464,7 +479,7 @@ const provinces = [
 
   // Obtener datos del carrito
   const items = $cart.get();
-  const subtotal = $cartTotal.get();
+  const subtotal = $cartSubtotal.get();
 
   // Si el carrito está vacío, redirigir
   if (items.length === 0) {

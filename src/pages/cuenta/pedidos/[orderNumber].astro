@@ -1,6 +1,6 @@
 ---
 import PublicLayout from '@layouts/PublicLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -22,31 +22,45 @@ if (authError || !user) {
   return Astro.redirect(`/cuenta/login?redirect=/cuenta/pedidos/${orderNumber}`);
 }
 
-// Obtener el pedido con detalles
-const { data: order } = await supabase
+// Obtener el customer del usuario actual (usar Admin para bypass RLS)
+const { data: currentCustomer } = await supabaseAdmin
+  .from('customers')
+  .select('id')
+  .eq('auth_user_id', user.id)
+  .single();
+
+if (!currentCustomer?.id) {
+  return Astro.redirect('/cuenta/login?redirect=/cuenta/pedidos');
+}
+
+// Obtener el pedido (usar Admin)
+const { data: order } = await supabaseAdmin
   .from('orders')
-  .select(`
-    *,
-    customer:customers(id, auth_user_id, first_name, last_name, email),
-    order_items(
-      id,
-      quantity,
-      unit_price,
-      total_price,
-      product_variant:product_variants(
-        id,
-        color,
-        size,
-        product:products(id, name, slug, images)
-      )
-    )
-  `)
+  .select('*')
   .eq('order_number', orderNumber)
   .single();
 
-if (!order || order.customer?.auth_user_id !== user.id) {
+// Verificar que el pedido existe y pertenece al usuario
+if (!order) {
   return Astro.redirect('/cuenta/pedidos');
 }
+
+// Verificar que el pedido pertenece al cliente actual
+if (order.customer_id !== currentCustomer.id) {
+  return Astro.redirect('/cuenta/pedidos');
+}
+
+// Obtener items del pedido (sin joins complejos)
+const { data: orderItems } = await supabaseAdmin
+  .from('order_items')
+  .select('*')
+  .eq('order_id', order.id);
+
+// Mapear datos usando los campos snapshot que ya están en order_items
+const itemsWithProducts = orderItems || [];
+
+console.log('Order:', order.order_number);
+console.log('Order Items:', itemsWithProducts);
 
 // Funciones de formato
 const formatPrice = (price: number) => {
@@ -165,41 +179,41 @@ const timeline = [
 
         <!-- Order Items -->
         <div class="bg-white border border-primary-200 p-6">
-          <h2 class="text-lg font-medium mb-6">Productos ({order.order_items?.length || 0})</h2>
+          <h2 class="text-lg font-medium mb-6">Productos ({itemsWithProducts?.length || 0})</h2>
           <div class="space-y-4">
-            {order.order_items?.map((item: any) => {
+            {itemsWithProducts?.map((item: any) => {
               const variant = item.product_variant;
-              const product = variant?.product;
+              const product = item.product;
               return (
                 <div class="flex gap-4 pb-4 border-b border-primary-100 last:border-0 last:pb-0">
                   <a 
-                    href={`/productos/${product?.slug}`}
+                    href={`/productos/${item.product_slug}`}
                     class="w-24 aspect-[3/4] bg-primary-100 flex-shrink-0"
                   >
-                    {product?.images?.[0] && (
+                    {item.product_image && (
                       <img 
-                        src={product.images[0]} 
-                        alt={product.name}
+                        src={item.product_image} 
+                        alt={item.product_name}
                         class="w-full h-full object-cover"
                       />
                     )}
                   </a>
                   <div class="flex-1">
                     <a 
-                      href={`/productos/${product?.slug}`}
+                      href={`/productos/${item.product_slug}`}
                       class="font-medium hover:underline"
                     >
-                      {product?.name}
+                      {item.product_name}
                     </a>
                     <p class="text-sm text-primary-500 mt-1">
-                      Color: {variant?.color} | Talla: {variant?.size}
+                      Color: {item.color} | Talla: {item.size}
                     </p>
                     <p class="text-sm text-primary-500">Cantidad: {item.quantity}</p>
                     <div class="flex items-center gap-2 mt-2">
-                      <span class="font-medium">{formatPrice(item.price * item.quantity)}</span>
-                      {item.original_price && item.original_price > item.price && (
-                        <span class="text-sm text-primary-400 line-through">
-                          {formatPrice(item.original_price * item.quantity)}
+                      <span class="font-medium">{formatPrice(item.line_total)}</span>
+                      {item.discount_percentage > 0 && (
+                        <span class="text-sm text-primary-400">
+                          {item.discount_percentage}% descuento
                         </span>
                       )}
                     </div>
@@ -226,10 +240,10 @@ const timeline = [
               <span class="text-primary-500">Subtotal</span>
               <span>{formatPrice(order.subtotal)}</span>
             </div>
-            {order.discount > 0 && (
-              <div class="flex justify-between text-green-600">
+            {order.discount_amount > 0 && (
+              <div class="flex justify-between text-sm text-green-600">
                 <span>Descuento</span>
-                <span>-{formatPrice(order.discount)}</span>
+                <span>-{formatPrice(order.discount_amount)}</span>
               </div>
             )}
             <div class="flex justify-between">
@@ -238,7 +252,7 @@ const timeline = [
             </div>
             <div class="flex justify-between pt-3 border-t border-primary-200 text-lg font-medium">
               <span>Total</span>
-              <span>{formatPrice(order.total)}</span>
+              <span>{formatPrice(order.total_amount || order.subtotal)}</span>
             </div>
           </div>
 
@@ -294,8 +308,20 @@ const timeline = [
             ← VOLVER A MIS PEDIDOS
           </a>
           
+          {(order.status === 'confirmed' || order.status === 'pending') && (
+            <button 
+              class="w-full px-4 py-3 border border-red-300 text-red-600 hover:border-red-900 hover:bg-red-50 transition-colors"
+              id="cancelOrderBtn"
+            >
+              CANCELAR PEDIDO
+            </button>
+          )}
+          
           {order.status === 'delivered' && (
-            <button class="w-full px-4 py-3 border border-primary-300 text-primary-600 hover:border-primary-900 transition-colors">
+            <button 
+              class="w-full px-4 py-3 border border-primary-300 text-primary-600 hover:border-primary-900 transition-colors"
+              id="returnOrderBtn"
+            >
               SOLICITAR DEVOLUCIÓN
             </button>
           )}
@@ -317,7 +343,333 @@ const timeline = [
       </div>
     </div>
   </main>
+
+  <!-- MODAL CANCELAR PEDIDO -->
+  <div id="cancelModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg max-w-md w-full mx-4 p-8 shadow-xl">
+      <h3 class="text-2xl font-display font-medium mb-4">Cancelar Pedido</h3>
+      <p class="text-primary-600 mb-6">
+        ¿Estás seguro de que deseas cancelar este pedido? Se restaurará el stock automáticamente y recibirás un reembolso a tu método de pago.
+      </p>
+      
+      <div class="space-y-3">
+        <button
+          class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
+          id="confirmCancelBtn"
+        >
+          Sí, cancelar pedido
+        </button>
+        <button
+          class="w-full border border-primary-300 text-primary-600 py-3 rounded-lg hover:bg-primary-50 transition-colors"
+          id="cancelModalCloseBtn"
+        >
+          No, mantener pedido
+        </button>
+      </div>
+
+      <div id="cancelSpinner" class="hidden text-center mt-4">
+        <div class="inline-block animate-spin">
+          <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          </svg>
+        </div>
+        <p class="text-sm text-primary-600 mt-2">Procesando cancelación...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SOLICITAR DEVOLUCIÓN -->
+  <div id="returnModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 max-h-screen overflow-y-auto">
+    <div class="bg-white rounded-lg max-w-md w-full mx-4 p-8 shadow-xl my-8">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-xl font-display font-medium">Solicitar Devolución</h3>
+          <p class="text-sm text-primary-500 mt-1">Cuéntanos por qué deseas devolver este pedido</p>
+        </div>
+      </div>
+
+      <form id="returnForm" class="space-y-4">
+        <div>
+          <label for="returnReason" class="block text-sm font-medium text-primary-900 mb-2">
+            Motivo de la devolución
+          </label>
+          <textarea
+            id="returnReason"
+            name="reason"
+            required
+            rows="4"
+            placeholder="Cuéntanos el motivo (defecto, no corresponde, cambio de idea, etc.)"
+            class="w-full px-4 py-3 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 text-sm"
+          ></textarea>
+        </div>
+
+        <div class="bg-blue-50 p-4 rounded-lg text-sm space-y-2 border border-blue-200">
+          <p class="font-medium text-primary-900">¿Cómo funciona el proceso?</p>
+          <ol class="list-decimal list-inside space-y-1 text-primary-600 text-xs">
+            <li>Revisaremos tu solicitud</li>
+            <li>Te enviaremos una etiqueta de devolución</li>
+            <li>Envías el artículo con la etiqueta</li>
+            <li>Confirmamos la recepción</li>
+            <li>Te devolvemos el dinero en 5-7 días hábiles</li>
+          </ol>
+        </div>
+
+        <div class="space-y-2">
+          <button
+            type="submit"
+            class="w-full bg-primary-900 text-white py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium"
+            id="submitReturnBtn"
+          >
+            Solicitar Devolución
+          </button>
+          <button
+            type="button"
+            class="w-full border border-primary-300 text-primary-600 py-3 rounded-lg hover:bg-primary-50 transition-colors text-sm"
+            id="returnModalCloseBtn"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+
+      <div id="returnSuccess" class="hidden text-center space-y-4">
+        <div class="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full">
+          <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div>
+          <p class="font-medium text-primary-900">Solicitud Recibida</p>
+          <p class="text-sm text-primary-600 mt-1">Pronto te contactaremos con la etiqueta de devolución por email</p>
+        </div>
+        <button
+          class="w-full bg-primary-900 text-white py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium"
+          id="returnSuccessCloseBtn"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+          ¿Necesitas ayuda? Contacta aquí
+        </a>
+      </div>
+    </div>
+  </div>
 </PublicLayout>
+
+<script is:client>
+  function setupOrderModals() {
+    console.log('🔧 Setting up order modals...');
+
+    const cancelModal = document.getElementById('cancelModal');
+    const returnModal = document.getElementById('returnModal');
+    const cancelOrderBtn = document.getElementById('cancelOrderBtn');
+    const returnOrderBtn = document.getElementById('returnOrderBtn');
+
+    if (!cancelModal || !returnModal) {
+      console.error('❌ Modal elements not found');
+      return;
+    }
+
+    console.log('✅ Modal elements found');
+
+    const getOrderNumber = () => {
+      const header = document.querySelector('h1');
+      if (header) {
+        const text = header.textContent || '';
+        return text.replace('PEDIDO #', '').trim();
+      }
+      return '';
+    };
+
+    // MODAL CANCELACIÓN
+    if (cancelOrderBtn) {
+      cancelOrderBtn.addEventListener('click', () => {
+        console.log('🔓 Opening cancel modal');
+        cancelModal.classList.remove('hidden');
+      });
+    }
+
+    // MODAL DEVOLUCIÓN
+    if (returnOrderBtn) {
+      returnOrderBtn.addEventListener('click', () => {
+        console.log('🔓 Opening return modal');
+        returnModal.classList.remove('hidden');
+      });
+    }
+
+    // Cerrar modales al click fuera
+    cancelModal.addEventListener('click', (e) => {
+      if (e.target === cancelModal) {
+        console.log('🔒 Closing cancel modal');
+        cancelModal.classList.add('hidden');
+      }
+    });
+
+    returnModal.addEventListener('click', (e) => {
+      if (e.target === returnModal) {
+        console.log('🔒 Closing return modal');
+        returnModal.classList.add('hidden');
+        const form = returnModal.querySelector('#returnForm');
+        const success = returnModal.querySelector('#returnSuccess');
+        if (form) form.classList.remove('hidden');
+        if (success) success.classList.add('hidden');
+      }
+    });
+
+    // CONFIRM CANCEL BUTTON
+    const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+    if (confirmCancelBtn) {
+      confirmCancelBtn.addEventListener('click', async () => {
+        const orderNumber = getOrderNumber();
+        if (!orderNumber) {
+          alert('No se pudo determinar el número de pedido');
+          return;
+        }
+
+        console.log('🔄 Canceling order:', orderNumber);
+        confirmCancelBtn.disabled = true;
+        const spinner = cancelModal.querySelector('#cancelSpinner');
+        if (spinner) spinner.classList.remove('hidden');
+
+        try {
+          const response = await fetch('/api/orders/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderNumber })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            alert('✅ Pedido cancelado correctamente. Se ha procesado el reembolso.');
+            window.location.href = '/cuenta/pedidos';
+          } else {
+            console.error('❌ Cancel error:', data);
+            alert(data.message || 'Error al cancelar el pedido');
+            confirmCancelBtn.disabled = false;
+            if (spinner) spinner.classList.add('hidden');
+          }
+        } catch (error) {
+          console.error('❌ Cancel request error:', error);
+          alert('Error al cancelar el pedido');
+          confirmCancelBtn.disabled = false;
+          if (spinner) spinner.classList.add('hidden');
+        }
+      });
+    }
+
+    // RETURN FORM SUBMIT
+    const returnForm = returnModal.querySelector('#returnForm');
+    if (returnForm) {
+      returnForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const returnReason = returnForm.querySelector('#returnReason');
+        const reason = returnReason ? returnReason.value : '';
+        const orderNumber = getOrderNumber();
+        const submitBtn = returnForm.querySelector('#submitReturnBtn');
+
+        if (!reason) {
+          alert('Por favor, cuéntanos el motivo de la devolución');
+          return;
+        }
+
+        if (!orderNumber) {
+          alert('No se pudo determinar el número de pedido');
+          return;
+        }
+
+        console.log('🔄 Requesting return for order:', orderNumber);
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Procesando...';
+        }
+
+        try {
+          const response = await fetch('/api/orders/request-return', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderNumber, reason })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            console.log('✅ Return request created:', data);
+            const form = returnModal.querySelector('#returnForm');
+            const success = returnModal.querySelector('#returnSuccess');
+            if (form) form.classList.add('hidden');
+            if (success) success.classList.remove('hidden');
+
+            setTimeout(() => {
+              window.location.href = '/cuenta/pedidos';
+            }, 3000);
+          } else {
+            console.error('❌ Return error:', data);
+            alert(data.message || 'Error al solicitar la devolución');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Solicitar Devolución';
+            }
+          }
+        } catch (error) {
+          console.error('❌ Return request error:', error);
+          alert('Error al solicitar la devolución');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Solicitar Devolución';
+          }
+        }
+      });
+    }
+
+    // Close buttons
+    const cancelModalCloseBtn = document.getElementById('cancelModalCloseBtn');
+    if (cancelModalCloseBtn) {
+      cancelModalCloseBtn.addEventListener('click', () => {
+        console.log('🔒 Closing cancel modal via button');
+        cancelModal.classList.add('hidden');
+      });
+    }
+
+    const returnModalCloseBtn = document.getElementById('returnModalCloseBtn');
+    if (returnModalCloseBtn) {
+      returnModalCloseBtn.addEventListener('click', () => {
+        console.log('🔒 Closing return modal via button');
+        returnModal.classList.add('hidden');
+        const form = returnModal.querySelector('#returnForm');
+        const success = returnModal.querySelector('#returnSuccess');
+        if (form) form.classList.remove('hidden');
+        if (success) success.classList.add('hidden');
+      });
+    }
+
+    const returnSuccessCloseBtn = document.getElementById('returnSuccessCloseBtn');
+    if (returnSuccessCloseBtn) {
+      returnSuccessCloseBtn.addEventListener('click', () => {
+        console.log('🔒 Closing return modal via success button');
+        window.location.href = '/cuenta/pedidos';
+      });
+    }
+
+    console.log('✅ Order modals setup complete');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupOrderModals);
+  } else {
+    setupOrderModals();
+  }
+
+  document.addEventListener('astro:page-load', setupOrderModals);
+</script>
 
 <style>
   @media print {

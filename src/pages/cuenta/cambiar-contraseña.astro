@@ -1,0 +1,291 @@
+---
+/**
+ * Cambiar Contraseña
+ */
+import PublicLayout from '@layouts/PublicLayout.astro';
+import { supabase, supabaseAdmin } from '@lib/supabase';
+
+export const prerender = false;
+
+// Obtener token de cookies
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+
+if (!accessToken) {
+  return Astro.redirect('/cuenta/login?redirect=/cuenta/cambiar-contraseña');
+}
+
+// Verificar autenticación
+const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+if (authError || !user) {
+  Astro.cookies.delete('sb-access-token', { path: '/' });
+  Astro.cookies.delete('sb-refresh-token', { path: '/' });
+  return Astro.redirect('/cuenta/login?redirect=/cuenta/cambiar-contraseña');
+}
+
+// Verificar que no sea admin
+const { data: adminUser } = await supabaseAdmin
+  .from('admin_users')
+  .select('id, is_active')
+  .eq('auth_user_id', user.id)
+  .eq('is_active', true)
+  .single();
+
+if (adminUser) {
+  return Astro.redirect('/admin');
+}
+---
+
+<PublicLayout title="Cambiar Contraseña | FashionStore">
+  <main class="py-12">
+    <div class="container max-w-2xl">
+      <!-- Breadcrumb -->
+      <nav class="text-sm mb-6">
+        <ol class="flex items-center gap-2 text-primary-500">
+          <li><a href="/" class="hover:text-primary-900">Inicio</a></li>
+          <li>/</li>
+          <li><a href="/cuenta" class="hover:text-primary-900">Mi Cuenta</a></li>
+          <li>/</li>
+          <li class="text-primary-900">Cambiar Contraseña</li>
+        </ol>
+      </nav>
+
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-display font-medium mb-2">Cambiar Contraseña</h1>
+        <p class="text-primary-500">Actualiza tu contraseña de forma segura</p>
+      </div>
+
+      <!-- Form -->
+      <div class="bg-white border border-primary-200 p-8 max-w-md mx-auto">
+        <form id="changePasswordForm" class="space-y-6">
+          <div>
+            <label for="currentPassword" class="block text-sm font-medium text-primary-900 mb-2">
+              Contraseña Actual
+            </label>
+            <input
+              type="password"
+              id="currentPassword"
+              name="currentPassword"
+              required
+              class="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+              placeholder="Ingresa tu contraseña actual"
+            />
+            <p class="text-xs text-primary-500 mt-1">Por seguridad, necesitamos verificar tu contraseña actual</p>
+          </div>
+
+          <div>
+            <label for="newPassword" class="block text-sm font-medium text-primary-900 mb-2">
+              Nueva Contraseña
+            </label>
+            <input
+              type="password"
+              id="newPassword"
+              name="newPassword"
+              required
+              class="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+              placeholder="Ingresa tu nueva contraseña"
+            />
+            <div class="mt-2 text-xs text-primary-500">
+              <p>La contraseña debe contener:</p>
+              <ul class="list-disc list-inside space-y-1 mt-1">
+                <li id="lengthCheck">Al menos 8 caracteres</li>
+                <li id="uppercaseCheck">Una letra mayúscula</li>
+                <li id="lowercaseCheck">Una letra minúscula</li>
+                <li id="numberCheck">Un número</li>
+              </ul>
+            </div>
+          </div>
+
+          <div>
+            <label for="confirmPassword" class="block text-sm font-medium text-primary-900 mb-2">
+              Confirmar Nueva Contraseña
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              required
+              class="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+              placeholder="Confirma tu nueva contraseña"
+            />
+            <p id="matchError" class="text-xs text-red-600 mt-1 hidden">Las contraseñas no coinciden</p>
+            <p id="matchSuccess" class="text-xs text-green-600 mt-1 hidden">Las contraseñas coinciden</p>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full bg-primary-900 text-white py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium"
+            id="submitBtn"
+          >
+            Cambiar Contraseña
+          </button>
+
+          <a href="/cuenta" class="block text-center text-sm text-primary-600 hover:text-primary-900 underline">
+            Volver a Mi Cuenta
+          </a>
+        </form>
+
+        <!-- Success Message -->
+        <div id="successMessage" class="hidden bg-green-100 text-green-800 p-4 rounded-lg text-center">
+          <p class="font-medium">Contraseña actualizada correctamente</p>
+          <p class="text-sm mt-1">Tu contraseña ha sido cambiada. Usa tu nueva contraseña para futuras sesiones.</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden bg-red-100 text-red-800 p-4 rounded-lg"></div>
+      </div>
+    </div>
+  </main>
+</PublicLayout>
+
+<script>
+  const form = document.getElementById('changePasswordForm') as HTMLFormElement;
+  const newPasswordInput = document.getElementById('newPassword') as HTMLInputElement;
+  const confirmPasswordInput = document.getElementById('confirmPassword') as HTMLInputElement;
+  const successMsg = document.getElementById('successMessage');
+  const errorMsg = document.getElementById('errorMessage');
+  const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+
+  // Validación de contraseña
+  newPasswordInput?.addEventListener('input', () => {
+    const password = newPasswordInput.value;
+    const lengthCheck = document.getElementById('lengthCheck');
+    const uppercaseCheck = document.getElementById('uppercaseCheck');
+    const lowercaseCheck = document.getElementById('lowercaseCheck');
+    const numberCheck = document.getElementById('numberCheck');
+
+    // Validar longitud
+    if (password.length >= 8) {
+      lengthCheck?.classList.add('text-green-600');
+    } else {
+      lengthCheck?.classList.remove('text-green-600');
+    }
+
+    // Validar mayúscula
+    if (/[A-Z]/.test(password)) {
+      uppercaseCheck?.classList.add('text-green-600');
+    } else {
+      uppercaseCheck?.classList.remove('text-green-600');
+    }
+
+    // Validar minúscula
+    if (/[a-z]/.test(password)) {
+      lowercaseCheck?.classList.add('text-green-600');
+    } else {
+      lowercaseCheck?.classList.remove('text-green-600');
+    }
+
+    // Validar número
+    if (/[0-9]/.test(password)) {
+      numberCheck?.classList.add('text-green-600');
+    } else {
+      numberCheck?.classList.remove('text-green-600');
+    }
+
+    // Validar coincidencia
+    validatePasswords();
+  });
+
+  confirmPasswordInput?.addEventListener('input', validatePasswords);
+
+  function validatePasswords() {
+    const matchError = document.getElementById('matchError');
+    const matchSuccess = document.getElementById('matchSuccess');
+    
+    if (newPasswordInput.value && confirmPasswordInput.value) {
+      if (newPasswordInput.value === confirmPasswordInput.value) {
+        matchError?.classList.add('hidden');
+        matchSuccess?.classList.remove('hidden');
+      } else {
+        matchSuccess?.classList.add('hidden');
+        matchError?.classList.remove('hidden');
+      }
+    } else {
+      matchError?.classList.add('hidden');
+      matchSuccess?.classList.add('hidden');
+    }
+  }
+
+  // Enviar formulario
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const currentPassword = (document.getElementById('currentPassword') as HTMLInputElement).value;
+    const newPassword = newPasswordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+
+    // Validaciones
+    if (!currentPassword) {
+      showError('Por favor ingresa tu contraseña actual');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      showError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      showError('La contraseña debe contener mayúsculas, minúsculas y números');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showError('Las contraseñas no coinciden');
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      showError('La nueva contraseña debe ser diferente a la actual');
+      return;
+    }
+
+    try {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Cambiando...';
+
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showError(data.message || 'Error al cambiar la contraseña');
+        return;
+      }
+
+      // Mostrar éxito
+      form.classList.add('hidden');
+      successMsg?.classList.remove('hidden');
+
+      // Redirigir después de 3 segundos
+      setTimeout(() => {
+        window.location.href = '/cuenta';
+      }, 3000);
+    } catch (error) {
+      showError('Error al cambiar la contraseña. Intenta nuevamente.');
+      console.error(error);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Cambiar Contraseña';
+    }
+  });
+
+  function showError(message: string) {
+    const errorElement = document.getElementById('errorMessage');
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.classList.remove('hidden');
+      setTimeout(() => {
+        errorElement.classList.add('hidden');
+      }, 5000);
+    }
+  }
+</script>

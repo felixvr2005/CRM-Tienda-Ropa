@@ -72,6 +72,8 @@ export function initCart() {
       const expiresDate = new Date(expires);
       if (expiresDate > new Date()) {
         $cart.set(JSON.parse(saved));
+        // Iniciar timer de expiración
+        startCartExpirationTimer();
       } else {
         clearCart();
       }
@@ -87,76 +89,221 @@ function saveCart(cart: CartItem[]) {
   
   try {
     localStorage.setItem('fashionstore_cart', JSON.stringify(cart));
-    // Expira en 7 días
+    // Expira en 15 minutos (para liberar stock reservado)
     const expires = new Date();
-    expires.setDate(expires.getDate() + 7);
+    expires.setMinutes(expires.getMinutes() + 15);
     localStorage.setItem('fashionstore_cart_expires', expires.toISOString());
   } catch (e) {
     console.error('Error saving cart:', e);
   }
 }
 
-// Añadir al carrito
-export function addToCart(item: Omit<CartItem, 'quantity'>, quantity: number = 1) {
+// Añadir al carrito con reserva de stock
+export async function addToCart(item: Omit<CartItem, 'quantity'>, quantity: number = 1) {
   const cart = $cart.get();
   const existingIndex = cart.findIndex(i => i.variantId === item.variantId);
   
   let newCart: CartItem[];
+  let quantityToReserve = quantity;
   
   if (existingIndex >= 0) {
-    // Ya existe, actualizar cantidad
+    // Ya existe, calcular cuánto más reservar
+    const existingItem = cart[existingIndex];
+    const newQty = Math.min(existingItem.quantity + quantity, existingItem.maxStock);
+    quantityToReserve = newQty - existingItem.quantity;
+    
     newCart = cart.map((i, idx) => {
       if (idx === existingIndex) {
-        const newQty = Math.min(i.quantity + quantity, i.maxStock);
         return { ...i, quantity: newQty };
       }
       return i;
     });
   } else {
     // Nuevo item
-    newCart = [...cart, { ...item, quantity: Math.min(quantity, item.maxStock) }];
+    quantityToReserve = Math.min(quantity, item.maxStock);
+    newCart = [...cart, { ...item, quantity: quantityToReserve }];
+  }
+  
+  // Reservar stock en el servidor
+  if (quantityToReserve > 0) {
+    try {
+      const response = await fetch('/api/stock/reserve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId: item.variantId, quantity: quantityToReserve })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Error reservando stock:', error);
+        alert(error.error || 'Error al reservar el producto');
+        return;
+      }
+    } catch (e) {
+      console.error('Error en reserva de stock:', e);
+    }
   }
   
   $cart.set(newCart);
   saveCart(newCart);
+  // Reiniciar timer al añadir productos
+  startCartExpirationTimer();
   $isCartOpen.set(true);
 }
 
-// Actualizar cantidad
-export function updateQuantity(variantId: string, quantity: number) {
+// Actualizar cantidad (con gestión de stock)
+export async function updateQuantity(variantId: string, quantity: number) {
   const cart = $cart.get();
+  const item = cart.find(i => i.variantId === variantId);
+  
+  if (!item) return;
   
   if (quantity <= 0) {
-    removeFromCart(variantId);
+    await removeFromCart(variantId);
     return;
   }
   
-  const newCart = cart.map(item => {
-    if (item.variantId === variantId) {
-      return { ...item, quantity: Math.min(quantity, item.maxStock) };
+  const oldQty = item.quantity;
+  const newQty = Math.min(quantity, item.maxStock);
+  const diff = newQty - oldQty;
+  
+  // Si aumentamos, reservar más stock
+  if (diff > 0) {
+    try {
+      const response = await fetch('/api/stock/reserve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId, quantity: diff })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || 'Stock insuficiente');
+        return;
+      }
+    } catch (e) {
+      console.error('Error reservando stock:', e);
+      return;
     }
-    return item;
+  }
+  // Si reducimos, liberar stock
+  else if (diff < 0) {
+    try {
+      await fetch('/api/stock/release', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId, quantity: Math.abs(diff) })
+      });
+    } catch (e) {
+      console.error('Error liberando stock:', e);
+    }
+  }
+  
+  const newCart = cart.map(i => {
+    if (i.variantId === variantId) {
+      return { ...i, quantity: newQty };
+    }
+    return i;
   });
   
   $cart.set(newCart);
   saveCart(newCart);
 }
 
-// Eliminar del carrito
-export function removeFromCart(variantId: string) {
+// Eliminar del carrito (libera stock)
+export async function removeFromCart(variantId: string) {
   const cart = $cart.get();
-  const newCart = cart.filter(item => item.variantId !== variantId);
+  const item = cart.find(i => i.variantId === variantId);
+  
+  if (item) {
+    // Liberar stock reservado
+    try {
+      await fetch('/api/stock/release', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variantId, quantity: item.quantity })
+      });
+    } catch (e) {
+      console.error('Error liberando stock:', e);
+    }
+  }
+  
+  const newCart = cart.filter(i => i.variantId !== variantId);
   $cart.set(newCart);
   saveCart(newCart);
 }
 
-// Limpiar carrito
-export function clearCart() {
+// Limpiar carrito (libera todo el stock reservado)
+export async function clearCart(releaseStock: boolean = true) {
+  const cart = $cart.get();
+  
+  // Liberar todo el stock reservado
+  if (releaseStock && cart.length > 0) {
+    for (const item of cart) {
+      try {
+        await fetch('/api/stock/release', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variantId: item.variantId, quantity: item.quantity })
+        });
+      } catch (e) {
+        console.error('Error liberando stock:', e);
+      }
+    }
+  }
+  
   $cart.set([]);
   if (typeof window !== 'undefined') {
     localStorage.removeItem('fashionstore_cart');
     localStorage.removeItem('fashionstore_cart_expires');
+    // Disparar evento para actualizar UI
+    window.dispatchEvent(new CustomEvent('cart:cleared'));
   }
+}
+
+// Timer de expiración del carrito
+let cartExpirationTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function startCartExpirationTimer() {
+  if (typeof window === 'undefined') return;
+  
+  // Limpiar timer anterior
+  if (cartExpirationTimer) {
+    clearTimeout(cartExpirationTimer);
+  }
+  
+  const expires = localStorage.getItem('fashionstore_cart_expires');
+  if (!expires) return;
+  
+  const expiresDate = new Date(expires);
+  const now = new Date();
+  const msUntilExpiry = expiresDate.getTime() - now.getTime();
+  
+  if (msUntilExpiry <= 0) {
+    // Ya expiró, liberar stock
+    clearCart(true);
+    return;
+  }
+  
+  // Programar limpieza automática (libera stock al expirar)
+  cartExpirationTimer = setTimeout(async () => {
+    await clearCart(true); // Liberar stock
+    alert('Tu carrito ha expirado después de 15 minutos. Los productos han sido devueltos al stock.');
+  }, msUntilExpiry);
+}
+
+// Obtener tiempo restante del carrito en segundos
+export function getCartTimeRemaining(): number {
+  if (typeof window === 'undefined') return 0;
+  
+  const expires = localStorage.getItem('fashionstore_cart_expires');
+  if (!expires) return 0;
+  
+  const expiresDate = new Date(expires);
+  const now = new Date();
+  const msRemaining = expiresDate.getTime() - now.getTime();
+  
+  return Math.max(0, Math.floor(msRemaining / 1000));
 }
 
 // Cargar carrito del servidor (para usuarios logueados)

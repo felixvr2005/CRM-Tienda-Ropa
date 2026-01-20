@@ -282,34 +282,58 @@ export const prerender = false;
 <script>
   const form = document.getElementById('contact-form') as HTMLFormElement;
   const formMessage = document.getElementById('form-message');
+  const submitButton = form?.querySelector('button[type="submit"]') as HTMLButtonElement;
   
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
-    
     try {
-      // Simulación de envío - en producción conectar con un servicio de email
-      // const response = await fetch('/api/contact', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data)
-      // });
-      
-      // Simular éxito
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (formMessage) {
-        formMessage.textContent = '¡Mensaje enviado! Te responderemos pronto.';
-        formMessage.className = 'text-center py-3 text-green-600 bg-green-50';
+      const formData = new FormData(form);
+      const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone') || null,
+        subject: formData.get('subject'),
+        orderNumber: formData.get('order_number') || null,
+        message: formData.get('message')
+      };
+
+      // Deshabilitar botón
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Enviando...';
       }
-      
-      form.reset();
-    } catch (error) {
+
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        if (formMessage) {
+          formMessage.textContent = '¡Mensaje enviado! Te responderemos pronto.';
+          formMessage.className = 'not-hidden text-center py-3 px-4 text-green-600 bg-green-50 rounded-lg';
+        }
+        form.reset();
+      } else {
+        if (formMessage) {
+          formMessage.textContent = result.error || 'Error al enviar el mensaje. Inténtalo de nuevo.';
+          formMessage.className = 'not-hidden text-center py-3 px-4 text-red-600 bg-red-50 rounded-lg';
+        }
+      }
+    } catch (error: any) {
       if (formMessage) {
-        formMessage.textContent = 'Error al enviar el mensaje. Inténtalo de nuevo.';
-        formMessage.className = 'text-center py-3 text-red-600 bg-red-50';
+        formMessage.textContent = 'Error de conexión. Por favor, intenta más tarde.';
+        formMessage.className = 'not-hidden text-center py-3 px-4 text-red-600 bg-red-50 rounded-lg';
+      }
+      console.error('Contact form error:', error);
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'ENVIAR MENSAJE';
       }
     }
   });

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect, useCallback } from 'react';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 interface WishlistButtonProps {
   productId: string;
@@ -10,17 +10,27 @@ interface WishlistButtonProps {
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
+// Crear cliente una sola vez
+let supabaseInstance: SupabaseClient | null = null;
+function getSupabase() {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    });
+  }
+  return supabaseInstance;
+}
+
 export default function WishlistButton({ productId, className = '', showText = false }: WishlistButtonProps) {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [customerId, setCustomerId] = useState<string | null>(null);
 
-  useEffect(() => {
-    checkWishlistStatus();
-  }, [productId]);
-
-  const checkWishlistStatus = async () => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const checkWishlistStatus = useCallback(async () => {
+    const supabase = getSupabase();
     
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -49,14 +59,18 @@ export default function WishlistButton({ productId, className = '', showText = f
       .select('id')
       .eq('customer_id', customer.id)
       .eq('product_id', productId)
-      .single();
+      .maybeSingle();
 
     setIsInWishlist(!!data);
     setIsLoading(false);
-  };
+  }, [productId]);
+
+  useEffect(() => {
+    checkWishlistStatus();
+  }, [checkWishlistStatus]);
 
   const toggleWishlist = async () => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = getSupabase();
     
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -76,23 +90,31 @@ export default function WishlistButton({ productId, className = '', showText = f
     try {
       if (isInWishlist) {
         // Eliminar de favoritos
-        await supabase
+        const { error } = await supabase
           .from('wishlists')
           .delete()
           .eq('customer_id', customerId)
           .eq('product_id', productId);
 
-        setIsInWishlist(false);
+        if (error) {
+          console.error('Error eliminando de favoritos:', error);
+        } else {
+          setIsInWishlist(false);
+        }
       } else {
         // Añadir a favoritos
-        await supabase
+        const { error } = await supabase
           .from('wishlists')
           .insert({
             customer_id: customerId,
             product_id: productId
           });
 
-        setIsInWishlist(true);
+        if (error) {
+          console.error('Error añadiendo a favoritos:', error);
+        } else {
+          setIsInWishlist(true);
+        }
       }
     } catch (error) {
       console.error('Error al actualizar favoritos:', error);

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resumen Diario - Panel Administrativo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .date-info {
+            background-color: #f0f4f8;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            border-left: 4px solid #1e40af;
+        }
+        
+        .date-info strong {
+            color: #1e40af;
+            font-size: 16px;
+        }
+        
+        /* Tarjetas de Resumen */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .card.success {
+            background: linear-gradient(135deg, #d4fc79 0%, #96f97b 100%);
+        }
+        
+        .card.warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .card.error {
+            background: linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%);
+        }
+        
+        .card.info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .card-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .card-label {
+            font-size: 13px;
+            color: #555;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Tabla de Pedidos */
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        
+        .orders-table thead {
+            background-color: #1e40af;
+            color: white;
+        }
+        
+        .orders-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        
+        .orders-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+        
+        .orders-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background-color: #ffeaa7;
+            color: #d63031;
+        }
+        
+        .status-completed {
+            background-color: #55efc4;
+            color: #00b894;
+        }
+        
+        .status-shipped {
+            background-color: #81ecec;
+            color: #0984e3;
+        }
+        
+        .status-cancelled {
+            background-color: #fab1a0;
+            color: #d63031;
+        }
+        
+        /* Alertas */
+        .alerts {
+            margin-bottom: 15px;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid;
+            font-size: 13px;
+        }
+        
+        .alert-error {
+            background-color: #fff5f5;
+            border-color: #f56565;
+            color: #c53030;
+        }
+        
+        .alert-warning {
+            background-color: #fffaf0;
+            border-color: #ed8936;
+            color: #c05621;
+        }
+        
+        .alert-info {
+            background-color: #ebf8ff;
+            border-color: #4299e1;
+            color: #2c5282;
+        }
+        
+        .alert-icon {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        /* Lista de Items */
+        .item-list {
+            list-style: none;
+            margin-bottom: 15px;
+        }
+        
+        .item-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+        
+        .item-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .item-quantity {
+            font-weight: bold;
+            color: #1e40af;
+        }
+        
+        .item-value {
+            float: right;
+            font-weight: bold;
+            color: #00b894;
+        }
+        
+        /* Tabla de Envíos */
+        .shipments-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .shipments-table thead {
+            background-color: #1e40af;
+            color: white;
+        }
+        
+        .shipments-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .shipments-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+        
+        .shipments-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* Footer */
+        .footer {
+            background-color: #f0f4f8;
+            padding: 25px 30px;
+            border-top: 3px solid #1e40af;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .footer-line {
+            margin-bottom: 10px;
+        }
+        
+        .footer-timestamp {
+            color: #999;
+            font-style: italic;
+            margin-top: 15px;
+        }
+        
+        /* Resumen Financiero */
+        .financial-summary {
+            background-color: #f0f4f8;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .financial-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .financial-row.total {
+            border-top: 2px solid #1e40af;
+            padding-top: 10px;
+            font-weight: bold;
+            color: #1e40af;
+            font-size: 16px;
+        }
+        
+        .financial-label {
+            font-weight: 600;
+        }
+        
+        .financial-value {
+            color: #00b894;
+            font-weight: bold;
+        }
+        
+        /* Acciones Rápidas */
+        .quick-actions {
+            background-color: #f0f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.8;
+        }
+        
+        .quick-actions a {
+            color: #1e40af;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 0;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .orders-table,
+            .shipments-table {
+                font-size: 12px;
+            }
+            
+            .orders-table th,
+            .orders-table td,
+            .shipments-table th,
+            .shipments-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 Resumen Administrativo</h1>
+            <p>{{report_period}} - {{date_range}}</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Información de Fecha -->
+            <div class="date-info">
+                <strong>Período Reportado:</strong> {{report_date}}<br>
+                <strong>Generado:</strong> {{generated_at}}
+            </div>
+            
+            <!-- Tarjetas de Resumen -->
+            <div class="summary-cards">
+                <div class="card success">
+                    <div class="card-value">{{total_orders}}</div>
+                    <div class="card-label">Pedidos Recibidos</div>
+                </div>
+                <div class="card info">
+                    <div class="card-value">${{total_revenue}}</div>
+                    <div class="card-label">Ingresos Totales</div>
+                </div>
+                <div class="card warning">
+                    <div class="card-value">{{pending_shipments}}</div>
+                    <div class="card-label">Envíos Pendientes</div>
+                </div>
+                <div class="card error">
+                    <div class="card-value">{{critical_alerts}}</div>
+                    <div class="card-label">Alertas Críticas</div>
+                </div>
+            </div>
+            
+            <!-- ALERTAS RELEVANTES -->
+            {{#has_alerts}}
+            <div class="section">
+                <div class="section-title">🚨 Alertas y Excepciones</div>
+                <div class="alerts">
+                    {{#payment_errors}}
+                    <div class="alert alert-error">
+                        <span class="alert-icon">❌</span>
+                        <strong>Error de Pago:</strong> {{error_description}} (Pedido #{{affected_order}})
+                    </div>
+                    {{/payment_errors}}
+                    
+                    {{#incomplete_orders}}
+                    <div class="alert alert-warning">
+                        <span class="alert-icon">⚠️</span>
+                        <strong>Pedido Incompleto:</strong> {{order_issue}} (Pedido #{{order_id}})
+                    </div>
+                    {{/incomplete_orders}}
+                    
+                    {{#low_stock}}
+                    <div class="alert alert-warning">
+                        <span class="alert-icon">📦</span>
+                        <strong>Stock Bajo:</strong> {{product_name}} - Disponible: {{stock_quantity}} unidades
+                    </div>
+                    {{/low_stock}}
+                    
+                    {{#system_alerts}}
+                    <div class="alert alert-info">
+                        <span class="alert-icon">ℹ️</span>
+                        <strong>Información del Sistema:</strong> {{system_message}}
+                    </div>
+                    {{/system_alerts}}
+                </div>
+            </div>
+            {{/has_alerts}}
+            
+            <!-- PEDIDOS RECIBIDOS HOY -->
+            <div class="section">
+                <div class="section-title">📋 Pedidos del Período</div>
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Nº Pedido</th>
+                            <th>Cliente</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#recent_orders}}
+                        <tr>
+                            <td><strong>#{{order_number}}</strong></td>
+                            <td>{{customer_name}}</td>
+                            <td>${{order_amount}}</td>
+                            <td><span class="status-badge status-{{order_status_lower}}">{{order_status}}</span></td>
+                            <td>{{order_time}}</td>
+                        </tr>
+                        {{/recent_orders}}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- RESUMEN FINANCIERO -->
+            <div class="section">
+                <div class="section-title">💰 Resumen Financiero</div>
+                <div class="financial-summary">
+                    <div class="financial-row">
+                        <span class="financial-label">Ingresos Brutos:</span>
+                        <span class="financial-value">${{gross_revenue}}</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Devoluciones/Cancelaciones:</span>
+                        <span class="financial-value">-${{refunds}}</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Costos de Envío:</span>
+                        <span class="financial-value">-${{shipping_costs}}</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Descuentos Aplicados:</span>
+                        <span class="financial-value">-${{discounts_total}}</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Comisiones/Pagos a Proveedores:</span>
+                        <span class="financial-value">-${{commissions}}</span>
+                    </div>
+                    <div class="financial-row total">
+                        <span>GANANCIA NETA:</span>
+                        <span>${{net_profit}}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ENVÍOS -->
+            <div class="section">
+                <div class="section-title">📦 Estado de Envíos</div>
+                <table class="shipments-table">
+                    <thead>
+                        <tr>
+                            <th>Nº Seguimiento</th>
+                            <th>Destino</th>
+                            <th>Estado</th>
+                            <th>Fecha Envío</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#shipments}}
+                        <tr>
+                            <td><strong>{{tracking_number}}</strong></td>
+                            <td>{{destination}}</td>
+                            <td><span class="status-badge status-{{shipment_status_lower}}">{{shipment_status}}</span></td>
+                            <td>{{shipment_date}}</td>
+                        </tr>
+                        {{/shipments}}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- PRODUCTOS MÁS VENDIDOS -->
+            <div class="section">
+                <div class="section-title">🏆 Productos Más Vendidos</div>
+                <ul class="item-list">
+                    {{#top_products}}
+                    <li>
+                        <span>{{product_name}}</span>
+                        <span class="item-value">${{product_revenue}} ({{product_quantity}} unidades)</span>
+                    </li>
+                    {{/top_products}}
+                </ul>
+            </div>
+            
+            <!-- ESTADÍSTICAS CLAVE -->
+            <div class="section">
+                <div class="section-title">📈 Estadísticas Clave</div>
+                <div class="financial-summary">
+                    <div class="financial-row">
+                        <span class="financial-label">Ticket Promedio:</span>
+                        <span>${{average_order_value}}</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Tasa de Conversión:</span>
+                        <span>{{conversion_rate}}%</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Cliente Nuevo/Recurrente:</span>
+                        <span>{{new_customers}} nuevos / {{returning_customers}} recurrentes</span>
+                    </div>
+                    <div class="financial-row">
+                        <span class="financial-label">Métodos de Pago Más Usado:</span>
+                        <span>{{most_used_payment}}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ACCIONES RÁPIDAS -->
+            <div class="section">
+                <div class="quick-actions">
+                    <strong>Acciones Recomendadas:</strong><br>
+                    {{#recommended_actions}}
+                    • {{action_text}}<br>
+                    {{/recommended_actions}}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-line">
+                <strong>Contacto de Soporte:</strong> {{admin_email}}
+            </div>
+            <div class="footer-line">
+                <strong>Panel Administrativo:</strong> <a href="{{admin_panel_url}}">{{admin_panel_url}}</a>
+            </div>
+            <div class="footer-line">
+                <strong>Configuración del Reporte:</strong> {{report_settings}}
+            </div>
+            <div class="footer-timestamp">
+                Este es un correo automatizado. Por favor, no respondas a este mensaje.
+                <br>Generado el {{generated_at}} - {{company_name}} © {{current_year}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

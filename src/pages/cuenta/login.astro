@@ -281,10 +281,10 @@ if (user) {
         }
 
         showSuccess('¡Bienvenido! Redirigiendo...');
-        console.log('Redirigiendo a /cuenta...');
+        console.log('Redirigiendo a inicio...');
 
-        // Redirigir
-        const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '/cuenta';
+        // Redirigir a la página principal (donde está el popup de newsletter)
+        const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '/';
         window.location.replace(redirectTo);
         return;
       } else {

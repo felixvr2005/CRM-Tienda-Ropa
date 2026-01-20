@@ -41,28 +41,51 @@ export const POST: APIRoute = async ({ request }) => {
     
     // Convertir precio de euros a céntimos
     const priceInCents = Math.round(product.price * 100);
-    product.price = priceInCents;
     
     // Generar SKU automático si no se proporciona
-    if (!product.sku) {
+    let sku = product.sku;
+    if (!sku) {
       const timestamp = Date.now().toString(36).toUpperCase();
       const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-      product.sku = `SKU-${timestamp}-${random}`;
+      sku = `SKU-${timestamp}-${random}`;
     }
     
     // Generate slug
-    product.slug = slugify(product.name);
+    let slug = slugify(product.name);
     
     // Check if slug exists
     const { data: existing } = await supabase
       .from('products')
       .select('slug')
-      .eq('slug', product.slug)
+      .eq('slug', slug)
       .single();
     
     if (existing) {
-      product.slug = `${product.slug}-${Date.now()}`;
+      slug = `${slug}-${Date.now()}`;
     }
+    
+    // Preparar datos del producto con validación de campos
+    const productData: any = {
+      name: product.name,
+      slug: slug,
+      description: product.description || null,
+      category_id: product.category_id || null,
+      price: priceInCents,
+      compare_at_price: product.compare_at_price ? Math.round(product.compare_at_price * 100) : null,
+      discount_percentage: parseInt(product.discount_percentage || '0') || 0,
+      images: Array.isArray(product.images) ? product.images : [],
+      brand: product.brand || null,
+      material: product.material || null,
+      care_instructions: product.care_instructions || null,
+      is_active: !!product.is_active,
+      is_featured: !!product.is_featured,
+      is_new: !!product.is_new,
+      is_flash_offer: !!product.is_flash_offer,
+      tags: Array.isArray(product.tags) ? product.tags : [],
+      meta_title: product.meta_title || null,
+      meta_description: product.meta_description || null,
+      sku: sku,
+    };
     
     // Crear producto en Stripe automáticamente
     let stripeProductId = null;
@@ -73,10 +96,10 @@ export const POST: APIRoute = async ({ request }) => {
       const stripeProduct = await createStripeProduct({
         name: product.name,
         description: product.description || undefined,
-        images: product.images || undefined,
+        images: productData.images || undefined,
         metadata: {
-          slug: product.slug,
-          category_id: product.category_id?.toString() || '',
+          slug: productData.slug,
+          category_id: productData.category_id?.toString() || '',
         }
       });
       stripeProductId = stripeProduct.id;
@@ -84,19 +107,19 @@ export const POST: APIRoute = async ({ request }) => {
       // Crear precio en Stripe
       const stripePrice = await createStripePrice({
         productId: stripeProductId,
-        unitAmount: product.price, // Ya viene en céntimos desde la BD
+        unitAmount: priceInCents,
         currency: 'eur',
         metadata: {
-          original_price: product.original_price?.toString() || '',
+          compare_at_price: productData.compare_at_price?.toString() || '',
         }
       });
       stripePriceId = stripePrice.id;
       
       // Añadir IDs de Stripe al producto
-      product.stripe_product_id = stripeProductId;
-      product.stripe_price_id = stripePriceId;
+      productData.stripe_product_id = stripeProductId;
+      productData.stripe_price_id = stripePriceId;
       
-      console.log(`Producto "${product.name}" creado en Stripe: ${stripeProductId}`);
+      console.log(`Producto "${productData.name}" creado en Stripe: ${stripeProductId}`);
     } catch (stripeError) {
       console.warn('Error al crear producto en Stripe (continuando sin Stripe):', stripeError);
       // Continuamos sin Stripe - el producto se crea igual en la base de datos
@@ -105,18 +128,21 @@ export const POST: APIRoute = async ({ request }) => {
     // Create product
     const { data: newProduct, error: productError } = await supabase
       .from('products')
-      .insert(product)
+      .insert(productData)
       .select()
       .single();
     
     if (productError || !newProduct) {
+      console.error('Product creation error:', productError);
       throw productError || new Error('No se pudo crear el producto');
     }
     
     // Create variants
-    if (variants && variants.length > 0) {
+    if (variants && Array.isArray(variants) && variants.length > 0) {
       const variantsWithProductId = variants.map((v: any) => ({
-        ...v,
+        size: v.size,
+        color: v.color || null,
+        stock: parseInt(v.stock || '0') || 0,
         product_id: (newProduct as any).id,
       }));
       
@@ -124,7 +150,10 @@ export const POST: APIRoute = async ({ request }) => {
         .from('product_variants')
         .insert(variantsWithProductId);
       
-      if (variantsError) throw variantsError;
+      if (variantsError) {
+        console.error('Variants creation error:', variantsError);
+        throw variantsError;
+      }
     }
     
     return new Response(
@@ -141,7 +170,7 @@ export const POST: APIRoute = async ({ request }) => {
   } catch (error) {
     console.error('Create product error:', error);
     return new Response(
-      JSON.stringify({ error: 'Error al crear el producto' }),
+      JSON.stringify({ error: 'Error al crear el producto', details: String(error) }),
       { status: 500 }
     );
   }

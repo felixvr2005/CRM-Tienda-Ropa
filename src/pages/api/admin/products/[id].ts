@@ -35,6 +35,16 @@ export const PUT: APIRoute = async ({ params, request }) => {
     const { id } = params;
     const { product, variants } = await request.json();
     
+    console.log('PUT /api/admin/products/[id]', { id, product, variantsCount: variants?.length || 0 });
+    
+    // Validar que al menos name sea proporcionado
+    if (!product.name || product.name.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'El nombre del producto es obligatorio' }),
+        { status: 400 }
+      );
+    }
+    
     // Update slug if name changed
     if (product.name) {
       product.slug = slugify(product.name);
@@ -52,19 +62,65 @@ export const PUT: APIRoute = async ({ params, request }) => {
       }
     }
     
-    // Remove id from update object
-    delete product.id;
+    // Mapear campos del formulario a campos de BD
+    const updateData: any = {};
+    
+    // Campos que sí existen en la BD
+    const allowedFields = [
+      'name', 'slug', 'description', 'category_id', 'price', 
+      'compare_at_price', 'discount_percentage', 'images', 'brand',
+      'material', 'care_instructions', 'is_active', 'is_featured',
+      'is_new', 'is_flash_offer', 'tags', 'meta_title', 'meta_description',
+      'sku', 'cost_price'
+    ];
+    
+    // Copiar solo campos permitidos
+    allowedFields.forEach(field => {
+      if (field in product) {
+        let value = product[field];
+        
+        // Para el campo images, permitir arrays vacíos (significa eliminar todas las imágenes)
+        if (field === 'images' && Array.isArray(value)) {
+          updateData[field] = value;
+          return;
+        }
+        
+        // Para otros campos, NO actualizar si son null/undefined
+        if (value === null || value === undefined) {
+          return; // Skip this field
+        }
+        
+        // Convertir precios de euros a céntimos
+        if (field === 'price' && typeof value === 'number') {
+          value = Math.round(value * 100);
+        } else if (field === 'compare_at_price' && typeof value === 'number') {
+          value = Math.round(value * 100);
+        }
+        
+        updateData[field] = value;
+      }
+    });
+    
+    // Asegurar que updated_at se actualice
+    updateData.updated_at = new Date().toISOString();
+    
+    console.log('Updating product:', id, 'with data:', updateData);
     
     // Update product
-    const { error: productError } = await supabase
+    const { error: productError, data: updatedProduct } = await supabase
       .from('products')
-      .update(product)
-      .eq('id', id);
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
     
-    if (productError) throw productError;
+    if (productError) {
+      console.error('Product update error:', productError);
+      throw productError;
+    }
     
     // Update variants
-    if (variants) {
+    if (variants && Array.isArray(variants)) {
       // Get existing variants
       const { data: existingVariants } = await supabase
         .from('product_variants')
@@ -75,7 +131,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
       const newVariantIds = variants.filter((v: any) => v.id).map((v: any) => v.id);
       
       // Delete removed variants
-      const toDelete = existingIds.filter(id => !newVariantIds.includes(id));
+      const toDelete = existingIds.filter(vid => !newVariantIds.includes(vid));
       if (toDelete.length > 0) {
         await supabase
           .from('product_variants')
@@ -90,7 +146,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
           const { id: variantId, ...variantData } = variant;
           await supabase
             .from('product_variants')
-            .update(variantData)
+            .update({ ...variantData, updated_at: new Date().toISOString() })
             .eq('id', variantId);
         } else {
           // Insert new
@@ -105,13 +161,13 @@ export const PUT: APIRoute = async ({ params, request }) => {
     }
     
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, message: 'Producto actualizado correctamente' }),
       { status: 200 }
     );
   } catch (error) {
     console.error('Update product error:', error);
     return new Response(
-      JSON.stringify({ error: 'Error al actualizar el producto' }),
+      JSON.stringify({ error: 'Error al actualizar el producto', details: String(error) }),
       { status: 500 }
     );
   }

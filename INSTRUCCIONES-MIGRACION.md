@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# =====================================================
+# SCRIPT DE MIGRACIÓN - EJECUTAR EN SUPABASE SQL EDITOR
+# =====================================================
+# Ejecuta todos los scripts SQL necesarios en orden
+
+echo "📊 FashionStore - Migraciones de Base de Datos"
+echo "=============================================="
+echo ""
+echo "Para ejecutar estas migraciones:"
+echo ""
+echo "1. Ir a Supabase Dashboard"
+echo "2. Abrir SQL Editor"
+echo "3. Copiar y ejecutar cada contenido en este orden:"
+echo ""
+echo "ORDEN DE EJECUCIÓN:"
+echo "=================="
+echo ""
+echo "✅ Paso 1: Ejecutar supabase/stock-functions.sql"
+echo "   - Crea funciones para control de stock atómico"
+echo "   - Funciones: decrease_stock, increase_stock, check_stock_availability"
+echo ""
+echo "✅ Paso 2: Ejecutar supabase/configuracion-table.sql"
+echo "   - Crea tabla para configuración del sistema"
+echo "   - Campos: flash_sales_enabled, descuentos, envío gratis, etc."
+echo ""
+echo "✅ Paso 3: Ejecutar supabase/contact-messages-table.sql"
+echo "   - Crea tabla para mensajes de contacto"
+echo "   - Habilita RLS para permitir inserciones del formulario"
+echo ""
+echo "=============================================="
+echo ""
+echo "NOTA: Estos archivos están en la carpeta supabase/"
+echo "- stock-functions.sql"
+echo "- configuracion-table.sql"
+echo "- contact-messages-table.sql"
+echo ""
+echo "Después de ejecutar:"
+echo "1. Verificar que no hay errores"
+echo "2. Las tablas/funciones ya estarán disponibles"
+echo "3. Configurar webhook de Stripe en dashboard"

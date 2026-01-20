@@ -188,6 +188,19 @@ export async function getFeaturedProducts() {
 
 export async function getFlashOffers() {
   const client = getClient();
+  
+  // Verificar si las ofertas flash están activas en configuración
+  const { data: config } = await client
+    .from('configuracion')
+    .select('valor')
+    .eq('clave', 'ofertas_activas')
+    .single();
+  
+  // Si ofertas_activas es 'false' o no existe, no mostrar ofertas
+  if (!config || config.valor !== 'true') {
+    return [];
+  }
+  
   const { data, error } = await client
     .from('products')
     .select(`

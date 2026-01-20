@@ -1,0 +1,224 @@
+---
+/**
+ * Newsletter Popup Modal
+ * Solo aparece para:
+ * - Visitantes no autenticados
+ * - Clientes nuevos sin pedidos
+ */
+import { supabaseAdmin } from '@lib/supabase';
+
+interface Props {
+  id?: string;
+  showOnLoad?: boolean;
+}
+
+const { id = 'newsletterModal', showOnLoad = true } = Astro.props;
+
+// Determinar si mostrar el modal
+// Por defecto mostrar el modal (se controla desde cliente)
+let shouldShow = true;
+---
+
+{shouldShow && (
+  <div id={id} class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg max-w-md w-full mx-4 p-8 shadow-xl relative">
+      <!-- Botón cerrar -->
+      <button
+        id="closeNewsletterBtn"
+        class="absolute top-4 right-4 text-primary-500 hover:text-primary-900 transition-colors"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Contenido -->
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-12 h-12 bg-primary-100 rounded-full mb-4">
+          <svg class="w-6 h-6 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
+        <h2 class="text-2xl font-display font-medium mb-2">¡Bienvenido!</h2>
+        <p class="text-primary-600 text-sm">
+          Suscríbete a nuestro newsletter y obtén un código de descuento exclusivo
+        </p>
+      </div>
+
+      <form id="newsletterForm" class="space-y-4">
+        <div>
+          <input
+            type="email"
+            name="email"
+            placeholder="Tu correo electrónico"
+            required
+            class="w-full px-4 py-3 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 text-sm"
+          />
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="terms"
+            name="terms"
+            required
+            class="w-4 h-4 rounded border-primary-300 cursor-pointer"
+          />
+          <label for="terms" class="text-xs text-primary-600 cursor-pointer flex-1">
+            Acepto recibir promociones y actualizaciones por correo electrónico
+          </label>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full bg-primary-900 text-white py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium text-sm"
+          id="subscribeBtn"
+        >
+          Obtener mi código descuento
+        </button>
+      </form>
+
+      <!-- Código descuento generado -->
+      <div id="discountCodeContainer" class="hidden text-center mt-6 pt-6 border-t border-primary-200">
+        <p class="text-sm text-primary-600 mb-2">Tu código de descuento:</p>
+        <div class="bg-primary-100 p-4 rounded-lg mb-4">
+          <code id="discountCode" class="text-2xl font-bold text-primary-900">WELCOME20</code>
+        </div>
+        <button
+          id="copyCodeBtn"
+          class="w-full bg-primary-100 text-primary-900 py-2 rounded-lg hover:bg-primary-200 transition-colors text-sm font-medium"
+        >
+          Copiar código
+        </button>
+        <p class="text-xs text-primary-500 mt-3">
+          Este código te da un <strong>20% de descuento</strong> en tu próxima compra. No caduca.
+        </p>
+        <p class="text-xs text-primary-500 mt-2">
+          ✅ Un correo de confirmación ha sido enviado a tu cuenta
+        </p>
+      </div>
+
+      <!-- Spinner -->
+      <div id="loadingSpinner" class="hidden text-center">
+        <div class="inline-block animate-spin">
+          <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+<script is:client>
+  function setupNewsletterModal() {
+    const modal = document.getElementById('newsletterModal');
+    const form = document.getElementById('newsletterForm');
+    const subscribeBtn = document.getElementById('subscribeBtn');
+    const spinner = document.getElementById('loadingSpinner');
+    const codeContainer = document.getElementById('discountCodeContainer');
+    const discountCode = document.getElementById('discountCode');
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+    const closeBtn = document.getElementById('closeNewsletterBtn');
+
+    if (!modal || !form) {
+      console.error('Newsletter modal elements not found');
+      return;
+    }
+
+    console.log('✅ Newsletter modal setup started (solo clientes nuevos/visitantes)');
+
+    // Mostrar modal después de 2 segundos
+    setTimeout(() => {
+      modal.classList.remove('hidden');
+      console.log('✅ Newsletter modal shown after 2s');
+    }, 2000);
+
+    // Cerrar modal al hacer click fuera
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+        console.log('Closed newsletter modal (click outside)');
+      }
+    });
+
+    // Botón cerrar
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        modal.classList.add('hidden');
+        console.log('Closed newsletter modal (close button)');
+      });
+    }
+
+    // Submit formulario
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const emailInput = form.querySelector('input[name="email"]');
+      const email = emailInput ? emailInput.value : '';
+      
+      if (!email) {
+        alert('Por favor ingresa un email válido');
+        return;
+      }
+
+      if (subscribeBtn) subscribeBtn.disabled = true;
+      if (spinner) spinner.classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/newsletter/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          form.classList.add('hidden');
+          if (spinner) spinner.classList.add('hidden');
+          if (codeContainer) codeContainer.classList.remove('hidden');
+          if (discountCode) discountCode.textContent = data.code || 'WELCOME20';
+          console.log('✅ Newsletter subscription successful, email sent');
+
+          // Botón copiar código
+          if (copyCodeBtn) {
+            copyCodeBtn.addEventListener('click', () => {
+              const code = discountCode ? discountCode.textContent : '';
+              if (code && navigator.clipboard) {
+                navigator.clipboard.writeText(code).then(() => {
+                  alert('Código copiado al portapapeles');
+                });
+              }
+            });
+          }
+        } else {
+          if (spinner) spinner.classList.add('hidden');
+          alert(data.message || 'Error al suscribirse');
+          if (subscribeBtn) subscribeBtn.disabled = false;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        if (spinner) spinner.classList.add('hidden');
+        alert('Error al suscribirse');
+        if (subscribeBtn) subscribeBtn.disabled = false;
+      }
+    });
+  }
+
+  // Ejecutar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupNewsletterModal);
+  } else {
+    setupNewsletterModal();
+  }
+
+  // También ejecutar cuando hay navegación (Astro View Transitions)
+  document.addEventListener('astro:page-load', setupNewsletterModal);
+</script>

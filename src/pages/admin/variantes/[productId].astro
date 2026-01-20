@@ -1,0 +1,63 @@
+---
+/**
+ * Admin Variantes - Panel Unificado
+ */
+export const prerender = false;
+
+import AdminLayout from '@layouts/AdminLayout.astro';
+import VariantsPanel from '@components/islands/VariantsPanel';
+import { supabase } from '@lib/supabase';
+
+const productId = Astro.params.productId;
+
+if (!productId) {
+  return Astro.redirect('/admin/productos');
+}
+
+// Obtener producto
+const { data: product } = await supabase
+  .from('products')
+  .select('*')
+  .eq('id', productId)
+  .single();
+
+if (!product) {
+  return Astro.redirect('/admin/productos');
+}
+
+// Obtener variantes con imágenes
+const { data: variants } = await supabase
+  .from('product_variants')
+  .select('*')
+  .eq('product_id', productId)
+  .order('size');
+
+let variantsWithImages: any[] = [];
+
+if (variants && variants.length > 0) {
+  for (const variant of variants) {
+    const { data: images } = await supabase
+      .from('variant_images')
+      .select('*')
+      .eq('variant_id', variant.id)
+      .order('sort_order');
+    
+    variantsWithImages.push({
+      ...variant,
+      images: images || []
+    });
+  }
+}
+---
+
+<AdminLayout title={`Personalizar - ${product.name}`}>
+  <div class="p-6 lg:p-12">
+    <VariantsPanel 
+      client:load
+      productId={productId}
+      productName={product.name}
+      productSlug={product.slug}
+      variants={variantsWithImages}
+    />
+  </div>
+</AdminLayout>

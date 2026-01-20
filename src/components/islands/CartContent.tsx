@@ -3,13 +3,16 @@
  * Contenido del panel lateral del carrito
  */
 import { useStore } from '@nanostores/react';
+import { useState, useEffect } from 'react';
 import { 
   $cart, 
   $cartSubtotal, 
   $hasItems,
   updateQuantity, 
   removeFromCart,
-  clearCart 
+  clearCart,
+  getCartTimeRemaining,
+  startCartExpirationTimer
 } from '@stores/cart';
 import { formatPrice } from '@lib/utils';
 
@@ -17,13 +20,39 @@ export default function CartContent() {
   const cart = useStore($cart);
   const subtotal = useStore($cartSubtotal);
   const hasItems = useStore($hasItems);
+  const [timeRemaining, setTimeRemaining] = useState(0);
   
-  const handleQuantityChange = (variantId: string, newQty: number) => {
-    updateQuantity(variantId, newQty);
+  // Actualizar timer cada segundo
+  useEffect(() => {
+    if (!hasItems) return;
+    
+    // Iniciar timer de expiración
+    startCartExpirationTimer();
+    
+    const updateTimer = () => {
+      const remaining = getCartTimeRemaining();
+      setTimeRemaining(remaining);
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    
+    return () => clearInterval(interval);
+  }, [hasItems, cart]);
+  
+  // Formatear tiempo como MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
   
-  const handleRemove = (variantId: string) => {
-    removeFromCart(variantId);
+  const handleQuantityChange = async (variantId: string, newQty: number) => {
+    await updateQuantity(variantId, newQty);
+  };
+  
+  const handleRemove = async (variantId: string) => {
+    await removeFromCart(variantId);
   };
   
   const handleCheckout = () => {
@@ -59,7 +88,7 @@ export default function CartContent() {
             {/* Image */}
             <a href={`/productos/${item.slug}`} className="flex-shrink-0 w-20 aspect-[3/4] bg-primary-100">
               <img 
-                src={item.image || '/images/products/placeholder.jpg'}
+                src={item.image || 'https://via.placeholder.com/100x100?text=Imagen'}
                 alt={item.name}
                 className="w-full h-full object-cover"
               />
@@ -126,6 +155,20 @@ export default function CartContent() {
       
       {/* Summary */}
       <div className="border-t border-primary-200 p-6 space-y-4">
+        {/* Timer de expiración */}
+        {timeRemaining > 0 && (
+          <div className={`flex items-center justify-center gap-2 py-2 px-3 rounded text-sm ${
+            timeRemaining < 300 ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+          }`}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>
+              Reservado por: <strong>{formatTime(timeRemaining)}</strong>
+            </span>
+          </div>
+        )}
+        
         <div className="flex justify-between text-sm">
           <span className="text-primary-500">Subtotal</span>
           <span>{formatPrice(subtotal)}</span>

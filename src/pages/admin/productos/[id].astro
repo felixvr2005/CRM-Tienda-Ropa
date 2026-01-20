@@ -3,6 +3,7 @@
  * Admin Edit Product - SSR
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
+import ImageUploader from '@components/islands/ImageUploader';
 import { supabase } from '@lib/supabase';
 
 export const prerender = false;
@@ -31,13 +32,21 @@ const { data: categories } = await supabase
 <AdminLayout title={`Editar: ${product.name}`}>
   <div class="max-w-4xl">
     <!-- Header -->
-    <div class="flex items-center gap-4 mb-8">
-      <a href="/admin/productos" class="text-primary-500 hover:text-primary-900">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
+    <div class="flex items-center justify-between gap-4 mb-8">
+      <div class="flex items-center gap-4">
+        <a href="/admin/productos" class="text-primary-500 hover:text-primary-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
+        <h1 class="text-2xl font-display">Editar Producto</h1>
+      </div>
+      <a 
+        href={`/admin/variantes/${product.id}`}
+        class="px-4 py-2 bg-primary-900 text-white text-sm font-medium hover:bg-primary-800 transition-all"
+      >
+        ✎ Editar Variantes
       </a>
-      <h1 class="text-2xl font-display">Editar Producto</h1>
     </div>
     
     <form id="productForm" class="space-y-6">
@@ -113,6 +122,23 @@ const { data: categories } = await supabase
           
           <div>
             <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+              Precio comparativo
+            </label>
+            <div class="relative">
+              <input 
+                type="number" 
+                name="compare_at_price"
+                step="0.01"
+                min="0"
+                value={product.compare_at_price ? (product.compare_at_price / 100).toFixed(2) : ''}
+                class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900 pr-8"
+              />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-primary-400">€</span>
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
               Descuento (%)
             </label>
             <input 
@@ -131,27 +157,146 @@ const { data: categories } = await supabase
       <div class="bg-white border border-primary-200 p-6 space-y-4">
         <h2 class="font-medium mb-4">Imágenes</h2>
         
+        <!-- Imágenes existentes -->
+        {product.images && product.images.length > 0 && (
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+              Imágenes actuales
+            </label>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {product.images.map((imageUrl, idx) => (
+                <div class="relative group">
+                  <img 
+                    src={imageUrl} 
+                    alt={`Producto ${idx + 1}`}
+                    class="w-full h-32 object-cover border border-primary-200"
+                  />
+                  <button 
+                    type="button"
+                    data-image-url={imageUrl}
+                    onclick="window.removeImage(this)"
+                    class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                  >
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p class="text-xs text-primary-400 mt-2">Pasa el cursor sobre una imagen y haz click para eliminarla</p>
+          </div>
+        )}
+        
+        <ImageUploader client:load />
+        
         <div>
           <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
-            URL de imagen principal
+            URLs de imágenes
+          </label>
+          <textarea 
+            id="imagesInput"
+            name="images"
+            rows="3"
+            placeholder="Las imágenes se añadirán automáticamente cuando las subas"
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900 font-mono text-xs"
+          >{product.images?.join('\n') || ''}</textarea>
+          <p class="text-xs text-primary-400 mt-1">Las URLs se añaden automáticamente desde el cargador de imágenes</p>
+        </div>
+      </div>
+      
+      <!-- Additional Details -->
+      <div class="bg-white border border-primary-200 p-6 space-y-4">
+        <h2 class="font-medium mb-4">Detalles adicionales</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+              SKU
+            </label>
+            <input 
+              type="text" 
+              name="sku"
+              value={product.sku || ''}
+              class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+            />
+          </div>
+          
+          <div>
+            <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+              Marca
+            </label>
+            <input 
+              type="text" 
+              name="brand"
+              value={product.brand || ''}
+              class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Material
           </label>
           <input 
-            type="url" 
-            name="image_url"
-            value={product.image_url || ''}
+            type="text" 
+            name="material"
+            value={product.material || ''}
             class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
           />
         </div>
         
         <div>
           <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
-            URLs de imágenes adicionales (una por línea)
+            Instrucciones de cuidado
           </label>
           <textarea 
-            name="images"
-            rows="3"
+            name="care_instructions"
+            rows="2"
             class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
-          >{product.images?.join('\n') || ''}</textarea>
+          >{product.care_instructions || ''}</textarea>
+        </div>
+      </div>
+      
+      <!-- SEO -->
+      <div class="bg-white border border-primary-200 p-6 space-y-4">
+        <h2 class="font-medium mb-4">SEO</h2>
+        
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Título meta
+          </label>
+          <input 
+            type="text" 
+            name="meta_title"
+            value={product.meta_title || ''}
+            placeholder={product.name}
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Descripción meta
+          </label>
+          <textarea 
+            name="meta_description"
+            rows="2"
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+          >{product.meta_description || ''}</textarea>
+        </div>
+        
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Etiquetas (separadas por comas)
+          </label>
+          <input 
+            type="text" 
+            name="tags"
+            value={product.tags?.join(', ') || ''}
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+          />
         </div>
       </div>
       
@@ -274,6 +419,53 @@ const { data: categories } = await supabase
       window.addVariant();
     }
     
+    // Store uploaded images from ImageUploader
+    window.uploadedImages = [];
+    
+    // Function to be called by ImageUploader component
+    window.handleImagesUpload = function(images) {
+      console.log('Images uploaded to component:', images);
+      window.uploadedImages = images.map(img => img.secure_url);
+      
+      // Update textarea by ADDING new images to existing ones
+      const imagesInput = document.getElementById('imagesInput');
+      if (imagesInput && window.uploadedImages.length > 0) {
+        // Get current URLs from textarea
+        const currentUrls = imagesInput.value
+          .split('\n')
+          .map(url => url.trim())
+          .filter(url => url.length > 0);
+        
+        // Add only new URLs (avoid duplicates)
+        const newUrls = window.uploadedImages.filter(url => !currentUrls.includes(url));
+        
+        if (newUrls.length > 0) {
+          // Combine and update textarea
+          const allUrls = [...currentUrls, ...newUrls];
+          imagesInput.value = allUrls.join('\n');
+          console.log('Textarea updated with', newUrls.length, 'new images. Total:', allUrls.length);
+        }
+      }
+    };
+    
+    // Function to remove an image from the textarea
+    window.removeImage = function(button) {
+      const imageUrl = button.dataset.imageUrl;
+      const imagesInput = document.getElementById('imagesInput');
+      
+      if (imagesInput) {
+        const images = imagesInput.value
+          .split('\n')
+          .map(url => url.trim())
+          .filter(url => url.length > 0 && url !== imageUrl);
+        
+        imagesInput.value = images.join('\n');
+      }
+      
+      // Remover visualmente la imagen
+      button.closest('.group').remove();
+    };
+    
     // Form submission
     const form = document.getElementById('productForm');
     const errorDiv = document.getElementById('errorMessage');
@@ -284,33 +476,80 @@ const { data: categories } = await supabase
       
       const formData = new FormData(form);
       
-      const product = {
-        id: productId,
+      // Obtener imágenes del textarea (que se actualiza automáticamente por ImageUploader)
+      const imagesTextarea = document.getElementById('imagesInput');
+      let images = [];
+      
+      if (imagesTextarea && imagesTextarea.value.trim()) {
+        images = imagesTextarea.value
+          .split('\n')
+          .map(url => url.trim())
+          .filter(url => url.length > 0);
+      }
+      
+      console.log('Images from textarea:', images);
+      console.log('Form data:', {
         name: formData.get('name'),
-        description: formData.get('description') || null,
+        price: formData.get('price'),
+        images: images,
+        description: formData.get('description'),
+      });
+      
+      // Construir el objeto producto asegurando que TODOS los campos se incluyan
+      const product = {
+        name: formData.get('name') || '',
+        description: formData.get('description') || '',
         category_id: formData.get('category_id') || null,
-        price: Math.round(parseFloat(formData.get('price')) * 100), // Convertir a céntimos
-        discount_percentage: parseInt(formData.get('discount_percentage')) || 0,
-        image_url: formData.get('image_url') || null,
-        images: formData.get('images') ? formData.get('images').split('\n').filter(url => url.trim()) : [],
-        is_active: formData.get('is_active') === 'on',
-        is_featured: formData.get('is_featured') === 'on',
-        is_new: formData.get('is_new') === 'on',
-        is_flash_offer: formData.get('is_flash_offer') === 'on',
+        price: parseFloat(formData.get('price') || '0'),
+        compare_at_price: formData.get('compare_at_price') && formData.get('compare_at_price').trim() 
+          ? parseFloat(formData.get('compare_at_price'))
+          : null,
+        discount_percentage: parseInt(formData.get('discount_percentage') || '0') || 0,
+        images: images,
+        brand: formData.get('brand') && formData.get('brand').trim() ? formData.get('brand') : null,
+        material: formData.get('material') && formData.get('material').trim() ? formData.get('material') : null,
+        care_instructions: formData.get('care_instructions') && formData.get('care_instructions').trim() 
+          ? formData.get('care_instructions') 
+          : null,
+        is_active: formData.get('is_active') !== null,
+        is_featured: formData.get('is_featured') !== null,
+        is_new: formData.get('is_new') !== null,
+        is_flash_offer: formData.get('is_flash_offer') !== null,
+        tags: formData.get('tags') && formData.get('tags').trim()
+          ? formData.get('tags').split(',').map((t) => t.trim()).filter((t) => t)
+          : [],
+        meta_title: formData.get('meta_title') && formData.get('meta_title').trim() 
+          ? formData.get('meta_title')
+          : null,
+        meta_description: formData.get('meta_description') && formData.get('meta_description').trim()
+          ? formData.get('meta_description')
+          : null,
+        sku: formData.get('sku') && formData.get('sku').trim() ? formData.get('sku') : null,
       };
+      
+      console.log('Product object:', product);
       
       // Parse variants
       const variants = [];
       const variantElements = document.querySelectorAll('[data-variant]');
       variantElements.forEach((el) => {
-        const id = el.querySelector(`[name*="[id]"]`).value || null;
-        const size = el.querySelector(`[name*="[size]"]`).value;
-        const color = el.querySelector(`[name*="[color]"]`).value || '';
-        const stock = parseInt(el.querySelector(`[name*="[stock]"]`).value) || 0;
-        if (size) {
-          variants.push({ id: id || undefined, size, color, stock });
+        const idInput = el.querySelector(`[name*="[id]"]`);
+        const sizeInput = el.querySelector(`[name*="[size]"]`);
+        const colorInput = el.querySelector(`[name*="[color]"]`);
+        const stockInput = el.querySelector(`[name*="[stock]"]`);
+        
+        if (sizeInput && sizeInput.value) {
+          const id = idInput ? idInput.value : null;
+          variants.push({
+            id: id || undefined,
+            size: sizeInput.value,
+            color: colorInput ? colorInput.value : '',
+            stock: parseInt(stockInput ? stockInput.value : '0') || 0,
+          });
         }
       });
+      
+      console.log('Variants:', variants);
       
       try {
         const response = await fetch(`/api/admin/products/${productId}`, {
@@ -321,14 +560,26 @@ const { data: categories } = await supabase
         
         const data = await response.json();
         
+        console.log('Response:', response.status, data);
+        
         if (response.ok) {
-          window.location.href = '/admin/productos';
+          // Mostrar mensaje de éxito antes de redireccionar
+          const successMsg = document.createElement('div');
+          successMsg.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4';
+          successMsg.textContent = '✅ Producto actualizado correctamente. Redirigiendo...';
+          form.parentElement.insertBefore(successMsg, form);
+          
+          // Esperar 1 segundo antes de redireccionar para que se vea el mensaje
+          setTimeout(() => {
+            window.location.href = '/admin/productos';
+          }, 1000);
         } else {
-          errorDiv.textContent = data.error || 'Error al actualizar';
+          errorDiv.textContent = data.error || 'Error al actualizar: ' + data.details;
           errorDiv.classList.remove('hidden');
         }
       } catch (error) {
-        errorDiv.textContent = 'Error de conexión';
+        console.error('Error:', error);
+        errorDiv.textContent = 'Error de conexión: ' + error.message;
         errorDiv.classList.remove('hidden');
       }
     });

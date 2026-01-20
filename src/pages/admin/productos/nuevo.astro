@@ -3,6 +3,7 @@
  * Admin Create Product - SSR
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
+import ImageUploader from '@components/islands/ImageUploader';
 import { supabase } from '@lib/supabase';
 
 export const prerender = false;
@@ -112,29 +113,15 @@ const { data: categories } = await supabase
       <div class="bg-white border border-primary-200 p-6 space-y-4">
         <h2 class="font-medium mb-4">Imágenes</h2>
         
-        <div>
-          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
-            URL de imagen principal
-          </label>
-          <input 
-            type="url" 
-            name="image_url"
-            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
-            placeholder="https://..."
-          />
-        </div>
+        <ImageUploader client:load />
         
-        <div>
-          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
-            URLs de imágenes adicionales (una por línea)
-          </label>
-          <textarea 
-            name="images"
-            rows="3"
-            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
-            placeholder="https://imagen1.jpg&#10;https://imagen2.jpg"
-          ></textarea>
-        </div>
+        <textarea 
+          id="imagesInput"
+          name="images"
+          rows="3"
+          class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+          placeholder="Las imágenes aparecerán aquí automáticamente"
+        ></textarea>
       </div>
       
       <!-- Status -->
@@ -250,6 +237,20 @@ const { data: categories } = await supabase
     // Add initial variant
     window.addVariant();
     
+    // Store uploaded images from ImageUploader
+    window.uploadedImages = [];
+    
+    // Function to be called by ImageUploader component
+    window.handleImagesUpload = function(images) {
+      console.log('Images uploaded to component:', images);
+      window.uploadedImages = images.map(img => img.secure_url);
+      // Update textarea with uploaded image URLs
+      const imagesInput = document.getElementById('imagesInput');
+      if (imagesInput) {
+        imagesInput.value = window.uploadedImages.join('\n');
+      }
+    };
+    
     // Form submission
     const form = document.getElementById('productForm');
     const errorDiv = document.getElementById('errorMessage');
@@ -260,6 +261,19 @@ const { data: categories } = await supabase
       
       const formData = new FormData(form);
       
+      // Obtener imágenes del textarea (que se actualiza automáticamente por ImageUploader)
+      const imagesTextarea = document.getElementById('imagesInput');
+      let images = [];
+      
+      if (imagesTextarea && imagesTextarea.value.trim()) {
+        images = imagesTextarea.value
+          .split('\n')
+          .map(url => url.trim())
+          .filter(url => url.length > 0);
+      }
+      
+      console.log('Images from textarea:', images);
+      
       // Parse form data
       const product = {
         name: formData.get('name'),
@@ -267,8 +281,7 @@ const { data: categories } = await supabase
         category_id: formData.get('category_id') || null,
         price: parseFloat(formData.get('price')),
         discount_percentage: parseInt(formData.get('discount_percentage')) || 0,
-        image_url: formData.get('image_url') || null,
-        images: formData.get('images') ? formData.get('images').split('\n').filter(url => url.trim()) : [],
+        ...(images.length > 0 && { images }),
         is_active: formData.get('is_active') === 'on',
         is_featured: formData.get('is_featured') === 'on',
         is_new: formData.get('is_new') === 'on',

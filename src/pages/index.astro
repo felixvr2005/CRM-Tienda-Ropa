@@ -6,10 +6,11 @@
 import PublicLayout from '@layouts/PublicLayout.astro';
 import ProductCard from '@components/product/ProductCard.astro';
 import Button from '@components/ui/Button.astro';
+import NewsletterModal from '@components/NewsletterModal.astro';
 import { getFeaturedProducts, getCategories, getFlashOffers } from '@lib/supabase';
 
 // SSG - se genera en build time
-export const prerender = true;
+export const prerender = false;
 
 const featuredProducts = await getFeaturedProducts();
 const categories = await getCategories();
@@ -167,3 +168,5 @@ const flashOffers = await getFlashOffers();
     </div>
   </section>
 </PublicLayout>
+
+<NewsletterModal />

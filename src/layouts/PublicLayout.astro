@@ -6,6 +6,7 @@
 import BaseLayout from './BaseLayout.astro';
 import CartSlideOver from '@components/ui/CartSlideOver.astro';
 import CartIcon from '@components/islands/CartIcon';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 interface Props {
   title: string;
@@ -15,6 +16,35 @@ interface Props {
 
 const { title, description, showPromoBar = true } = Astro.props;
 const currentPath = Astro.url.pathname;
+
+// Verificar si el usuario actual es admin
+let isAdmin = false;
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+
+if (accessToken) {
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+    
+    if (user && !authError) {
+      try {
+        const { data: adminUser, error: adminError } = await supabaseAdmin
+          .from('admin_users')
+          .select('id, is_active')
+          .eq('auth_user_id', user.id)
+          .eq('is_active', true)
+          .single();
+        
+        if (adminUser && !adminError) {
+          isAdmin = true;
+        }
+      } catch (e) {
+        // No es admin
+      }
+    }
+  } catch (error) {
+    // Error getting user
+  }
+}
 ---
 
 <BaseLayout title={title} description={description}>
@@ -69,6 +99,11 @@ const currentPath = Astro.url.pathname;
         
         <!-- Right Actions -->
         <div class="flex items-center gap-4">
+          <!-- Admin Link (solo para admins) -->
+          {isAdmin && (
+            <a href="/admin" class="hidden sm:block px-3 py-2 text-xs tracking-widest uppercase font-medium rounded-full bg-primary-100 text-primary-900 hover:bg-primary-200 transition-all" title="Ir al panel de admin">Admin</a>
+          )}
+          
           <!-- Search -->
           <button class="p-2 hover:bg-primary-100 rounded-full transition-colors" aria-label="Buscar">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

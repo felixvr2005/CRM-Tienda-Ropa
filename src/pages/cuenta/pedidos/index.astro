@@ -1,6 +1,6 @@
 ---
 import PublicLayout from '@layouts/PublicLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -21,14 +21,14 @@ if (authError || !user) {
 }
 
 // Obtener cliente
-const { data: customer } = await supabase
+const { data: customer } = await supabaseAdmin
   .from('customers')
-  .select('id')
+  .select('id, email')
   .eq('auth_user_id', user.id)
   .single();
 
-// Obtener pedidos del cliente
-const { data: orders } = await supabase
+// Obtener pedidos del cliente (usar supabaseAdmin para bypass RLS)
+const { data: orders } = await supabaseAdmin
   .from('orders')
   .select('*')
   .eq('customer_id', customer?.id)
@@ -143,7 +143,12 @@ const orderStatusMap: Record<string, { label: string; color: string }> = {
                   </div>
                   <div>
                     <p class="text-sm text-primary-500">Total</p>
-                    <p class="font-medium">{formatPrice(order.total)}</p>
+                    <p class="font-medium">
+                      {(() => {
+                        const total = order.total_amount || order.subtotal || 0;
+                        return formatPrice(total);
+                      })()}
+                    </p>
                   </div>
                   <div>
                     <p class="text-sm text-primary-500">Estado</p>

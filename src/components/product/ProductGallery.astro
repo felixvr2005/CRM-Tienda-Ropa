@@ -9,7 +9,7 @@ interface Props {
 }
 
 const { images, productName } = Astro.props;
-const displayImages = images.length > 0 ? images : ['/images/products/placeholder.jpg'];
+const displayImages = images && images.length > 0 ? images : ['https://via.placeholder.com/800x1000?text=Imagen+No+Disponible'];
 ---
 
 <div class="product-gallery">

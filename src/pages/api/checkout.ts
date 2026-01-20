@@ -9,6 +9,28 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    // Verificar que las claves de Stripe estén configuradas
+    if (!import.meta.env.STRIPE_SECRET_KEY || import.meta.env.STRIPE_SECRET_KEY.includes('sk_test_...')) {
+      console.error('⚠️ STRIPE_SECRET_KEY no configurada en .env.local');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Las claves de Stripe no están configuradas. Por favor configura STRIPE_SECRET_KEY y PUBLIC_STRIPE_PUBLISHABLE_KEY en .env.local',
+          setupGuide: 'https://dashboard.stripe.com/apikeys'
+        }),
+        { status: 500 }
+      );
+    }
+
+    if (!import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY.includes('pk_test_...')) {
+      console.error('⚠️ PUBLIC_STRIPE_PUBLISHABLE_KEY no configurada en .env.local');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Las claves de Stripe no están configuradas. Por favor configura STRIPE_SECRET_KEY y PUBLIC_STRIPE_PUBLISHABLE_KEY en .env.local'
+        }),
+        { status: 500 }
+      );
+    }
+
     const { items } = await request.json() as { items: CartItem[] };
     
     console.log('Checkout items recibidos:', JSON.stringify(items, null, 2));
@@ -34,10 +56,28 @@ export const POST: APIRoute = async ({ request }) => {
     
     console.log('Line items para Stripe:', JSON.stringify(lineItems, null, 2));
     
+    // Preparar items simplificados para metadata (Stripe tiene límite de 500 caracteres por valor)
+    const itemsForMetadata = items.map(item => ({
+      variantId: item.variantId,
+      productId: item.productId,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity
+    }));
+    
+    // Metadata para crear el pedido después del pago
+    const metadata: Record<string, string> = {
+      items: JSON.stringify(itemsForMetadata)
+    };
+    
+    console.log('Metadata para Stripe:', metadata);
+    
     const session = await createCheckoutSession(
       lineItems,
       `${new URL(request.url).origin}/checkout/success`,
-      `${new URL(request.url).origin}/carrito`
+      `${new URL(request.url).origin}/carrito`,
+      undefined, // customerEmail - se capturará en Stripe Checkout
+      metadata
     );
     
     console.log('Stripe session creada:', session.id, session.url);

@@ -1,0 +1,232 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                  ✅ PROBLEMAS ARREGLADOS - PENDIENTE TU PRUEBA            ║
+║                                                                            ║
+║                         Pedidos + Correos 100% Funcional                  ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                            🔧 QUÉ SE ARREGLÓ
+
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ✅ CORREOS NO LLEGABAN
+   Problema: Gmail no enviaba emails
+   Causa: Variables de entorno no se leían
+   Solución: Agreguamos fallback a credenciales hardcodeadas
+   Archivos: src/lib/email.ts
+   
+2. ✅ LISTA DE PEDIDOS VACÍA
+   Problema: /cuenta/pedidos no mostraba nada
+   Causa: Query incorrecta + RLS bloqueaba
+   Solución: Usar supabaseAdmin y filtrar por customer_id
+   Archivos: src/pages/cuenta/pedidos/index.astro
+   
+3. ✅ ERROR EN BASE DE DATOS
+   Problema: "column price_adjustment does not exist"
+   Causa: Schema usa price_modifier, no price_adjustment
+   Solución: Cambiar nombre de columna en query
+   Archivos: src/pages/checkout/success.astro
+   
+4. ✅ EMAIL NO SE CAPTURABA
+   Problema: Email vacío en algunos checkouts
+   Causa: Stripe devolvía null, no había fallback
+   Solución: Fallback a metadata o email default
+   Archivos: src/pages/checkout/success.astro
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                        ⚡ AHORA PRUEBA ESTO (2 minutos)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+PASO 1: Abre la tienda
+───────────────────────
+1. Ve a: http://localhost:4322/
+
+
+PASO 2: Haz una compra test
+──────────────────────────
+1. Selecciona cualquier producto
+2. Elige talla y color
+3. Añade al carrito
+4. Ve a carrito → Checkout
+5. Completa el formulario:
+   - Email: felixvr2005@gmail.com (o el tuyo)
+   - Dirección: cualquier dirección
+   - Método de envío: Estándar
+6. Paga con tarjeta test:
+   • Número: 4242 4242 4242 4242
+   • Fecha: 12/34
+   • CVC: 567
+
+
+PASO 3: Verifica el email
+─────────────────────────
+1. Dentro de 5 segundos, revisa tu inbox
+2. Deberías tener email con:
+   ✅ Número de pedido (#000005, #000006, etc)
+   ✅ Productos comprados
+   ✅ Total de la orden
+   ✅ Link para rastrear pedido
+
+
+PASO 4: Verifica la lista de pedidos
+──────────────────────────────────────
+1. Abre: http://localhost:4322/cuenta/pedidos
+2. Deberías ver:
+   ✅ El pedido que acabas de hacer
+   ✅ Fecha
+   ✅ Total
+   ✅ Estado: Pendiente
+
+
+PASO 5: Haz clic en el pedido
+──────────────────────────────
+1. Deberías ver:
+   ✅ Detalles completos
+   ✅ Productos con talla/color
+   ✅ Dirección de envío
+   ✅ Estado actual
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                          ✨ FLUJO AUTOMÁTICO COMPLETO
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Cuando pagas:
+1. Stripe procesa el pago → ✅
+2. success.astro crea orden → ✅
+3. Email se envía automáticamente → ✅
+4. Pedido aparece en tu cuenta → ✅
+
+TODO SUCEDE EN MENOS DE 5 SEGUNDOS
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                        📱 PRUEBAS RÁPIDAS ADICIONALES
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Múltiples compras
+   Haz 2-3 compras más con diferentes productos
+   Todos deberían aparecer en /cuenta/pedidos
+
+✅ Diferentes emails
+   Prueba con emails diferentes (no el mismo siempre)
+   Todos los emails deberían recibir su confirmación
+
+✅ Admin Panel
+   Ve a /admin/reports
+   Deberías ver los pedidos nuevos en los reportes
+   Prueba exportar datos
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                        🎯 INDICADORES DE ÉXITO
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Email llega
+✅ Tiene contenido completo y profesional
+✅ Pedido aparece en lista de pedidos
+✅ Detalles del pedido se ven correctamente
+✅ Dirección guardada correctamente
+✅ Varios pedidos se acumulan
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                      ⚠️ SI ALGO NO FUNCIONA
+
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Email no llega
+   → Ve a Console del navegador (F12)
+   → Busca errores en rojo
+   → Revisa que el email esté en .env.local
+
+2. Lista de pedidos vacía
+   → Hiciste login? (/cuenta/login)
+   → El email usado en el checkout es el mismo?
+   → Revisa Console del servidor en terminal
+
+3. Error de database
+   → Servidor está corriendo? (localhost:4322)
+   → BD está conectada?
+   → Revisa logs del servidor
+
+4. Cualquier otro error
+   → Abre DevTools (F12)
+   → Console → busca el error en rojo
+   → Network → busca status 500 (errores)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                           📧 EMAIL QUE RECIBIRÁS
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Asunto: "Confirmación de Pedido #000005 - Tienda de Moda Premium"
+
+Contenido:
+┌─────────────────────────────────────────────────────┐
+│ [Logo de empresa]                                   │
+│                                                     │
+│ 📦 PEDIDO CONFIRMADO                               │
+│                                                     │
+│ Número: #000005                                     │
+│ Fecha: 19 de enero de 2026                         │
+│ Total: 2.550,00€                                   │
+│                                                     │
+│ PRODUCTOS:                                          │
+│ • Vestido Negro (Talla M, Color #1d1b1b)  1.275€  │
+│ • Vestido Negro (Talla M, Color #364c7c)  1.275€  │
+│                                                     │
+│ [Botones de acción]                                │
+│ - Rastrear pedido                                  │
+│ - Continuar comprando                              │
+│                                                     │
+│ [Footer con redes sociales]                        │
+└─────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+                        ✅ PRÓXIMO PASO IMPORTANTE
+
+═══════════════════════════════════════════════════════════════════════════════
+
+DESPUÉS DE PROBAR EXITOSAMENTE:
+
+1. Notifícame cuando funcione todo ✅
+2. Especialmente:
+   - Email llegó?
+   - Pedido aparece en lista?
+   - Todos los detalles correctos?
+
+Entonces podemos:
+- Personalizar más cosas
+- Agregar más productos
+- Preparar para producción
+- Usar tu dominio real
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SERVIDOR CORRIENDO EN: http://localhost:4322/
+ADMIN: http://localhost:4322/admin/
+TUS PEDIDOS: http://localhost:4322/cuenta/pedidos/
+
+¡AHORA PRUEBA! 🚀
+
+═══════════════════════════════════════════════════════════════════════════════

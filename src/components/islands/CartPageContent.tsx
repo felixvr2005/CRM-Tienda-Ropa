@@ -3,14 +3,38 @@
  * Contenido completo de la página de carrito
  */
 import { useStore } from '@nanostores/react';
-import { $cart, removeFromCart, updateQuantity, clearCart, type CartItem } from '@stores/cart';
+import { useState, useEffect } from 'react';
+import { $cart, removeFromCart, updateQuantity, clearCart, getCartTimeRemaining, startCartExpirationTimer, type CartItem } from '@stores/cart';
 import { formatPrice } from '@lib/utils';
-import { useState } from 'react';
 
 export default function CartPageContent() {
   const cart = useStore($cart);
   const [isProcessing, setIsProcessing] = useState(false);
   const [promoCode, setPromoCode] = useState('');
+  const [timeRemaining, setTimeRemaining] = useState(0);
+
+  // Timer de cuenta atrás
+  useEffect(() => {
+    if (cart.length === 0) return;
+    
+    startCartExpirationTimer();
+    
+    const updateTimer = () => {
+      setTimeRemaining(getCartTimeRemaining());
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    
+    return () => clearInterval(interval);
+  }, [cart.length]);
+
+  // Formatear tiempo como MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // item.price ya tiene el descuento aplicado
   const subtotal = cart.reduce((acc, item) => {
@@ -66,6 +90,25 @@ export default function CartPageContent() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+      {/* Timer de reserva */}
+      {timeRemaining > 0 && (
+        <div className="lg:col-span-3">
+          <div className={`flex items-center justify-center gap-2 py-3 px-4 rounded ${
+            timeRemaining < 300 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+          }`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm">
+              <strong>Stock reservado por:</strong> {formatTime(timeRemaining)}
+            </span>
+            <span className="text-xs ml-2">
+              {timeRemaining < 300 ? '(¡Date prisa!)' : '(El stock se liberará al expirar)'}
+            </span>
+          </div>
+        </div>
+      )}
+      
       {/* Cart Items */}
       <div className="lg:col-span-2">
         <div className="border-b border-primary-200 pb-4 mb-4 hidden md:grid grid-cols-12 gap-4 text-xs uppercase tracking-wider text-primary-500">
@@ -109,7 +152,7 @@ export default function CartPageContent() {
                       </span>
                     </div>
                     <button
-                      onClick={() => removeFromCart(item.variantId)}
+                      onClick={async () => await removeFromCart(item.variantId)}
                       className="text-xs text-primary-500 hover:text-red-600 underline"
                     >
                       Eliminar
@@ -121,7 +164,7 @@ export default function CartPageContent() {
                 <div className="col-span-6 md:col-span-2 flex items-center justify-center">
                   <div className="flex items-center border border-primary-300">
                     <button
-                      onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
+                      onClick={async () => await updateQuantity(item.variantId, item.quantity - 1)}
                       className="w-8 h-8 flex items-center justify-center hover:bg-primary-100 transition-colors"
                       disabled={item.quantity <= 1}
                     >
@@ -129,7 +172,7 @@ export default function CartPageContent() {
                     </button>
                     <span className="w-10 text-center text-sm">{item.quantity}</span>
                     <button
-                      onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
+                      onClick={async () => await updateQuantity(item.variantId, item.quantity + 1)}
                       className="w-8 h-8 flex items-center justify-center hover:bg-primary-100 transition-colors"
                     >
                       +
@@ -165,7 +208,7 @@ export default function CartPageContent() {
         {/* Actions */}
         <div className="flex justify-between items-center mt-6">
           <button
-            onClick={() => clearCart()}
+            onClick={async () => await clearCart(true)}
             className="text-sm text-primary-500 hover:text-red-600"
           >
             Vaciar cesta

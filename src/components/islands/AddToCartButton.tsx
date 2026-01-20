@@ -7,6 +7,15 @@ import { addToCart } from '@stores/cart';
 import type { ProductVariant } from '@lib/database.types';
 import { formatPrice, calculateDiscountedPrice } from '@lib/utils';
 
+interface VariantImage {
+  id: string;
+  variant_id: string;
+  image_url: string;
+  alt_text: string;
+  is_primary: boolean;
+  sort_order: number;
+}
+
 interface Props {
   productId: string;
   productName: string;
@@ -15,6 +24,9 @@ interface Props {
   productDiscount: number;
   productImage: string;
   variants: ProductVariant[];
+  variantImages?: Record<string, VariantImage[]>;
+  selectedColor?: string | null;
+  onColorChange?: (color: string) => void;
 }
 
 export default function AddToCartButton({
@@ -25,9 +37,16 @@ export default function AddToCartButton({
   productDiscount,
   productImage,
   variants,
+  variantImages = {},
+  selectedColor: externalSelectedColor,
+  onColorChange,
 }: Props) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [localSelectedColor, setLocalSelectedColor] = useState<string | null>(null);
+  
+  // Usar color externo si viene del padre, sino usar local
+  const selectedColor = externalSelectedColor ?? localSelectedColor;
+  const setSelectedColor = onColorChange ? (c: string) => onColorChange(c) : setLocalSelectedColor;
   const [error, setError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   
@@ -53,6 +72,20 @@ export default function AddToCartButton({
     if (!selectedSize || !selectedColor) return null;
     return variants.find(v => v.size === selectedSize && v.color === selectedColor);
   }, [selectedSize, selectedColor, variants]);
+
+  // Obtener imagen del color seleccionado
+  const colorImage = useMemo(() => {
+    if (!selectedColor || !selectedVariant) return productImage;
+    
+    const images = variantImages[selectedVariant.id];
+    if (images && images.length > 0) {
+      // Buscar imagen principal primero
+      const primaryImage = images.find(img => img.is_primary);
+      return primaryImage ? primaryImage.image_url : images[0].image_url;
+    }
+    
+    return productImage;
+  }, [selectedColor, selectedVariant, variantImages, productImage]);
   
   // Verificar disponibilidad de combinación
   const isAvailable = (size: string, color: string) => {
@@ -82,7 +115,7 @@ export default function AddToCartButton({
     setError(null);
     
     addToCart({
-      id: selectedVariant.id, // ID único para el item del carrito
+      id: selectedVariant.id,
       productId,
       variantId: selectedVariant.id,
       name: productName,
@@ -90,7 +123,7 @@ export default function AddToCartButton({
       price: finalPrice,
       originalPrice: productPrice,
       discount: productDiscount,
-      image: productImage,
+      image: colorImage,
       size: selectedSize,
       color: selectedColor,
       maxStock: selectedVariant.stock,
@@ -107,9 +140,6 @@ export default function AddToCartButton({
       <div>
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-primary-500 uppercase tracking-wider">Color</span>
-          {selectedColor && (
-            <span className="text-sm text-primary-900">{selectedColor}</span>
-          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {colors.map(({ name, hex }) => (
