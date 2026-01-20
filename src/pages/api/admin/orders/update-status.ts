@@ -15,14 +15,32 @@ const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
 export const PUT: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    const { orderId, status } = body;
+    let { orderId, orderNumber, status } = body;
 
     // Validaciones
-    if (!orderId || !status) {
+    if ((!orderId && !orderNumber) || !status) {
       return new Response(
-        JSON.stringify({ error: 'Se requieren orderId y status' }),
+        JSON.stringify({ error: 'Se requieren orderId/orderNumber y status' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Si viene orderNumber, obtener el orderId
+    if (!orderId && orderNumber) {
+      const { data: orderData, error: orderError } = await supabaseAdmin
+        .from('orders')
+        .select('id')
+        .eq('order_number', orderNumber)
+        .single();
+      
+      if (orderError || !orderData) {
+        return new Response(
+          JSON.stringify({ error: 'Pedido no encontrado' }),
+          { status: 404, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      orderId = orderData.id;
     }
 
     // Validar que el estado es válido

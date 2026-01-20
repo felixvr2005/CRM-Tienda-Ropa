@@ -10,98 +10,9 @@ export const prerender = false;
 
 const { orderNumber } = Astro.params;
 
-// Manejar actualización de estado
+// Mensajes (vacíos, se manejan desde cliente con fetch)
 let successMessage = '';
 let errorMessage = '';
-
-if (Astro.request.method === 'POST') {
-  try {
-    const formData = await Astro.request.formData();
-    const action = formData.get('action');
-    
-    if (action === 'updateStatus') {
-      const newStatus = formData.get('status') as string;
-      
-      // Obtener el pedido primero para tener su ID
-      const { data: orderData, error: fetchError } = await supabaseAdmin
-        .from('orders')
-        .select('id')
-        .eq('order_number', orderNumber)
-        .single();
-      
-      if (fetchError || !orderData) throw new Error('Pedido no encontrado');
-      
-      // Llamar a la API que envía el email
-      const origin = `${Astro.url.protocol}//${Astro.url.host}`;
-      const apiResponse = await fetch(`${origin}/api/admin/orders/update-status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: orderData.id,
-          status: newStatus
-        })
-      });
-      
-      const result = await apiResponse.json();
-      
-      if (!apiResponse.ok || result.error) {
-        throw new Error(result.error || 'Error al actualizar el estado');
-      }
-      
-      successMessage = 'Estado del pedido actualizado correctamente. Email enviado al cliente.';
-    }
-    
-    if (action === 'updateTracking') {
-      const trackingNumber = formData.get('trackingNumber') as string;
-      const trackingUrl = formData.get('trackingUrl') as string;
-      
-      // Obtener el pedido primero para tener su ID
-      const { data: orderData, error: fetchError } = await supabaseAdmin
-        .from('orders')
-        .select('id')
-        .eq('order_number', orderNumber)
-        .single();
-      
-      if (fetchError || !orderData) throw new Error('Pedido no encontrado');
-      
-      // Llamar a la API para actualizar estado a 'shipped'
-      const origin = `${Astro.url.protocol}//${Astro.url.host}`;
-      const apiResponse = await fetch(`${origin}/api/admin/orders/update-status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: orderData.id,
-          status: 'shipped'
-        })
-      });
-      
-      const result = await apiResponse.json();
-      
-      if (!apiResponse.ok || result.error) {
-        throw new Error(result.error || 'Error al actualizar el estado');
-      }
-      
-      // Actualizar tracking number y URL
-      const { error: trackingError } = await supabaseAdmin
-        .from('orders')
-        .update({
-          tracking_number: trackingNumber,
-          tracking_url: trackingUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('order_number', orderNumber);
-      
-      if (trackingError) throw trackingError;
-      
-      successMessage = 'Información de envío actualizada. Email enviado al cliente.';
-    }
-  } catch (err: any) {
-    console.error('Error updating order:', err);
-    errorMessage = err.message || 'Error al actualizar el pedido';
-  }
-}
-
-// Obtener pedido con items
 const { data: order, error: orderError } = await supabaseAdmin
   .from('orders')
   .select('*')
@@ -313,15 +224,13 @@ const shippingAddress = order.shipping_address as any;
         <!-- Actualizar estado -->
         <div class="bg-white border border-primary-200 p-6">
           <h2 class="font-medium mb-4">Actualizar estado</h2>
-          <form method="POST" class="space-y-4">
-            <input type="hidden" name="action" value="updateStatus" />
-            
+          <form id="statusForm" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-primary-700 mb-1">
                 Nuevo estado
               </label>
               <select 
-                name="status"
+                id="statusSelect"
                 class="w-full border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
               >
                 {statusOptions.map((status) => (
@@ -344,16 +253,14 @@ const shippingAddress = order.shipping_address as any;
         <!-- Información de envío -->
         <div class="bg-white border border-primary-200 p-6">
           <h2 class="font-medium mb-4">Seguimiento de envío</h2>
-          <form method="POST" class="space-y-4">
-            <input type="hidden" name="action" value="updateTracking" />
-            
+          <form id="trackingForm" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-primary-700 mb-1">
                 Número de seguimiento
               </label>
               <input 
+                id="trackingNumber"
                 type="text"
-                name="trackingNumber"
                 value={order.tracking_number || ''}
                 class="w-full border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
                 placeholder="Ej: 1Z999AA10123456784"
@@ -365,8 +272,8 @@ const shippingAddress = order.shipping_address as any;
                 URL de seguimiento
               </label>
               <input 
+                id="trackingUrl"
                 type="url"
-                name="trackingUrl"
                 value={order.tracking_url || ''}
                 class="w-full border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
                 placeholder="https://..."
@@ -423,3 +330,69 @@ const shippingAddress = order.shipping_address as any;
     </div>
   </div>
 </AdminLayout>
+
+<script>
+  // Manejar cambio de estado
+  const statusForm = document.getElementById('statusForm');
+  if (statusForm) {
+    statusForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const statusSelect = document.getElementById('statusSelect') as HTMLSelectElement;
+      const orderNumber = window.location.pathname.split('/').pop();
+      
+      try {
+        const response = await fetch('/api/admin/orders/update-status', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderNumber,
+            status: statusSelect.value
+          })
+        });
+        
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const error = await response.json();
+          alert('Error: ' + error.error);
+        }
+      } catch (error) {
+        alert('Error al actualizar estado: ' + error);
+      }
+    });
+  }
+  
+  // Manejar tracking
+  const trackingForm = document.getElementById('trackingForm');
+  if (trackingForm) {
+    trackingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const trackingNumber = (document.getElementById('trackingNumber') as HTMLInputElement).value;
+      const trackingUrl = (document.getElementById('trackingUrl') as HTMLInputElement).value;
+      const orderNumber = window.location.pathname.split('/').pop();
+      
+      try {
+        const response = await fetch('/api/admin/orders/update-tracking', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderNumber,
+            trackingNumber,
+            trackingUrl
+          })
+        });
+        
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const error = await response.json();
+          alert('Error: ' + error.error);
+        }
+      } catch (error) {
+        alert('Error al actualizar tracking: ' + error);
+      }
+    });
+  }
+</script>
