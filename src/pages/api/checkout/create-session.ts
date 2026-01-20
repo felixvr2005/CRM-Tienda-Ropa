@@ -56,21 +56,29 @@ export const POST: APIRoute = async ({ request }) => {
         .from('product_variants')
         .select(`
           id, color, size, price,
-          product:products(name, images)
+          product:products(name, images, price)
         `)
         .eq('id', item.variantId)
         .single();
 
       const variantData = variant as any;
+      const productData = variantData?.product as any;
+      
+      // El precio enviado desde el cliente es en euros
+      // Stripe necesita centavos (multiplicar por 100)
+      const priceInCents = Math.round(item.price * 100);
+      
+      console.log(`Item: ${productData?.name}, price from client: ${item.price}€, in cents: ${priceInCents}`);
+      
       return {
         price_data: {
           currency: 'eur',
           product_data: {
-            name: variantData?.product?.name || 'Producto',
+            name: productData?.name || 'Producto',
             description: `${variantData?.color || ''} / ${variantData?.size || ''}`,
-            images: variantData?.product?.images?.slice(0, 1) || [],
+            images: productData?.images?.slice(0, 1) || [],
           },
-          unit_amount: Math.round(item.price * 100), // Stripe usa centavos
+          unit_amount: priceInCents,
         },
         quantity: item.quantity,
       };
