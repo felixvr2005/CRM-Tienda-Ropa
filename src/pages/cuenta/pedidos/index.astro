@@ -1,5 +1,5 @@
 ---
-import PublicLayout from '@layouts/PublicLayout.astro';
+import AccountLayout from '@layouts/AccountLayout.astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
@@ -63,41 +63,8 @@ const orderStatusMap: Record<string, { label: string; color: string }> = {
 };
 ---
 
-<PublicLayout title="Mis Pedidos | FashionStore">
-  <main class="max-w-7xl mx-auto px-4 py-8">
-    <!-- Breadcrumb -->
-    <nav class="text-sm mb-6">
-      <ol class="flex items-center gap-2 text-primary-500">
-        <li><a href="/" class="hover:text-primary-900">Inicio</a></li>
-        <li>/</li>
-        <li><a href="/cuenta" class="hover:text-primary-900">Mi Cuenta</a></li>
-        <li>/</li>
-        <li class="text-primary-900">Mis Pedidos</li>
-      </ol>
-    </nav>
-
-    <div class="grid lg:grid-cols-4 gap-8">
-      <!-- Sidebar -->
-      <aside class="lg:col-span-1">
-        <nav class="space-y-1 bg-white border border-primary-200 rounded-lg overflow-hidden">
-          <a href="/cuenta" class="block px-4 py-3 text-primary-600 hover:bg-primary-50 transition-colors border-b border-primary-100">
-            <span class="flex items-center gap-3">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-              Resumen
-            </span>
-          </a>
-          <a href="/cuenta/pedidos" class="block px-4 py-3 bg-primary-900 text-white">
-            <span class="flex items-center gap-3">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-              Mis Pedidos
-            </span>
-          </a>
-          <a href="/cuenta/favoritos" class="block px-4 py-3 text-primary-600 hover:bg-primary-50 transition-colors border-b border-primary-100">
-            <span class="flex items-center gap-3">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-              Favoritos
-            </span>
-          </a>
+<AccountLayout title="Mis Pedidos">
+  <div class="space-y-6">
           <a href="/cuenta/direcciones" class="block px-4 py-3 text-primary-600 hover:bg-primary-50 transition-colors border-b border-primary-100">
             <span class="flex items-center gap-3">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -171,6 +138,5 @@ const orderStatusMap: Record<string, { label: string; color: string }> = {
           </div>
         )}
       </div>
-    </div>
-  </main>
-</PublicLayout>
+  </div>
+</AccountLayout>

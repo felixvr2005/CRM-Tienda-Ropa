@@ -1,5 +1,5 @@
 ---
-import PublicLayout from '@layouts/PublicLayout.astro';
+import AccountLayout from '@layouts/AccountLayout.astro';
 import { supabase } from '@lib/supabase';
 
 export const prerender = false;
@@ -91,23 +91,8 @@ const formatPrice = (price: number) => {
 };
 ---
 
-<PublicLayout title="Mis Favoritos | FashionStore">
-  <main class="max-w-7xl mx-auto px-4 py-8">
-    <!-- Breadcrumb -->
-    <nav class="text-sm mb-6">
-      <ol class="flex items-center gap-2 text-primary-500">
-        <li><a href="/" class="hover:text-primary-900">Inicio</a></li>
-        <li>/</li>
-        <li><a href="/cuenta" class="hover:text-primary-900">Mi Cuenta</a></li>
-        <li>/</li>
-        <li class="text-primary-900">Favoritos</li>
-      </ol>
-    </nav>
-
-    <div class="grid lg:grid-cols-4 gap-8">
-      <!-- Sidebar -->
-      <aside class="lg:col-span-1">
-        <nav class="space-y-1 bg-white border border-primary-200 p-4">
+<AccountLayout title="Mis Favoritos">
+  <div class="space-y-6">
           <a href="/cuenta" class="block px-4 py-2 text-primary-600 hover:bg-primary-50 transition-colors">
             Dashboard
           </a>
@@ -236,10 +221,8 @@ const formatPrice = (price: number) => {
             </div>
           </>
         )}
-      </div>
-    </div>
-  </main>
-</PublicLayout>
+  </div>
+</AccountLayout>
 
 <script>
   import { createClient } from '@supabase/supabase-js';

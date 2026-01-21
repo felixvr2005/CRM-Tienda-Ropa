@@ -2,7 +2,7 @@
 /**
  * Cambiar Contraseña
  */
-import PublicLayout from '@layouts/PublicLayout.astro';
+import AccountLayout from '@layouts/AccountLayout.astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
@@ -36,27 +36,9 @@ if (adminUser) {
 }
 ---
 
-<PublicLayout title="Cambiar Contraseña | FashionStore">
-  <main class="py-12">
-    <div class="container max-w-2xl">
-      <!-- Breadcrumb -->
-      <nav class="text-sm mb-6">
-        <ol class="flex items-center gap-2 text-primary-500">
-          <li><a href="/" class="hover:text-primary-900">Inicio</a></li>
-          <li>/</li>
-          <li><a href="/cuenta" class="hover:text-primary-900">Mi Cuenta</a></li>
-          <li>/</li>
-          <li class="text-primary-900">Cambiar Contraseña</li>
-        </ol>
-      </nav>
-
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-3xl font-display font-medium mb-2">Cambiar Contraseña</h1>
-        <p class="text-primary-500">Actualiza tu contraseña de forma segura</p>
-      </div>
-
-      <!-- Form -->
+<AccountLayout title="Cambiar Contraseña">
+  <div class="space-y-6">
+    <!-- Form -->
       <div class="bg-white border border-primary-200 p-8 max-w-md mx-auto">
         <form id="changePasswordForm" class="space-y-6">
           <div>
@@ -136,8 +118,8 @@ if (adminUser) {
         <div id="errorMessage" class="hidden bg-red-100 text-red-800 p-4 rounded-lg"></div>
       </div>
     </div>
-  </main>
-</PublicLayout>
+  </div>
+</AccountLayout>
 
 <script>
   const form = document.getElementById('changePasswordForm') as HTMLFormElement;
