@@ -1,0 +1,215 @@
+---
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { supabaseAdmin } from '@lib/supabase';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+
+console.log('=== ADMIN DEVOLUCIONES DETAIL DEBUG ===');
+console.log('ID recibido:', id);
+console.log('Tipo de ID:', typeof id);
+
+// Información de diagnóstico
+const debugInfo: any = {
+  id_received: id,
+  id_type: typeof id,
+  steps: []
+};
+
+// Paso 1: Validación
+if (!id || typeof id !== 'string') {
+  console.error('❌ PASO 1 FAILED: ID no válido');
+  debugInfo.steps.push({ step: 1, status: 'FAILED', reason: 'Invalid ID' });
+  return Astro.redirect('/admin/devoluciones');
+}
+debugInfo.steps.push({ step: 1, status: 'OK', message: 'ID validated' });
+
+let formattedReturn: any = null;
+
+try {
+  // Paso 2: Query principal
+  console.log('📍 PASO 2: Obteniendo devolución...');
+  const { data: returnRequest, error: queryError } = await supabaseAdmin
+    .from('return_requests')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  console.log('Query 1 error:', queryError);
+  console.log('Query 1 data:', returnRequest);
+  
+  if (queryError) {
+    debugInfo.steps.push({ 
+      step: 2, 
+      status: 'ERROR', 
+      error: queryError.message,
+      code: queryError.code 
+    });
+  } else if (!returnRequest) {
+    debugInfo.steps.push({ step: 2, status: 'NO_DATA', message: 'No return request found' });
+  } else {
+    debugInfo.steps.push({ step: 2, status: 'OK', message: 'Return request found', id: returnRequest.id });
+  }
+
+  if (queryError || !returnRequest) {
+    console.error('❌ PASO 2 FAILED: No se encontró la devolución');
+    console.error('Error completo:', queryError);
+    return Astro.redirect('/admin/devoluciones');
+  }
+
+  // Paso 3: Query de pedido
+  console.log('📍 PASO 3: Obteniendo pedido...');
+  let orderData: any = null;
+  if (returnRequest.order_id) {
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_number')
+      .eq('id', returnRequest.order_id)
+      .single();
+    
+    console.log('Order error:', orderError);
+    console.log('Order data:', order);
+    
+    if (orderError) {
+      debugInfo.steps.push({ 
+        step: 3, 
+        status: 'ERROR', 
+        error: orderError.message 
+      });
+    } else {
+      debugInfo.steps.push({ step: 3, status: 'OK', message: 'Order found' });
+      orderData = order;
+    }
+  }
+
+  // Paso 4: Query de cliente
+  console.log('📍 PASO 4: Obteniendo cliente...');
+  let customerData: any = null;
+  if (returnRequest.customer_id) {
+    const { data: customer, error: customerError } = await supabaseAdmin
+      .from('customers')
+      .select('first_name, last_name, email, phone')
+      .eq('id', returnRequest.customer_id)
+      .single();
+    
+    console.log('Customer error:', customerError);
+    console.log('Customer data:', customer);
+    
+    if (customerError) {
+      debugInfo.steps.push({ 
+        step: 4, 
+        status: 'ERROR', 
+        error: customerError.message 
+      });
+    } else {
+      debugInfo.steps.push({ step: 4, status: 'OK', message: 'Customer found' });
+      customerData = customer;
+    }
+  }
+
+  // Paso 5: Query de items
+  console.log('📍 PASO 5: Obteniendo items...');
+  const { data: items, error: itemsError } = await supabaseAdmin
+    .from('return_request_items')
+    .select('*')
+    .eq('return_request_id', id);
+
+  console.log('Items error:', itemsError);
+  console.log('Items data:', items);
+  
+  if (itemsError) {
+    debugInfo.steps.push({ 
+      step: 5, 
+      status: 'ERROR', 
+      error: itemsError.message 
+    });
+  } else {
+    debugInfo.steps.push({ step: 5, status: 'OK', message: `Found ${items?.length || 0} items` });
+  }
+
+  // Formatear
+  formattedReturn = {
+    ...returnRequest,
+    orders: orderData,
+    customers: customerData,
+    items: items || []
+  };
+
+  debugInfo.steps.push({ step: 6, status: 'OK', message: 'Data formatted successfully' });
+
+} catch (e) {
+  console.error('❌ EXCEPTION:', e);
+  debugInfo.steps.push({ 
+    step: 'exception', 
+    status: 'ERROR', 
+    error: (e as Error).message 
+  });
+  return Astro.redirect('/admin/devoluciones');
+}
+
+// Validación final
+if (!formattedReturn) {
+  console.error('❌ FINAL VALIDATION FAILED: formattedReturn is null');
+  debugInfo.steps.push({ step: 'final', status: 'FAILED', reason: 'formattedReturn is null' });
+  return Astro.redirect('/admin/devoluciones');
+}
+
+console.log('✅ TODO OK - Renderizando página');
+console.log('Debug info:', JSON.stringify(debugInfo, null, 2));
+
+---
+
+<AdminLayout title={`Devolución - ${formattedReturn?.id?.slice(0, 8) || 'Error'}`}>
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="mb-8">
+      <a href="/admin/devoluciones" class="flex items-center gap-2 text-blue-600 hover:text-blue-700">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Volver a Devoluciones
+      </a>
+    </div>
+
+    <h1 class="text-4xl font-bold text-primary-900 mb-8">
+      Solicitud de Devolución #{formattedReturn?.id?.slice(0, 8) || 'Error'}
+    </h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2 space-y-6">
+        
+        {/* Cliente */}
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+          <h2 class="text-xl font-bold mb-4">Cliente</h2>
+          <p class="mb-2"><strong>Nombre:</strong> {formattedReturn?.customers?.first_name} {formattedReturn?.customers?.last_name}</p>
+          <p class="mb-2"><strong>Email:</strong> {formattedReturn?.customers?.email}</p>
+          <p><strong>Teléfono:</strong> {formattedReturn?.customers?.phone || 'N/A'}</p>
+        </div>
+
+        {/* Detalles */}
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+          <h2 class="text-xl font-bold mb-4">Detalles</h2>
+          <p class="mb-2"><strong>Motivo:</strong> {formattedReturn?.reason}</p>
+          <p class="mb-2"><strong>Descripción:</strong> {formattedReturn?.description || 'N/A'}</p>
+          <p class="mb-2"><strong>Monto:</strong> €{formattedReturn?.refund_amount?.toFixed(2) || '0.00'}</p>
+          <p><strong>Estado:</strong> {formattedReturn?.status}</p>
+        </div>
+
+      </div>
+
+      <div class="space-y-6">
+        <div class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-bold mb-4">Información</h2>
+          <p class="text-sm text-gray-600 mb-2">ID: {formattedReturn?.id}</p>
+          <p class="text-sm text-gray-600">Pedido: #{formattedReturn?.orders?.order_number || 'N/A'}</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Debug Info */}
+    <div class="mt-12 bg-gray-100 p-6 rounded-lg">
+      <h3 class="font-bold text-lg mb-4">Debug Info</h3>
+      <pre class="text-xs overflow-auto">{JSON.stringify(debugInfo, null, 2)}</pre>
+    </div>
+  </div>
+</AdminLayout>
