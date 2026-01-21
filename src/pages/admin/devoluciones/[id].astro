@@ -12,13 +12,13 @@ const { data: returnRequest, error } = await supabaseAdmin
   .from('return_requests')
   .select('*, orders(*), customers(*), return_request_items(*)')
   .eq('id', id)
-  .maybeSingle() as any;
+  .single();
 
 console.log('Error en query:', error);
 console.log('Resultado:', returnRequest);
 
-if (!returnRequest || error) {
-  console.log('Redirigiendo - no encontrada o error');
+if (!returnRequest) {
+  console.log('Redirigiendo - no encontrada');
   return Astro.redirect('/admin/devoluciones');
 }
 ---

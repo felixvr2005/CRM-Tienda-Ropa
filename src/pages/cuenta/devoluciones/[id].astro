@@ -42,9 +42,9 @@ const { data: returnRequest, error } = await supabaseAdmin
   .select('*, orders(*), return_request_items(*), credit_notes(*)')
   .eq('id', id)
   .eq('customer_id', currentCustomer.id)
-  .maybeSingle() as any;
+  .single();
 
-if (!returnRequest || error) {
+if (!returnRequest) {
   return Astro.redirect('/cuenta/devoluciones');
 }
 
