@@ -301,54 +301,71 @@ const timeline = [
         </div>
 
         <!-- Actions -->
-        <div class="space-y-3">
-          <a 
-            href="/cuenta/pedidos"
-            class="block w-full text-center px-4 py-3 border border-primary-900 text-primary-900 hover:bg-primary-900 hover:text-white transition-colors"
-          >
-            ← VOLVER A MIS PEDIDOS
-          </a>
-          
-          {order.status !== 'cancelled' && order.status !== 'refunded' && (
-            <InvoiceDownload 
-              client:load 
-              orderId={order.id} 
-              orderNumber={orderNumber}
-              authToken={Astro.cookies.get('sb-access-token')?.value}
-            />
-          )}
-          
-          {(order.status === 'confirmed' || order.status === 'pending') && (
-            <button 
-              class="w-full px-4 py-3 border border-red-300 text-red-600 hover:border-red-900 hover:bg-red-50 transition-colors"
-              id="cancelOrderBtn"
+        <div class="bg-white rounded-lg border border-primary-200 p-6">
+          <div class="space-y-2">
+            <a 
+              href="/cuenta/pedidos"
+              class="flex items-center justify-center gap-2 w-full px-4 py-3 text-primary-900 hover:bg-primary-50 transition-colors rounded-lg border border-primary-200 font-medium"
             >
-              CANCELAR PEDIDO
-            </button>
-          )}
-          
-          {order.status === 'delivered' && (
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Volver a mis pedidos
+            </a>
+            
+            {order.status !== 'cancelled' && order.status !== 'refunded' && (
+              <InvoiceDownload 
+                client:load 
+                orderId={order.id} 
+                orderNumber={orderNumber}
+                authToken={Astro.cookies.get('sb-access-token')?.value}
+              />
+            )}
+            
+            {(order.status === 'confirmed' || order.status === 'pending') && (
+              <button 
+                class="w-full px-4 py-3 text-red-600 hover:bg-red-50 transition-colors rounded-lg border border-red-200 font-medium flex items-center justify-center gap-2"
+                id="cancelOrderBtn"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancelar pedido
+              </button>
+            )}
+            
+            {order.status === 'delivered' && (
+              <button 
+                class="w-full px-4 py-3 text-blue-600 hover:bg-blue-50 transition-colors rounded-lg border border-blue-200 font-medium flex items-center justify-center gap-2"
+                id="returnOrderBtn"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V9a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Solicitar devolución
+              </button>
+            )}
+            
             <button 
-              class="w-full px-4 py-3 border border-primary-300 text-primary-600 hover:border-primary-900 transition-colors"
-              id="returnOrderBtn"
+              onclick="window.print()"
+              class="w-full px-4 py-3 text-primary-600 hover:bg-primary-50 transition-colors rounded-lg border border-primary-200 font-medium flex items-center justify-center gap-2"
             >
-              SOLICITAR DEVOLUCIÓN
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4H7a2 2 0 01-2-2v-4a2 2 0 012-2h10a2 2 0 012 2v4a2 2 0 01-2 2zm-6-4a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Imprimir pedido
             </button>
-          )}
-          
-          <button 
-            onclick="window.print()"
-            class="w-full px-4 py-3 border border-primary-300 text-primary-600 hover:border-primary-900 transition-colors"
-          >
-            IMPRIMIR PEDIDO
-          </button>
 
-          <a 
-            href={`mailto:soporte@fashionstore.com?subject=Consulta sobre pedido ${orderNumber}`}
-            class="block w-full text-center px-4 py-3 border border-primary-300 text-primary-600 hover:border-primary-900 transition-colors"
-          >
-            CONTACTAR SOPORTE
-          </a>
+            <a 
+              href={`mailto:soporte@fashionstore.com?subject=Consulta sobre pedido ${orderNumber}`}
+              class="flex items-center justify-center gap-2 w-full px-4 py-3 text-primary-600 hover:bg-primary-50 transition-colors rounded-lg border border-primary-200 font-medium"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              Contactar soporte
+            </a>
+          </div>
         </div>
       </div>
     </div>

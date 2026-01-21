@@ -8,11 +8,7 @@ const { id } = Astro.params;
 
 const { data: returnRequest } = await supabaseAdmin
   .from('return_requests')
-  .select(`
-    *,
-    order:orders(id, order_number, total_amount, shipping_info, customer:customers(id, name, email, phone)),
-    items:return_request_items(*, product:products(name, price))
-  `)
+  .select('*, orders(*), customers(*), return_request_items(*)')
   .eq('id', id)
   .single() as any;
 
@@ -33,9 +29,9 @@ if (!returnRequest) {
       <!-- Cliente -->
       <div class="mb-8 p-6 bg-gray-50 rounded-lg">
         <h2 class="text-xl font-bold mb-4">Cliente</h2>
-        <p><strong>Nombre:</strong> {returnRequest.order?.customer?.name}</p>
-        <p><strong>Email:</strong> {returnRequest.order?.customer?.email}</p>
-        <p><strong>Teléfono:</strong> {returnRequest.order?.customer?.phone || 'N/A'}</p>
+        <p><strong>Nombre:</strong> {returnRequest.customers?.name}</p>
+        <p><strong>Email:</strong> {returnRequest.customers?.email}</p>
+        <p><strong>Teléfono:</strong> {returnRequest.customers?.phone || 'N/A'}</p>
       </div>
 
       <!-- Devolución -->
@@ -58,10 +54,10 @@ if (!returnRequest) {
       <!-- Artículos -->
       <div class="mb-8 p-6 bg-gray-50 rounded-lg">
         <h2 class="text-xl font-bold mb-4">Artículos en Devolución</h2>
-        {returnRequest.items && returnRequest.items.map((item:any) => (
+        {returnRequest.return_request_items && returnRequest.return_request_items.map((item:any) => (
           <div class="mb-4 pb-4 border-b last:border-b-0">
-            <p><strong>{item.product?.name}</strong></p>
-            <p>Cantidad: {item.quantity} | Precio: €{item.product?.price}</p>
+            <p><strong>{item.product_name}</strong></p>
+            <p>Cantidad: {item.quantity} | Precio: €{item.unit_price}</p>
           </div>
         ))}
       </div>

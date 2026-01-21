@@ -4,13 +4,13 @@ import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
-const { data: returnRequests } = await supabaseAdmin
+const { data: returnRequests, error: returnError } = await supabaseAdmin
   .from('return_requests')
-  .select(`
-    *,
-    order:orders(id, order_number, total_amount, customer:customers(name, email))
-  `)
+  .select('*, orders(*), customers(*)')
   .order('created_at', { ascending: false }) as any;
+
+console.log('Return Error:', returnError);
+console.log('Returns:', returnRequests);
 
 const statusCounts = {
   pending: returnRequests?.filter((r:any) => r.status === 'pending').length || 0,
@@ -72,8 +72,8 @@ const statusCounts = {
           {returnRequests && returnRequests.map((ret:any) => (
             <tr class="hover:bg-gray-50">
               <td class="px-6 py-4 text-sm text-gray-900">{ret.id.slice(0,8)}</td>
-              <td class="px-6 py-4 text-sm text-gray-900">{ret.order?.customer?.name || 'N/A'}</td>
-              <td class="px-6 py-4 text-sm text-gray-600">{ret.order?.customer?.email || 'N/A'}</td>
+              <td class="px-6 py-4 text-sm text-gray-900">{ret.customers?.name || 'N/A'}</td>
+              <td class="px-6 py-4 text-sm text-gray-600">{ret.customers?.email || 'N/A'}</td>
               <td class="px-6 py-4 text-sm font-semibold">€{ret.requested_amount}</td>
               <td class="px-6 py-4 text-sm">
                 <span class={`px-3 py-1 rounded-full text-xs font-semibold ${
