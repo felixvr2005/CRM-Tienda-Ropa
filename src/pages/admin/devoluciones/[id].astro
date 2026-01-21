@@ -14,58 +14,66 @@ if (!id || typeof id !== 'string') {
 let formattedReturn: any = null;
 
 try {
-  // Obtener devolución con campos específicos
+  console.log('[Admin Devoluciones Detail] Obteniendo devolución:', id);
+  
+  // Query 1: Obtener la devolución principal (sin relaciones)
   const { data: returnRequest, error: queryError } = await supabaseAdmin
     .from('return_requests')
-    .select(`
-      id,
-      status,
-      reason,
-      description,
-      refund_amount,
-      return_label_url,
-      return_tracking_number,
-      notes,
-      created_at,
-      updated_at,
-      refunded_at,
-      order_id,
-      customer_id,
-      orders (
-        id,
-        order_number
-      ),
-      customers (
-        first_name,
-        last_name,
-        email,
-        phone
-      )
-    `)
+    .select('*')
     .eq('id', id)
     .single();
 
-  // Si hay error o no existe, redirigir
+  console.log('[Admin Devoluciones Detail] Error query 1:', queryError?.message);
+  console.log('[Admin Devoluciones Detail] Datos query 1:', returnRequest);
+
   if (queryError || !returnRequest) {
-    console.error('[Admin Devoluciones Detail] Error:', queryError?.message || 'No encontrada');
+    console.error('[Admin Devoluciones Detail] Devolución no encontrada:', queryError?.message || 'No data');
     return Astro.redirect('/admin/devoluciones');
   }
 
-  // Obtener items de la devolución
+  // Query 2: Obtener datos del pedido
+  let orderData: any = null;
+  if (returnRequest.order_id) {
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_number')
+      .eq('id', returnRequest.order_id)
+      .single();
+    
+    console.log('[Admin Devoluciones Detail] Order error:', orderError?.message);
+    orderData = order;
+  }
+
+  // Query 3: Obtener datos del cliente
+  let customerData: any = null;
+  if (returnRequest.customer_id) {
+    const { data: customer, error: customerError } = await supabaseAdmin
+      .from('customers')
+      .select('first_name, last_name, email, phone')
+      .eq('id', returnRequest.customer_id)
+      .single();
+    
+    console.log('[Admin Devoluciones Detail] Customer error:', customerError?.message);
+    customerData = customer;
+  }
+
+  // Query 4: Obtener items de la devolución
   const { data: items, error: itemsError } = await supabaseAdmin
     .from('return_request_items')
     .select('*')
     .eq('return_request_id', id);
 
-  if (itemsError) {
-    console.error('[Admin Devoluciones Detail] Error items:', itemsError.message);
-  }
+  console.log('[Admin Devoluciones Detail] Items error:', itemsError?.message);
 
   // Formatear datos
   formattedReturn = {
     ...returnRequest,
+    orders: orderData,
+    customers: customerData,
     items: items || []
   };
+
+  console.log('[Admin Devoluciones Detail] Datos formateados:', formattedReturn);
 
 } catch (e) {
   console.error('[Admin Devoluciones Detail] Exception:', e);
@@ -74,6 +82,7 @@ try {
 
 // Validar que se obtuvo la devolución
 if (!formattedReturn) {
+  console.error('[Admin Devoluciones Detail] formattedReturn es null');
   return Astro.redirect('/admin/devoluciones');
 }
 ---
