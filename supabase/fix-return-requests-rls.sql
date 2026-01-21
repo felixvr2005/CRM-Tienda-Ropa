@@ -78,49 +78,59 @@ CREATE POLICY "Admins can delete return requests"
     )
   );
 
--- Igual para return_request_items
-ALTER TABLE public.return_request_items DISABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Customers can read own return items" ON public.return_request_items;
-DROP POLICY IF EXISTS "Admins can manage return items" ON public.return_request_items;
+-- Igual para return_request_items (solo si la tabla existe)
+-- Nota: La tabla debe ser creada primero con create-return-request-items-table.sql
 
-ALTER TABLE public.return_request_items ENABLE ROW LEVEL SECURITY;
+-- Solo ejecutar esto si ya existe la tabla
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'return_request_items') THEN
+    
+    ALTER TABLE public.return_request_items DISABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Customers can read own return items" ON public.return_request_items;
+    DROP POLICY IF EXISTS "Admins can manage return items" ON public.return_request_items;
+    DROP POLICY IF EXISTS "Admins can read all return items" ON public.return_request_items;
 
-CREATE POLICY "Customers can read own return items"
-  ON public.return_request_items
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.return_requests rr
-      WHERE rr.id = return_request_id
-      AND rr.customer_id = auth.uid()
-    )
-  );
+    ALTER TABLE public.return_request_items ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Admins can read all return items"
-  ON public.return_request_items
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.admin_users 
-      WHERE auth_user_id = auth.uid() 
-      AND is_active = true
-    )
-  );
+    CREATE POLICY "Customers can read own return items"
+      ON public.return_request_items
+      FOR SELECT
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.return_requests rr
+          WHERE rr.id = return_request_id
+          AND rr.customer_id = auth.uid()
+        )
+      );
 
-CREATE POLICY "Admins can manage return items"
-  ON public.return_request_items
-  FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.admin_users 
-      WHERE auth_user_id = auth.uid() 
-      AND is_active = true
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.admin_users 
-      WHERE auth_user_id = auth.uid() 
-      AND is_active = true
-    )
-  );
+    CREATE POLICY "Admins can read all return items"
+      ON public.return_request_items
+      FOR SELECT
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.admin_users 
+          WHERE auth_user_id = auth.uid() 
+          AND is_active = true
+        )
+      );
+
+    CREATE POLICY "Admins can manage return items"
+      ON public.return_request_items
+      FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.admin_users 
+          WHERE auth_user_id = auth.uid() 
+          AND is_active = true
+        )
+      )
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM public.admin_users 
+          WHERE auth_user_id = auth.uid() 
+          AND is_active = true
+        )
+      );
+  END IF;
+END $$;
