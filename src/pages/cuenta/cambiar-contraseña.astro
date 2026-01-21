@@ -38,26 +38,65 @@ if (adminUser) {
 
 <AccountLayout title="Cambiar Contraseña">
   <div class="space-y-6">
-    <!-- Form -->
-      <div class="bg-white border border-primary-200 p-8 max-w-md mx-auto">
-        <form id="changePasswordForm" class="space-y-6">
-          <div>
-            <label for="currentPassword" class="block text-sm font-medium text-primary-900 mb-2">
-              Contraseña Actual
-            </label>
-            <input
-              type="password"
-              id="currentPassword"
-              name="currentPassword"
-              required
-              class="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
-              placeholder="Ingresa tu contraseña actual"
-            />
-            <p class="text-xs text-primary-500 mt-1">Por seguridad, necesitamos verificar tu contraseña actual</p>
-          </div>
+    <h1 class="text-2xl font-bold text-primary-900">Cambiar Contraseña</h1>
 
-          <div>
-            <label for="newPassword" class="block text-sm font-medium text-primary-900 mb-2">
+    <div class="bg-white border border-primary-200 rounded-lg p-8 max-w-2xl">
+      <form id="changePasswordForm" class="space-y-6">
+        <div>
+          <label for="currentPassword" class="block text-sm font-medium text-primary-900 mb-2">
+            Contraseña Actual *
+          </label>
+          <input
+            type="password"
+            id="currentPassword"
+            name="currentPassword"
+            required
+            class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
+            placeholder="Ingresa tu contraseña actual"
+          />
+        </div>
+
+        <div>
+          <label for="newPassword" class="block text-sm font-medium text-primary-900 mb-2">
+            Nueva Contraseña *
+          </label>
+          <input
+            type="password"
+            id="newPassword"
+            name="newPassword"
+            required
+            class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
+            placeholder="Ingresa tu nueva contraseña"
+          />
+          <p class="text-xs text-primary-500 mt-1">Mínimo 8 caracteres</p>
+        </div>
+
+        <div>
+          <label for="confirmPassword" class="block text-sm font-medium text-primary-900 mb-2">
+            Confirmar Contraseña *
+          </label>
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            required
+            class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
+            placeholder="Confirma tu nueva contraseña"
+          />
+        </div>
+
+        <div id="message" class="p-4 rounded hidden"></div>
+
+        <button
+          type="submit"
+          class="w-full py-3 bg-primary-900 text-white rounded hover:bg-primary-800 transition-colors"
+        >
+          Cambiar Contraseña
+        </button>
+      </form>
+    </div>
+  </div>
+</AccountLayout>
               Nueva Contraseña
             </label>
             <input
