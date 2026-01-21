@@ -1,21 +1,11 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
-import nodemailer from 'nodemailer';
-
-// Configurar transporte de correo
-const transporter = nodemailer.createTransport({
-  host: import.meta.env.SMTP_HOST,
-  port: parseInt(import.meta.env.SMTP_PORT || '587'),
-  secure: import.meta.env.SMTP_SECURE === 'true',
-  auth: {
-    user: import.meta.env.SMTP_USER,
-    pass: import.meta.env.SMTP_PASSWORD,
-  },
-});
 
 export const POST: APIRoute = async ({ request }) => {
   try {
     const { returnId, status, trackingNumber, labelUrl, notes } = await request.json();
+
+    console.log('[Confirm Return API] Iniciando con datos:', { returnId, status, trackingNumber });
 
     if (!returnId) {
       return new Response(
@@ -25,21 +15,53 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // 1. Obtener datos de la devolución
+    console.log('[Confirm Return API] Obteniendo devolución...');
     const { data: returnRequest, error: fetchError } = await supabaseAdmin
       .from('return_requests')
-      .select('*, customers(email, first_name, last_name), orders(order_number)')
+      .select('*')
       .eq('id', returnId)
       .single();
 
     if (fetchError || !returnRequest) {
       console.error('Error fetching return:', fetchError);
       return new Response(
-        JSON.stringify({ error: 'Return request not found' }),
+        JSON.stringify({ error: 'Return request not found', details: fetchError?.message }),
         { status: 404 }
       );
     }
 
-    // 2. Actualizar estado de la devolución
+    console.log('[Confirm Return API] Devolución obtenida:', returnRequest.id);
+
+    // 2. Obtener datos de cliente
+    console.log('[Confirm Return API] Obteniendo cliente...');
+    const { data: customer, error: customerError } = await supabaseAdmin
+      .from('customers')
+      .select('email, first_name, last_name')
+      .eq('id', returnRequest.customer_id)
+      .single();
+
+    if (customerError) {
+      console.error('Error fetching customer:', customerError);
+    }
+
+    console.log('[Confirm Return API] Cliente obtenido:', customer?.email);
+
+    // 3. Obtener datos de pedido
+    console.log('[Confirm Return API] Obteniendo pedido...');
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .select('order_number')
+      .eq('id', returnRequest.order_id)
+      .single();
+
+    if (orderError) {
+      console.error('Error fetching order:', orderError);
+    }
+
+    console.log('[Confirm Return API] Pedido obtenido:', order?.order_number);
+
+    // 4. Actualizar estado
+    console.log('[Confirm Return API] Actualizando estado...');
     const updateData: any = {
       status: status || 'label_sent',
       updated_at: new Date().toISOString(),
@@ -57,72 +79,35 @@ export const POST: APIRoute = async ({ request }) => {
     if (updateError) {
       console.error('Error updating return:', updateError);
       return new Response(
-        JSON.stringify({ error: 'Failed to update return status' }),
+        JSON.stringify({ error: 'Failed to update return status', details: updateError.message }),
         { status: 500 }
       );
     }
 
-    // 3. Enviar correo con etiqueta de envío
-    const customerEmail = returnRequest.customers?.email;
-    const customerName = `${returnRequest.customers?.first_name} ${returnRequest.customers?.last_name}`;
-    const orderNumber = returnRequest.orders?.order_number || 'N/A';
+    console.log('[Confirm Return API] Estado actualizado correctamente');
+
+    // 5. Enviar correo
+    const customerEmail = customer?.email;
+    const customerName = `${customer?.first_name} ${customer?.last_name}`.trim();
+    const orderNumber = order?.order_number || 'N/A';
+
+    console.log('[Confirm Return API] Preparando envío de correo a:', customerEmail);
 
     if (customerEmail && labelUrl) {
-      const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Devolución Aprobada</h2>
-          
-          <p>Hola ${customerName},</p>
-          
-          <p>Tu solicitud de devolución ha sido aprobada. Aquí están los detalles:</p>
-          
-          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>Número de Pedido:</strong> #${orderNumber}</p>
-            <p><strong>ID de Devolución:</strong> ${returnId.slice(0, 8)}</p>
-            <p><strong>Monto a Reembolsar:</strong> €${returnRequest.refund_amount}</p>
-          </div>
-
-          <h3>Etiqueta de Envío</h3>
-          <p>Descarga tu etiqueta de envío haciendo click en el botón de abajo:</p>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${labelUrl}" 
-               style="background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              Descargar Etiqueta de Envío
-            </a>
-          </div>
-
-          ${trackingNumber ? `
-            <p><strong>Número de Seguimiento:</strong> ${trackingNumber}</p>
-          ` : ''}
-
-          <h3>Próximos Pasos</h3>
-          <ol>
-            <li>Descarga e imprime la etiqueta de envío</li>
-            <li>Prepara el artículo devuelto en su empaque original</li>
-            <li>Adhiere la etiqueta de envío al paquete</li>
-            <li>Entrega el paquete en la oficina de correo</li>
-          </ol>
-
-          <p>Una vez que recibamos tu devolución, procesaremos el reembolso en 5-7 días hábiles.</p>
-
-          <p style="color: #666; font-size: 12px; margin-top: 30px;">
-            Si tienes preguntas, contáctanos a través de nuestro sitio web.
-          </p>
-        </div>
-      `;
-
       try {
-        await transporter.sendMail({
-          from: import.meta.env.SMTP_FROM || 'noreply@fashionforce.com',
-          to: customerEmail,
-          subject: `Etiqueta de Envío para Devolución #${returnId.slice(0, 8)}`,
-          html: emailHtml,
+        await sendReturnEmail({
+          email: customerEmail,
+          name: customerName,
+          orderNumber,
+          returnId,
+          amount: returnRequest.refund_amount,
+          labelUrl,
+          trackingNumber,
         });
-        console.log(`Email sent to ${customerEmail}`);
+        console.log('[Confirm Return API] Email enviado correctamente');
       } catch (emailError) {
-        console.error('Error sending email:', emailError);
-        // No fallar si el email falla, pero registrar el error
+        console.error('[Confirm Return API] Error al enviar email:', emailError);
+        // Continuar aunque falle el email
       }
     }
 
@@ -130,15 +115,244 @@ export const POST: APIRoute = async ({ request }) => {
       JSON.stringify({
         success: true,
         message: 'Return status updated and email sent',
-        returnId: returnId,
+        returnId,
       }),
       { status: 200 }
     );
   } catch (error) {
-    console.error('API error:', error);
+    console.error('[Confirm Return API] Exception:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', details: (error as Error).message }),
       { status: 500 }
     );
   }
 };
+
+// Función para enviar email
+async function sendReturnEmail({
+  email,
+  name,
+  orderNumber,
+  returnId,
+  amount,
+  labelUrl,
+  trackingNumber,
+}: {
+  email: string;
+  name: string;
+  orderNumber: string;
+  returnId: string;
+  amount: number;
+  labelUrl: string;
+  trackingNumber?: string;
+}): Promise<void> {
+  const resendKey = import.meta.env.RESEND_API_KEY || process.env.RESEND_API_KEY;
+  const sendgridKey = import.meta.env.SENDGRID_API_KEY || process.env.SENDGRID_API_KEY;
+
+  console.log('[Email Service] Resend disponible:', !!resendKey);
+  console.log('[Email Service] SendGrid disponible:', !!sendgridKey);
+
+  const htmlContent = generateEmailHTML({
+    name,
+    orderNumber,
+    returnId,
+    amount,
+    labelUrl,
+    trackingNumber,
+  });
+
+  // Intentar con Resend primero
+  if (resendKey) {
+    try {
+      console.log('[Email Service] Enviando con Resend...');
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${resendKey}`,
+        },
+        body: JSON.stringify({
+          from: 'noreply@fashionforce.com',
+          to: email,
+          subject: `Etiqueta de Envío para Devolución #${returnId.slice(0, 8)}`,
+          html: htmlContent,
+        }),
+      });
+
+      const result = await response.json();
+      console.log('[Email Service] Resend response:', result);
+
+      if (response.ok) {
+        console.log('[Email Service] Email enviado exitosamente con Resend');
+        return;
+      }
+    } catch (error) {
+      console.error('[Email Service] Error con Resend:', error);
+    }
+  }
+
+  // Intentar con SendGrid si Resend falla
+  if (sendgridKey) {
+    try {
+      console.log('[Email Service] Enviando con SendGrid...');
+      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sendgridKey}`,
+        },
+        body: JSON.stringify({
+          personalizations: [
+            {
+              to: [{ email }],
+              subject: `Etiqueta de Envío para Devolución #${returnId.slice(0, 8)}`,
+            },
+          ],
+          from: {
+            email: 'noreply@fashionforce.com',
+            name: 'Fashion Force',
+          },
+          content: [
+            {
+              type: 'text/html',
+              value: htmlContent,
+            },
+          ],
+        }),
+      });
+
+      console.log('[Email Service] SendGrid status:', response.status);
+
+      if (response.ok) {
+        console.log('[Email Service] Email enviado exitosamente con SendGrid');
+        return;
+      } else {
+        const error = await response.text();
+        console.error('[Email Service] SendGrid error:', error);
+      }
+    } catch (error) {
+      console.error('[Email Service] Exception con SendGrid:', error);
+    }
+  }
+
+  console.warn('[Email Service] No email service available');
+}
+
+// Función para generar HTML
+function generateEmailHTML({
+  name,
+  orderNumber,
+  returnId,
+  amount,
+  labelUrl,
+  trackingNumber,
+}: {
+  name: string;
+  orderNumber: string;
+  returnId: string;
+  amount: number;
+  labelUrl: string;
+  trackingNumber?: string;
+}): string {
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table width="100%" max-width="600px" cellpadding="0" cellspacing="0" style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          
+          <!-- Header -->
+          <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <td style="padding: 40px 20px; text-align: center;">
+              <h1 style="margin: 0; color: white; font-size: 28px;">✓ Devolución Aprobada</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="margin: 0 0 20px 0; font-size: 16px;">Hola <strong>${name}</strong>,</p>
+              
+              <p style="margin: 0 0 30px 0; font-size: 14px; color: #666;">
+                Tu solicitud de devolución ha sido <strong>aprobada</strong>. Por favor descarga la etiqueta de envío y sigue los pasos indicados para completar el proceso de devolución.
+              </p>
+
+              <!-- Details Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background: #f0f8ff; border-left: 4px solid #667eea; margin: 30px 0; border-radius: 4px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <p style="margin: 0 0 15px 0; color: #667eea; font-weight: bold; font-size: 14px;">DETALLES DE TU DEVOLUCIÓN</p>
+                    <p style="margin: 5px 0; font-size: 13px;"><span style="color: #666;">Número de Pedido:</span> <strong>#${orderNumber}</strong></p>
+                    <p style="margin: 5px 0; font-size: 13px;"><span style="color: #666;">ID de Devolución:</span> <strong>${returnId.slice(0, 8).toUpperCase()}</strong></p>
+                    <p style="margin: 5px 0; font-size: 13px;"><span style="color: #666;">Monto a Reembolsar:</span> <strong style="color: #28a745; font-size: 18px;">€${amount.toFixed(2)}</strong></p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 35px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${labelUrl}" style="display: inline-block; background: #28a745; color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                      📥 Descargar Etiqueta de Envío
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              ${trackingNumber ? `
+              <p style="text-align: center; margin: 20px 0 0 0; font-size: 13px; color: #666;">
+                <strong>Número de Seguimiento:</strong><br>
+                <code style="background: #f0f0f0; padding: 8px 12px; border-radius: 4px; display: inline-block; margin-top: 5px; font-family: monospace;">${trackingNumber}</code>
+              </p>
+              ` : ''}
+
+              <!-- Steps -->
+              <h3 style="margin: 35px 0 15px 0; color: #333; font-size: 16px;">📋 Próximos Pasos</h3>
+              <ol style="margin: 0; padding-left: 20px; color: #666; font-size: 14px;">
+                <li style="margin-bottom: 8px;">Descarga e imprime la etiqueta de envío</li>
+                <li style="margin-bottom: 8px;">Prepara el artículo devuelto en su empaque original</li>
+                <li style="margin-bottom: 8px;">Adhiere la etiqueta de envío en un lugar visible del paquete</li>
+                <li style="margin-bottom: 8px;">Entrega el paquete en la oficina de correo indicada</li>
+              </ol>
+
+              <!-- Important Info -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background: #fff3cd; border-left: 4px solid #ffc107; margin: 30px 0; border-radius: 4px;">
+                <tr>
+                  <td style="padding: 15px 20px;">
+                    <p style="margin: 0; color: #856404; font-size: 13px;">
+                      <strong>⏱️ Reembolso:</strong> Una vez recibamos y procesemos tu devolución, el reembolso se acreditará en tu cuenta en 5-7 días hábiles.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #eee;">
+              <p style="margin: 0 0 10px 0; font-size: 12px; color: #999;">
+                Si tienes preguntas o problemas, contáctanos a través de nuestro sitio web.
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #bbb;">
+                © 2025 Fashion Force. Todos los derechos reservados.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
