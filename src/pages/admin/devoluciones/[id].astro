@@ -4,11 +4,6 @@ import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
-const session = Astro.locals.session;
-if (!session?.user) {
-  return Astro.redirect('/admin/login');
-}
-
 const { id } = Astro.params;
 
 const { data: returnRequest } = await supabaseAdmin
