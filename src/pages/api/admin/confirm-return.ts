@@ -1,5 +1,29 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
+import nodemailer from 'nodemailer';
+
+// Crear transporte de correo con Gmail
+const createTransporter = () => {
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPassword = process.env.GMAIL_APP_PASSWORD;
+
+  console.log('[Confirm Return] Configurando transporte con Gmail:', gmailUser);
+
+  if (!gmailUser || !gmailPassword) {
+    throw new Error('GMAIL_USER o GMAIL_APP_PASSWORD no configurados');
+  }
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: gmailUser,
+      pass: gmailPassword,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
+};
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -128,7 +152,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 };
 
-// Función para enviar email
+// Función para enviar email usando Gmail con nodemailer
 async function sendReturnEmail({
   email,
   name,
@@ -146,96 +170,42 @@ async function sendReturnEmail({
   labelUrl: string;
   trackingNumber?: string;
 }): Promise<void> {
-  const resendKey = import.meta.env.RESEND_API_KEY || process.env.RESEND_API_KEY;
-  const sendgridKey = import.meta.env.SENDGRID_API_KEY || process.env.SENDGRID_API_KEY;
+  try {
+    console.log('[Email Sender] Iniciando envío a:', email);
 
-  console.log('[Email Service] Resend disponible:', !!resendKey);
-  console.log('[Email Service] SendGrid disponible:', !!sendgridKey);
+    const transporter = createTransporter();
 
-  const htmlContent = generateEmailHTML({
-    name,
-    orderNumber,
-    returnId,
-    amount,
-    labelUrl,
-    trackingNumber,
-  });
+    const htmlContent = generateEmailHTML({
+      name,
+      orderNumber,
+      returnId,
+      amount,
+      labelUrl,
+      trackingNumber,
+    });
 
-  // Intentar con Resend primero
-  if (resendKey) {
-    try {
-      console.log('[Email Service] Enviando con Resend...');
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${resendKey}`,
-        },
-        body: JSON.stringify({
-          from: 'noreply@fashionforce.com',
-          to: email,
-          subject: `Etiqueta de Envío para Devolución #${returnId.slice(0, 8)}`,
-          html: htmlContent,
-        }),
-      });
+    const gmailUser = process.env.GMAIL_USER;
 
-      const result = await response.json();
-      console.log('[Email Service] Resend response:', result);
+    const mailOptions = {
+      from: gmailUser,
+      to: email,
+      subject: `Etiqueta de Envío para Devolución #${returnId.slice(0, 8).toUpperCase()}`,
+      html: htmlContent,
+    };
 
-      if (response.ok) {
-        console.log('[Email Service] Email enviado exitosamente con Resend');
-        return;
-      }
-    } catch (error) {
-      console.error('[Email Service] Error con Resend:', error);
-    }
+    console.log('[Email Sender] Opciones de correo:', { 
+      from: mailOptions.from, 
+      to: mailOptions.to, 
+      subject: mailOptions.subject 
+    });
+
+    const result = await transporter.sendMail(mailOptions);
+
+    console.log('[Email Sender] ✅ Email enviado exitosamente:', result.messageId);
+  } catch (error) {
+    console.error('[Email Sender] ❌ Error al enviar email:', error);
+    throw error;
   }
-
-  // Intentar con SendGrid si Resend falla
-  if (sendgridKey) {
-    try {
-      console.log('[Email Service] Enviando con SendGrid...');
-      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${sendgridKey}`,
-        },
-        body: JSON.stringify({
-          personalizations: [
-            {
-              to: [{ email }],
-              subject: `Etiqueta de Envío para Devolución #${returnId.slice(0, 8)}`,
-            },
-          ],
-          from: {
-            email: 'noreply@fashionforce.com',
-            name: 'Fashion Force',
-          },
-          content: [
-            {
-              type: 'text/html',
-              value: htmlContent,
-            },
-          ],
-        }),
-      });
-
-      console.log('[Email Service] SendGrid status:', response.status);
-
-      if (response.ok) {
-        console.log('[Email Service] Email enviado exitosamente con SendGrid');
-        return;
-      } else {
-        const error = await response.text();
-        console.error('[Email Service] SendGrid error:', error);
-      }
-    } catch (error) {
-      console.error('[Email Service] Exception con SendGrid:', error);
-    }
-  }
-
-  console.warn('[Email Service] No email service available');
 }
 
 // Función para generar HTML
