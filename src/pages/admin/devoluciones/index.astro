@@ -6,8 +6,8 @@ export const prerender = false;
 
 const { data: returnRequests, error: returnError } = await supabaseAdmin
   .from('return_requests')
-  .select('*, orders(*), customers(*)')
-  .order('created_at', { ascending: false }) as any;
+  .select('*, orders(order_number), customers(first_name, last_name, email)')
+  .order('created_at', { ascending: false });
 
 console.log('Return Error:', returnError);
 console.log('Returns:', returnRequests);
@@ -72,9 +72,9 @@ const statusCounts = {
           {returnRequests && returnRequests.map((ret:any) => (
             <tr class="hover:bg-gray-50">
               <td class="px-6 py-4 text-sm text-gray-900">{ret.id.slice(0,8)}</td>
-              <td class="px-6 py-4 text-sm text-gray-900">{ret.customers?.name || 'N/A'}</td>
+              <td class="px-6 py-4 text-sm text-gray-900">{ret.customers?.first_name} {ret.customers?.last_name}</td>
               <td class="px-6 py-4 text-sm text-gray-600">{ret.customers?.email || 'N/A'}</td>
-              <td class="px-6 py-4 text-sm font-semibold">€{ret.requested_amount}</td>
+              <td class="px-6 py-4 text-sm font-semibold">€{ret.refund_amount || ret.requested_amount || '0.00'}</td>
               <td class="px-6 py-4 text-sm">
                 <span class={`px-3 py-1 rounded-full text-xs font-semibold ${
                   ret.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
