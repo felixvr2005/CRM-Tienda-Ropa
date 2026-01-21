@@ -6,13 +6,19 @@ export const prerender = false;
 
 const { id } = Astro.params;
 
+console.log('Buscando devolución con ID:', id);
+
 const { data: returnRequest, error } = await supabaseAdmin
   .from('return_requests')
   .select('*, orders(*), customers(*), return_request_items(*)')
   .eq('id', id)
   .maybeSingle() as any;
 
+console.log('Error en query:', error);
+console.log('Resultado:', returnRequest);
+
 if (!returnRequest || error) {
+  console.log('Redirigiendo - no encontrada o error');
   return Astro.redirect('/admin/devoluciones');
 }
 ---
