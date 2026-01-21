@@ -129,7 +129,7 @@ const { data: updatedCustomer } = await supabase
               type="text"
               id="firstName"
               name="firstName"
-              value={customer?.first_name || ''}
+              value={updatedCustomer?.first_name || ''}
               class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
             />
           </div>
@@ -141,7 +141,7 @@ const { data: updatedCustomer } = await supabase
               type="text"
               id="lastName"
               name="lastName"
-              value={customer?.last_name || ''}
+              value={updatedCustomer?.last_name || ''}
               class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
             />
           </div>
@@ -169,7 +169,7 @@ const { data: updatedCustomer } = await supabase
               type="tel"
               id="phone"
               name="phone"
-              value={customer?.phone || ''}
+              value={updatedCustomer?.phone || ''}
               class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
             />
           </div>
@@ -181,7 +181,7 @@ const { data: updatedCustomer } = await supabase
               type="date"
               id="birthDate"
               name="birthDate"
-              value={customer?.birth_date ? customer.birth_date.split('T')[0] : ''}
+              value={updatedCustomer?.birth_date ? updatedCustomer.birth_date.split('T')[0] : ''}
               class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
             />
           </div>
@@ -192,7 +192,7 @@ const { data: updatedCustomer } = await supabase
             type="checkbox"
             id="newsletter"
             name="newsletter"
-            checked={customer?.newsletter_opt_in}
+            checked={updatedCustomer?.newsletter_opt_in}
             class="w-4 h-4"
           />
           <label for="newsletter" class="text-sm text-primary-900">
