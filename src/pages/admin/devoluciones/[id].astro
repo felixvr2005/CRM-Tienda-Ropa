@@ -1,0 +1,118 @@
+---
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { supabaseAdmin } from '@lib/supabase';
+
+export const prerender = false;
+
+const session = Astro.locals.session;
+if (!session?.user) {
+  return Astro.redirect('/admin/login');
+}
+
+const { id } = Astro.params;
+
+const { data: returnRequest } = await supabaseAdmin
+  .from('return_requests')
+  .select(`
+    *,
+    order:orders(id, order_number, total_amount, shipping_info, customer:customers(id, name, email, phone)),
+    items:return_request_items(*, product:products(name, price))
+  `)
+  .eq('id', id)
+  .single() as any;
+
+if (!returnRequest) {
+  return Astro.redirect('/admin/devoluciones');
+}
+---
+
+<AdminLayout title={`Devolución ${returnRequest.id.slice(0,8)}`}>
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="mb-8">
+      <a href="/admin/devoluciones" class="text-blue-600 hover:underline">← Volver</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-8">
+      <h1 class="text-3xl font-bold text-primary-900 mb-8">Devolución #{returnRequest.id.slice(0,8)}</h1>
+
+      <!-- Cliente -->
+      <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+        <h2 class="text-xl font-bold mb-4">Cliente</h2>
+        <p><strong>Nombre:</strong> {returnRequest.order?.customer?.name}</p>
+        <p><strong>Email:</strong> {returnRequest.order?.customer?.email}</p>
+        <p><strong>Teléfono:</strong> {returnRequest.order?.customer?.phone || 'N/A'}</p>
+      </div>
+
+      <!-- Devolución -->
+      <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+        <h2 class="text-xl font-bold mb-4">Detalles</h2>
+        <p><strong>Motivo:</strong> {returnRequest.reason}</p>
+        <p><strong>Descripción:</strong> {returnRequest.description || 'N/A'}</p>
+        <p><strong>Monto:</strong> €{returnRequest.requested_amount}</p>
+        <p><strong>Estado:</strong> 
+          <span class={`px-3 py-1 rounded text-xs font-semibold ${
+            returnRequest.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+            returnRequest.status === 'refunded' ? 'bg-green-100 text-green-800' :
+            'bg-blue-100 text-blue-800'
+          }`}>
+            {returnRequest.status}
+          </span>
+        </p>
+      </div>
+
+      <!-- Artículos -->
+      <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+        <h2 class="text-xl font-bold mb-4">Artículos en Devolución</h2>
+        {returnRequest.items && returnRequest.items.map((item:any) => (
+          <div class="mb-4 pb-4 border-b last:border-b-0">
+            <p><strong>{item.product?.name}</strong></p>
+            <p>Cantidad: {item.quantity} | Precio: €{item.product?.price}</p>
+          </div>
+        ))}
+      </div>
+
+      <!-- Acciones -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold mb-4">Acciones</h2>
+        <form method="POST" class="space-y-4">
+          <div>
+            <label class="block mb-2 font-semibold">Cambiar estado:</label>
+            <select name="status" class="border rounded px-4 py-2 w-full mb-4">
+              <option value="pending" selected={returnRequest.status === 'pending'}>Pendiente</option>
+              <option value="approved" selected={returnRequest.status === 'approved'}>Aprobada</option>
+              <option value="shipped" selected={returnRequest.status === 'shipped'}>Enviada</option>
+              <option value="received" selected={returnRequest.status === 'received'}>Recibida</option>
+              <option value="refunded" selected={returnRequest.status === 'refunded'}>Reembolsada</option>
+              <option value="rejected" selected={returnRequest.status === 'rejected'}>Rechazada</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block mb-2 font-semibold">Notas (opcional):</label>
+            <textarea name="notes" class="border rounded px-4 py-2 w-full" rows="3" placeholder="Agregar notas administrativas..."></textarea>
+          </div>
+
+          <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+            Actualizar Estado
+          </button>
+        </form>
+      </div>
+
+      <!-- Historial -->
+      <div class="p-6 bg-gray-50 rounded-lg">
+        <h2 class="text-xl font-bold mb-4">Historial</h2>
+        <p class="text-gray-600">
+          Creado: {new Date(returnRequest.created_at).toLocaleString()}
+        </p>
+        <p class="text-gray-600">
+          Actualizado: {new Date(returnRequest.updated_at).toLocaleString()}
+        </p>
+        {returnRequest.refund_date && (
+          <p class="text-gray-600">
+            Reembolsado: {new Date(returnRequest.refund_date).toLocaleString()}
+          </p>
+        )}
+      </div>
+    </div>
+  </div>
+</AdminLayout>

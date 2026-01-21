@@ -4,6 +4,7 @@
 import { useState, useMemo } from 'react';
 import ProductImageGallery from './ProductImageGallery';
 import AddToCartButton from './AddToCartButton';
+import SizeRecommender from './SizeRecommender';
 import type { ProductVariant } from '@lib/database.types';
 
 interface VariantImage {
@@ -97,6 +98,9 @@ export default function ProductViewer({
           selectedColor={selectedColor}
           onColorChange={setSelectedColor}
         />
+
+        {/* Recomendador de Talla */}
+        <SizeRecommender />
       </div>
     </div>
   );

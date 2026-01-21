@@ -6,6 +6,7 @@
 import BaseLayout from './BaseLayout.astro';
 import CartSlideOver from '@components/ui/CartSlideOver.astro';
 import CartIcon from '@components/islands/CartIcon';
+import LiveSearch from '@components/islands/LiveSearch';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 
 interface Props {
@@ -104,12 +105,8 @@ if (accessToken) {
             <a href="/admin" class="hidden sm:block px-3 py-2 text-xs tracking-widest uppercase font-medium rounded-full bg-primary-100 text-primary-900 hover:bg-primary-200 transition-all" title="Ir al panel de admin">Admin</a>
           )}
           
-          <!-- Search -->
-          <button class="p-2 hover:bg-primary-100 rounded-full transition-colors" aria-label="Buscar">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
+          <!-- Live Search -->
+          <LiveSearch client:load />
           
           <!-- Account -->
           <a href="/cuenta" class="hidden sm:block p-2 hover:bg-primary-100 rounded-full transition-colors" aria-label="Mi cuenta">

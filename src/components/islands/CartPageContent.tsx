@@ -6,6 +6,7 @@ import { useStore } from '@nanostores/react';
 import { useState, useEffect } from 'react';
 import { $cart, removeFromCart, updateQuantity, clearCart, getCartTimeRemaining, startCartExpirationTimer, type CartItem } from '@stores/cart';
 import { formatPrice } from '@lib/utils';
+import CouponInput from './CouponInput';
 
 export default function CartPageContent() {
   const cart = useStore($cart);
@@ -269,31 +270,16 @@ export default function CartPageContent() {
 
           {/* Promo Code */}
           <div className="mb-6">
-            <label className="text-xs uppercase tracking-wider text-primary-500 block mb-2">
-              Código promocional
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={promoCode}
-                onChange={(e) => {
-                  setPromoCode(e.target.value);
-                  setCouponError('');
-                }}
-                placeholder="Introduce tu código"
-                className="flex-1 border border-primary-300 px-3 py-2 text-sm focus:outline-none focus:border-primary-900"
-                disabled={appliedCoupon !== null}
-              />
-              <button 
-                onClick={handleApplyCoupon}
-                disabled={appliedCoupon !== null}
-                className="border border-primary-900 px-4 py-2 text-sm hover:bg-primary-900 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {appliedCoupon ? '✅' : 'Aplicar'}
-              </button>
-            </div>
-            {couponError && <p className="text-xs text-red-600 mt-1">{couponError}</p>}
-            {appliedCoupon && <p className="text-xs text-green-600 mt-1">✅ {appliedCoupon.description}</p>}
+            <CouponInput 
+              onCouponApplied={(code, discount) => {
+                setAppliedCoupon({ code, discountPercentage: (discount / subtotal) * 100 });
+                setCouponError('');
+              }}
+              onCouponRemoved={() => {
+                setAppliedCoupon(null);
+                setPromoCode('');
+              }}
+            />
           </div>
 
           {/* Totals */}

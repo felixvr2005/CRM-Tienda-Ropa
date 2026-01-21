@@ -1,5 +1,6 @@
 ---
 import PublicLayout from '@layouts/PublicLayout.astro';
+import InvoiceDownload from '@components/islands/InvoiceDownload';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
@@ -307,6 +308,15 @@ const timeline = [
           >
             ← VOLVER A MIS PEDIDOS
           </a>
+          
+          {order.status !== 'cancelled' && order.status !== 'refunded' && (
+            <InvoiceDownload 
+              client:load 
+              orderId={order.id} 
+              orderNumber={orderNumber}
+              authToken={Astro.cookies.get('sb-access-token')?.value}
+            />
+          )}
           
           {(order.status === 'confirmed' || order.status === 'pending') && (
             <button 
