@@ -3,7 +3,7 @@
  * Mi Cuenta - Devoluciones
  * Página para ver historial de devoluciones y descargar notas de crédito
  */
-import AdminLayout from '@layouts/AdminLayout.astro';
+import AccountLayout from '@layouts/AccountLayout.astro';
 import CreditNoteDownload from '@components/islands/CreditNoteDownload';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 
@@ -69,8 +69,8 @@ const statusMap: Record<string, { label: string; color: string; icon: string }> 
 };
 ---
 
-<AdminLayout title="Mis Devoluciones">
-  <div class="max-w-6xl mx-auto px-4 py-8">
+<AccountLayout title="Mis Devoluciones">
+  <div class="space-y-6">
     <!-- Breadcrumb -->
     <nav class="text-sm text-primary-500 mb-8">
       <a href="/" class="hover:text-primary-900">Inicio</a>
@@ -188,4 +188,4 @@ const statusMap: Record<string, { label: string; color: string; icon: string }> 
       </div>
     )}
   </div>
-</AdminLayout>
+</AccountLayout>

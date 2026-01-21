@@ -6,13 +6,13 @@ export const prerender = false;
 
 const { id } = Astro.params;
 
-const { data: returnRequest } = await supabaseAdmin
+const { data: returnRequest, error } = await supabaseAdmin
   .from('return_requests')
   .select('*, orders(*), customers(*), return_request_items(*)')
   .eq('id', id)
-  .single() as any;
+  .maybeSingle() as any;
 
-if (!returnRequest) {
+if (!returnRequest || error) {
   return Astro.redirect('/admin/devoluciones');
 }
 ---
