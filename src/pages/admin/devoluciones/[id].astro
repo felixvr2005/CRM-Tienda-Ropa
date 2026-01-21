@@ -10,15 +10,15 @@ console.log('Buscando devolución con ID:', id);
 
 const { data: returnRequest, error } = await supabaseAdmin
   .from('return_requests')
-  .select('*, orders(*), customers(*), return_request_items(*)')
+  .select('*, orders(order_number), customers(first_name, last_name, email, phone), return_request_items(*)')
   .eq('id', id)
   .single();
 
 console.log('Error en query:', error);
 console.log('Resultado:', returnRequest);
 
-if (!returnRequest) {
-  console.log('Redirigiendo - no encontrada');
+if (!returnRequest || error) {
+  console.log('Redirigiendo - no encontrada o error:', error);
   return Astro.redirect('/admin/devoluciones');
 }
 ---
@@ -35,7 +35,7 @@ if (!returnRequest) {
       <!-- Cliente -->
       <div class="mb-8 p-6 bg-gray-50 rounded-lg">
         <h2 class="text-xl font-bold mb-4">Cliente</h2>
-        <p><strong>Nombre:</strong> {returnRequest.customers?.name}</p>
+        <p><strong>Nombre:</strong> {returnRequest.customers?.first_name} {returnRequest.customers?.last_name}</p>
         <p><strong>Email:</strong> {returnRequest.customers?.email}</p>
         <p><strong>Teléfono:</strong> {returnRequest.customers?.phone || 'N/A'}</p>
       </div>
@@ -45,7 +45,7 @@ if (!returnRequest) {
         <h2 class="text-xl font-bold mb-4">Detalles</h2>
         <p><strong>Motivo:</strong> {returnRequest.reason}</p>
         <p><strong>Descripción:</strong> {returnRequest.description || 'N/A'}</p>
-        <p><strong>Monto:</strong> €{returnRequest.requested_amount}</p>
+        <p><strong>Monto:</strong> €{returnRequest.refund_amount || '0.00'}</p>
         <p><strong>Estado:</strong> 
           <span class={`px-3 py-1 rounded text-xs font-semibold ${
             returnRequest.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -104,9 +104,9 @@ if (!returnRequest) {
         <p class="text-gray-600">
           Actualizado: {new Date(returnRequest.updated_at).toLocaleString()}
         </p>
-        {returnRequest.refund_date && (
+        {returnRequest.refunded_at && (
           <p class="text-gray-600">
-            Reembolsado: {new Date(returnRequest.refund_date).toLocaleString()}
+            Reembolsado: {new Date(returnRequest.refunded_at).toLocaleString()}
           </p>
         )}
       </div>
