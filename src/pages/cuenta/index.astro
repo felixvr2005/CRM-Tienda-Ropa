@@ -37,26 +37,51 @@ if (adminUser) {
   return Astro.redirect('/admin');
 }
 
-// Obtener perfil del cliente
-const { data: customer } = await supabase
-  .from('customers')
-  .select('*')
-  .eq('auth_user_id', user.id)
-  .single();
+// Obtener perfil del cliente (buscar por auth_user_id; si no existe, intentar por email)
+let customer = null;
+{
+  const { data: customerByAuth } = await supabase
+    .from('customers')
+    .select('*')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
 
-// Obtener pedidos recientes
-const { data: orders } = await supabase
-  .from('orders')
-  .select('*')
-  .eq('customer_id', customer?.id)
-  .order('created_at', { ascending: false })
-  .limit(5);
+  if (customerByAuth) {
+    customer = customerByAuth;
+  } else {
+    const { data: customerByEmail } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', user.email)
+      .maybeSingle();
+    if (customerByEmail) customer = customerByEmail;
+  }
+}
 
-// Calcular total gastado en tiempo real
-const { data: allOrders } = await supabase
-  .from('orders')
-  .select('total_amount, subtotal')
-  .eq('customer_id', customer?.id);
+// Construir filtros para buscar pedidos del usuario (por customer_id o por customer_email)
+// Obtener pedidos recientes (última semana)
+const lastWeekISO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+let ordersQuery = supabase.from('orders').select('*').order('created_at', { ascending: false }).gte('created_at', lastWeekISO).limit(5);
+if (customer?.id && user.email) {
+  ordersQuery = ordersQuery.or(`customer_id.eq.${customer.id},customer_email.eq.${user.email}`);
+} else if (customer?.id) {
+  ordersQuery = ordersQuery.eq('customer_id', customer.id);
+} else if (user.email) {
+  ordersQuery = ordersQuery.eq('customer_email', user.email);
+}
+const { data: orders } = await ordersQuery;
+
+// Calcular total gastado en tiempo real sobre TODOS los pedidos asociados (customer_id o customer_email)
+let allOrdersQuery = supabase.from('orders').select('total_amount, subtotal');
+if (customer?.id && user.email) {
+  allOrdersQuery = allOrdersQuery.or(`customer_id.eq.${customer.id},customer_email.eq.${user.email}`);
+} else if (customer?.id) {
+  allOrdersQuery = allOrdersQuery.eq('customer_id', customer.id);
+} else if (user.email) {
+  allOrdersQuery = allOrdersQuery.eq('customer_email', user.email);
+}
+const { data: allOrders } = await allOrdersQuery;
 
 const totalSpent = (allOrders || []).reduce((sum, order) => {
   return sum + (order.total_amount || order.subtotal || 0);
