@@ -33,7 +33,7 @@ WORKDIR /app
 # Environment variables
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV PORT=4321
+ENV PORT=3000
 
 # Instalar dependencias runtime
 RUN apk add --no-cache wget ca-certificates
@@ -52,10 +52,10 @@ RUN chown -R nodejs:nodejs /app
 
 USER nodejs
 
-EXPOSE 4321
+EXPOSE 3000
 
 # Healthcheck para Coolify
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:4321/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1
 
 CMD ["node", "./dist/server/entry.mjs"]
