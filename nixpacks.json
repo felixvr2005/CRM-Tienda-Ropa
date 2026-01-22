@@ -1,0 +1,33 @@
+{
+  "$schema": "https://nixpacks.com/schema.json",
+  "providers": ["node"],
+  "buildImage": "ghcr.io/railwayapp/nixpacks:ubuntu-1704834006",
+  "phases": {
+    "setup": {
+      "nixPkgs": ["nodejs_20", "npm-9_x"],
+      "nixLibs": [],
+      "nixOverlays": [],
+      "nixpkgsArchive": "a0b7e70db7a55088d3de0cc370a59f9fbcc906c3",
+      "aptPkgs": [],
+      "cmds": []
+    },
+    "install": {
+      "dependsOn": ["setup"],
+      "cmds": ["npm ci"]
+    },
+    "build": {
+      "dependsOn": ["install"],
+      "cmds": ["npm run build"]
+    }
+  },
+  "start": {
+    "cmd": "node ./dist/server/entry.mjs"
+  },
+  "variables": {
+    "NODE_ENV": "production",
+    "HOST": "0.0.0.0",
+    "PORT": "4321",
+    "NIXPACKS_NODE_VERSION": "20",
+    "CI": "true"
+  }
+}
