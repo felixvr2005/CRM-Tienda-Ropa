@@ -58,34 +58,57 @@ let customer = null;
   }
 }
 
-// Construir filtros para buscar pedidos del usuario (por customer_id o por customer_email)
-// Obtener pedidos recientes (última semana)
+// Buscar pedidos por customer_id y por customer_email (case-insensitive) y combinarlos
 const lastWeekISO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-let ordersQuery = supabase.from('orders').select('*').order('created_at', { ascending: false }).gte('created_at', lastWeekISO).limit(5);
-if (customer?.id && user.email) {
-  ordersQuery = ordersQuery.or(`customer_id.eq.${customer.id},customer_email.eq.${user.email}`);
-} else if (customer?.id) {
-  ordersQuery = ordersQuery.eq('customer_id', customer.id);
-} else if (user.email) {
-  ordersQuery = ordersQuery.eq('customer_email', user.email);
-}
-const { data: orders } = await ordersQuery;
+let ordersById: any[] = [];
+let ordersByEmail: any[] = [];
 
-// Calcular total gastado en tiempo real sobre TODOS los pedidos asociados (customer_id o customer_email)
-let allOrdersQuery = supabase.from('orders').select('total_amount, subtotal');
-if (customer?.id && user.email) {
-  allOrdersQuery = allOrdersQuery.or(`customer_id.eq.${customer.id},customer_email.eq.${user.email}`);
-} else if (customer?.id) {
-  allOrdersQuery = allOrdersQuery.eq('customer_id', customer.id);
-} else if (user.email) {
-  allOrdersQuery = allOrdersQuery.eq('customer_email', user.email);
+if (customer?.id) {
+  const { data } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('customer_id', customer.id)
+    .order('created_at', { ascending: false });
+  ordersById = data || [];
 }
-const { data: allOrders } = await allOrdersQuery;
+
+if (user.email) {
+  // usar ILIKE para evitar problemas de mayúsculas/minúsculas
+  const { data } = await supabase
+    .from('orders')
+    .select('*')
+    .ilike('customer_email', user.email)
+    .order('created_at', { ascending: false });
+  ordersByEmail = data || [];
+}
+
+// Combinar pedidos únicos por id
+const ordersMap = new Map();
+for (const o of [...ordersById, ...ordersByEmail]) {
+  if (o && o.id) ordersMap.set(o.id, o);
+}
+const allOrders = Array.from(ordersMap.values());
+
+// Pedidos recientes: últimos 7 días, ordenados desc y limitados a 5
+const orders = allOrders
+  .filter(o => new Date(o.created_at) >= new Date(lastWeekISO))
+  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  .slice(0, 5);
 
 const totalSpent = (allOrders || []).reduce((sum, order) => {
   return sum + (order.total_amount || order.subtotal || 0);
 }, 0);
+
+// Logs de depuración para inspeccionar en servidor si sigue saliendo 0
+console.log('Account debug:', {
+  userEmail: user.email,
+  customerId: customer?.id || null,
+  ordersFoundTotal: allOrders.length,
+  ordersById: ordersById.length,
+  ordersByEmail: ordersByEmail.length,
+  recentOrders: orders.length
+});
 
 const orderStatusMap: Record<string, string> = {
   pending: 'Pendiente',
