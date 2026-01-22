@@ -1,5 +1,5 @@
 [start]
-cmd = "PORT=3000 node ./dist/server/entry.mjs"
+cmd = "PORT=4321 node ./dist/server/entry.mjs"
 
 [phases.build]
 cmds = [
@@ -10,5 +10,5 @@ cmds = [
 [variables]
 NODE_ENV = "production"
 HOST = "0.0.0.0"
-PORT = "3000"
+PORT = "4321"
 NIXPACKS_NODE_VERSION = "20"
