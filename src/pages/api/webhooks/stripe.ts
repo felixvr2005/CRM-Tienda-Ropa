@@ -98,10 +98,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   // Calcular totales
   const subtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
-  const shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 100 ? 0 : 4.95);
+  // Free shipping threshold aligned with checkout UI (50€)
+  const shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 50 ? 0 : 4.95);
   const totalAmount = (session.amount_total || 0) / 100; // Stripe usa centavos
 
-  // Buscar o crear customer
+  // Buscar o crear customer (por email). Si existe, usar id; si no, crear cliente para poder asociar pedidos a clientes sin cuenta
   let customerId = null;
   if (email) {
     const { data: existingCustomer } = await supabaseAdmin
@@ -112,6 +113,27 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     if (existingCustomer) {
       customerId = existingCustomer.id;
+    } else {
+      // Crear customer como invitado (sin auth_user_id) para asociar pedidos y permitir que aparezcan en el dashboard
+      const name = shippingAddress?.name || '';
+      const [first_name, ...rest] = name.split(' ');
+      const last_name = rest.join(' ') || null;
+      const { data: newCustomer, error: newCustomerError } = await supabaseAdmin
+        .from('customers')
+        .insert({
+          email,
+          first_name: first_name || null,
+          last_name: last_name,
+          phone: phone || null
+        })
+        .select()
+        .single() as any;
+
+      if (newCustomer && newCustomer.id) {
+        customerId = newCustomer.id;
+      } else if (newCustomerError) {
+        console.error('Error creating customer for guest checkout:', newCustomerError);
+      }
     }
   }
 

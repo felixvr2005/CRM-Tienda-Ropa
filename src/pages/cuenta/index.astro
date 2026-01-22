@@ -93,11 +93,11 @@ function formatPrice(price: number) {
     <div class="grid md:grid-cols-3 gap-6">
       <div class="bg-white rounded-lg border border-primary-200 p-6">
         <p class="text-primary-500 text-sm font-medium mb-2">PEDIDOS</p>
-        <p class="text-3xl font-bold text-primary-900">{orders?.length || 0}</p>
+        <p class="text-3xl font-bold text-primary-900">{allOrders?.length || 0}</p>
       </div>
       <div class="bg-white rounded-lg border border-primary-200 p-6">
         <p class="text-primary-500 text-sm font-medium mb-2">TOTAL GASTADO</p>
-        <p class="text-3xl font-bold text-primary-900">{formatPrice(orders?.reduce((sum:number, o:any) => sum + (o.total_amount || 0), 0) || 0)}</p>
+        <p class="text-3xl font-bold text-primary-900">{formatPrice(totalSpent)}</p>
       </div>
       <div class="bg-white rounded-lg border border-primary-200 p-6">
         <p class="text-primary-500 text-sm font-medium mb-2">MIEMBRO DESDE</p>
