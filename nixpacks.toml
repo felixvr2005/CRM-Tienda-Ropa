@@ -1,9 +1,0 @@
-[variables]
-NIXPACKS_NODE_VERSION = "20"
-
-[phases.build]
-dependsOn = []
-commands = ["npm ci --production false", "npm run build"]
-
-[start]
-cmd = "node ./dist/server/entry.mjs"
