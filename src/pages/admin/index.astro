@@ -4,6 +4,7 @@
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
+import SalesAnalyticsDashboard from '@/components/islands/SalesAnalyticsDashboard';
 
 export const prerender = false;
 
@@ -37,6 +38,51 @@ if (!adminUser) {
 const { count: productsCount } = await supabaseAdmin.from('products').select('*', { count: 'exact', head: true });
 const { count: ordersCount } = await supabaseAdmin.from('orders').select('*', { count: 'exact', head: true });
 const { count: categoriesCount } = await supabaseAdmin.from('categories').select('*', { count: 'exact', head: true });
+
+// Ventas totales del mes
+const startOfMonth = new Date();
+startOfMonth.setDate(1);
+startOfMonth.setHours(0,0,0,0);
+const { data: monthSalesResult } = await supabaseAdmin
+  .from('orders')
+  .select('total_amount', { count: 'exact' })
+  .gte('created_at', startOfMonth.toISOString())
+  .eq('payment_status', 'paid');
+// Sum manually because select(..., { count }) doesn't return sum
+const { data: monthSalesRows } = await supabaseAdmin
+  .from('orders')
+  .select('total_amount')
+  .gte('created_at', startOfMonth.toISOString())
+  .eq('payment_status', 'paid');
+const ventasMes = (monthSalesRows || []).reduce((s:any, r:any) => s + (r.total_amount || 0), 0);
+
+// Pedidos pendientes
+const { count: pendingOrdersCount } = await supabaseAdmin
+  .from('orders')
+  .select('*', { count: 'exact', head: true })
+  .eq('status', 'pending');
+
+// Producto más vendido (por cantidad total) - últimos 30 días
+const days30 = new Date();
+days30.setDate(days30.getDate() - 30);
+days30.setHours(0,0,0,0);
+const { data: itemsLast30 } = await supabaseAdmin
+  .from('order_items')
+  .select('product_id, quantity')
+  .gte('created_at', days30.toISOString());
+
+let productoMasVendido = null;
+if (itemsLast30 && itemsLast30.length > 0) {
+  const counts: Record<string, number> = {};
+  for (const it of itemsLast30) {
+    counts[it.product_id] = (counts[it.product_id] || 0) + (it.quantity || 0);
+  }
+  const topProductId = Object.entries(counts).sort((a,b) => b[1]-a[1])[0]?.[0];
+  if (topProductId) {
+    const { data: prod } = await supabaseAdmin.from('products').select('id, name').eq('id', topProductId).single();
+    productoMasVendido = prod || null;
+  }
+}
 
 // Recent orders
 const { data: recentOrders } = await supabaseAdmin
@@ -121,8 +167,8 @@ const { data: lowStockProducts } = await supabaseAdmin
       <div class="bg-white p-6 border border-primary-200">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-primary-500 uppercase tracking-wider">Ventas hoy</p>
-            <p class="text-3xl font-display mt-1">0€</p>
+            <p class="text-sm text-primary-500 uppercase tracking-wider">Ventas Totales del Mes (€)</p>
+            <p class="text-3xl font-display mt-1">€{ventasMes.toFixed(2)}</p>
           </div>
           <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
             <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,6 +177,22 @@ const { data: lowStockProducts } = await supabaseAdmin
           </div>
         </div>
       </div>
+    </div>
+    
+    <!-- Additional KPI Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white p-6 border border-primary-200">
+        <p class="text-sm text-primary-500 uppercase tracking-wider">Pedidos Pendientes</p>
+        <p class="text-3xl font-display mt-1">{pendingOrdersCount || 0}</p>
+        <p class="text-xs text-primary-500 mt-2">Órdenes con estado pendiente</p>
+      </div>
+
+      <div class="bg-white p-6 border border-primary-200">
+        <p class="text-sm text-primary-500 uppercase tracking-wider">Producto Más Vendido</p>
+        <p class="text-3xl font-display mt-1">{productoMasVendido ? productoMasVendido.name : '—'}</p>
+        <p class="text-xs text-primary-500 mt-2">Últimos 30 días por unidades</p>
+      </div>
+    </div>
     </div>
     
     <!-- Content Grid -->
@@ -232,6 +294,12 @@ const { data: lowStockProducts } = await supabaseAdmin
           Ver tienda
         </a>
       </div>
+    </div>
+
+    <!-- Analytics Component -->
+    <div class="bg-white border border-primary-200 p-6">
+      <h2 class="font-medium mb-4">Analíticas de Ventas (Últimos 7 días)</h2>
+      <SalesAnalyticsDashboard client:load />
     </div>
   </div>
 </AdminLayout>
