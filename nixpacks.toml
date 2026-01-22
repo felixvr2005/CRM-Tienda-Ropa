@@ -1,5 +1,5 @@
 [start]
-cmd = "node ./dist/server/entry.mjs"
+cmd = "PORT=3000 node ./dist/server/entry.mjs"
 
 [phases.build]
 cmds = [
