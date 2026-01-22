@@ -1,4 +1,0 @@
-{
-  "builder": "docker",
-  "dockerfile": "Dockerfile"
-}
