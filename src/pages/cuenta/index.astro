@@ -65,7 +65,8 @@ let ordersById: any[] = [];
 let ordersByEmail: any[] = [];
 
 if (customer?.id) {
-  const { data } = await supabase
+  // Usar cliente admin para evitar restricciones RLS y asegurar lectura desde servidor
+  const { data } = await supabaseAdmin
     .from('orders')
     .select('*')
     .eq('customer_id', customer.id)
@@ -75,7 +76,7 @@ if (customer?.id) {
 
 if (user.email) {
   // usar ILIKE para evitar problemas de mayúsculas/minúsculas
-  const { data } = await supabase
+  const { data } = await supabaseAdmin
     .from('orders')
     .select('*')
     .ilike('customer_email', user.email)
