@@ -37,11 +37,15 @@ if (!currentCustomer?.id) {
 }
 
 // Obtener devoluciones del cliente
-const { data: returnRequests } = await supabaseAdmin
+const { data: returnRequests, error: returnError } = await supabaseAdmin
   .from('return_requests')
-  .select('*, orders(order_number), credit_notes(*)')
+  .select('id, status, reason, description, requested_amount, refund_amount, created_at, updated_at, order_id, customer_id, return_tracking_number, return_label_url, orders(order_number), credit_notes(id, amount, status, credit_note_number, created_at)')
   .eq('customer_id', currentCustomer.id)
   .order('created_at', { ascending: false });
+
+if (returnError) {
+  console.error('Error fetching returns:', returnError);
+}
 
 // Funciones de formato
 const formatPrice = (price: number) => {
@@ -62,8 +66,10 @@ const formatDate = (date: string) => {
 // Estados de devolución
 const statusMap: Record<string, { label: string; color: string; icon: string }> = {
   'pending': { label: 'Pendiente', color: 'text-yellow-600', icon: '⏳' },
+  'label_sent': { label: 'Etiqueta Enviada', color: 'text-blue-600', icon: '📧' },
   'approved': { label: 'Aprobada', color: 'text-blue-600', icon: '✓' },
-  'shipped': { label: 'Recibida', color: 'text-purple-600', icon: '📦' },
+  'shipped': { label: 'Enviada', color: 'text-purple-600', icon: '🚚' },
+  'received': { label: 'Recibida', color: 'text-indigo-600', icon: '📥' },
   'completed': { label: 'Completada', color: 'text-green-600', icon: '✓' },
   'rejected': { label: 'Rechazada', color: 'text-red-600', icon: '✕' }
 };

@@ -208,6 +208,14 @@ const provinces = [
             {address.phone && (
               <p class="text-sm text-primary-700">{address.phone}</p>
             )}
+            {!address.is_default && (
+              <button
+                class="setdefault-address-btn text-xs text-primary-500 hover:text-primary-700 mt-3"
+                data-address-id={address.id}
+              >
+                Establecer como predeterminada
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -222,21 +230,263 @@ const provinces = [
         </button>
       </div>
     )}
+
+    <!-- Modal Dirección -->
+    <div id="addressModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-white rounded-lg p-8 w-full max-w-2xl mx-4">
+        <div class="flex justify-between items-center mb-6">
+          <h2 id="modalTitle" class="text-2xl font-bold text-primary-900">Añadir Dirección</h2>
+          <button
+            id="closeModalBtn"
+            class="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form id="addressForm" class="space-y-4">
+          <input type="hidden" name="addressId" id="addressIdInput" />
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-primary-900 mb-1">Nombre de dirección</label>
+              <input
+                type="text"
+                name="name"
+                placeholder="Mi casa, Oficina, etc."
+                required
+                class="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-primary-900 mb-1">Teléfono</label>
+              <input
+                type="tel"
+                name="phone"
+                placeholder="+34 600 000 000"
+                class="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-primary-900 mb-1">Calle y número</label>
+            <input
+              type="text"
+              name="street"
+              placeholder="Calle Principal 123"
+              required
+              class="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-primary-900 mb-1">Piso, bloque, puerta (opcional)</label>
+            <input
+              type="text"
+              name="street2"
+              placeholder="Apt 4B"
+              class="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-primary-900 mb-1">Código postal</label>
+              <input
+                type="text"
+                name="postalCode"
+                placeholder="28001"
+                required
+                class="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-primary-900 mb-1">Ciudad</label>
+              <input
+                type="text"
+                name="city"
+                placeholder="Madrid"
+                required
+                class="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-primary-900 mb-1">Provincia</label>
+              <select
+                name="province"
+                required
+                class="w-full px-3 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
+              >
+                <option value="">Seleccionar</option>
+                {provinces.map(province => (
+                  <option value={province}>{province}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="isDefault"
+              id="isDefault"
+              class="rounded border-primary-200"
+            />
+            <label for="isDefault" class="text-sm text-primary-900">Usar como dirección predeterminada</label>
+          </div>
+
+          <div class="flex gap-3 pt-4">
+            <button
+              type="submit"
+              id="submitBtn"
+              class="flex-1 px-4 py-2 bg-primary-900 text-white rounded-lg hover:bg-primary-800 transition-colors font-medium"
+            >
+              Añadir Dirección
+            </button>
+            <button
+              type="button"
+              onclick="document.getElementById('addressModal').classList.add('hidden')"
+              class="flex-1 px-4 py-2 border border-primary-200 text-primary-900 rounded-lg hover:bg-primary-50 transition-colors font-medium"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </AccountLayout>
 
 <script>
+  // Handle add address
+  const addButtons = document.querySelectorAll('#addAddressBtn, #addAddressBtn2');
+  addButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modal = document.getElementById('addressModal');
+      if (modal) {
+        document.getElementById('addressForm')?.reset();
+        document.getElementById('modalTitle')!.textContent = 'Añadir Dirección';
+        document.getElementById('submitBtn')!.textContent = 'Añadir Dirección';
+        document.getElementById('addressIdInput')!.value = '';
+        (modal as HTMLElement).classList.remove('hidden');
+      }
+    });
+  });
+
+  // Handle close modal
+  const closeBtn = document.getElementById('closeModalBtn');
+  closeBtn?.addEventListener('click', () => {
+    const modal = document.getElementById('addressModal');
+    if (modal) (modal as HTMLElement).classList.add('hidden');
+  });
+
+  // Handle form submit
+  const addressForm = document.getElementById('addressForm') as HTMLFormElement;
+  addressForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(addressForm);
+    const action = formData.get('addressId') ? 'edit' : 'add';
+    formData.append('action', action);
+    
+    const response = await fetch(window.location.href, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (response.ok) {
+      window.location.reload();
+    }
+  });
+
+  // Handle edit
+  document.querySelectorAll('.edit-address-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const addressId = (btn as HTMLElement).dataset.addressId;
+      const addressCard = btn.closest('.bg-white');
+      
+      if (addressCard) {
+        const modal = document.getElementById('addressModal');
+        const nameEl = addressCard.querySelector('h3');
+        const addressElements = addressCard.querySelectorAll('p');
+        
+        // Llenar el formulario con los datos
+        const nameInput = document.querySelector('[name="name"]') as HTMLInputElement;
+        const streetInput = document.querySelector('[name="street"]') as HTMLInputElement;
+        const street2Input = document.querySelector('[name="street2"]') as HTMLInputElement;
+        const cityInput = document.querySelector('[name="city"]') as HTMLInputElement;
+        const provinceInput = document.querySelector('[name="province"]') as HTMLInputElement;
+        const postalInput = document.querySelector('[name="postalCode"]') as HTMLInputElement;
+        const phoneInput = document.querySelector('[name="phone"]') as HTMLInputElement;
+        const addressIdInput = document.getElementById('addressIdInput') as HTMLInputElement;
+        
+        if (nameInput) nameInput.value = nameEl?.textContent || '';
+        if (addressIdInput) addressIdInput.value = addressId || '';
+        
+        // Extraer datos del texto mostrado
+        if (addressElements[0]) {
+          const fullStreet = addressElements[0].textContent || '';
+          const parts = fullStreet.split(', ');
+          if (streetInput) streetInput.value = parts[0] || '';
+          if (street2Input) street2Input.value = parts[1] || '';
+        }
+        
+        if (addressElements[1]) {
+          const cityLine = addressElements[1].textContent || '';
+          const parts = cityLine.match(/(\d+)\s+(.+),\s+(.+)/);
+          if (parts && postalInput) postalInput.value = parts[1];
+          if (parts && cityInput) cityInput.value = parts[2];
+          if (parts && provinceInput) provinceInput.value = parts[3];
+        }
+        
+        if (addressElements[3]) {
+          if (phoneInput) phoneInput.value = addressElements[3].textContent || '';
+        }
+        
+        if (modal) {
+          document.getElementById('modalTitle')!.textContent = 'Editar Dirección';
+          document.getElementById('submitBtn')!.textContent = 'Guardar Cambios';
+          (modal as HTMLElement).classList.remove('hidden');
+        }
+      }
+    });
+  });
+
   // Handle delete
   document.querySelectorAll('.delete-address-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (!confirm('¿Eliminar esta dirección?')) return;
       const addressId = (btn as HTMLElement).dataset.addressId;
-      const response = await fetch('/src/pages/cuenta/direcciones.astro', {
+      const response = await fetch(window.location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'delete', addressId })
       });
       if (response.ok) window.location.reload();
     });
+  });
+
+  // Handle setDefault
+  document.querySelectorAll('.setdefault-address-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const addressId = (btn as HTMLElement).dataset.addressId;
+      const response = await fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'setDefault', addressId })
+      });
+      if (response.ok) window.location.reload();
+    });
+  });
+
+  // Close modal on outside click
+  const modal = document.getElementById('addressModal');
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      (modal as HTMLElement).classList.add('hidden');
+    }
   });
 </script>
