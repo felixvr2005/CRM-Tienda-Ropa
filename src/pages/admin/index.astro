@@ -71,16 +71,32 @@ const { data: itemsLast30 } = await supabaseAdmin
   .select('product_id, quantity')
   .gte('created_at', days30.toISOString());
 
-let productoMasVendido = null;
+let productoMasVendido: any = null;
 if (itemsLast30 && itemsLast30.length > 0) {
-  const counts: Record<string, number> = {};
+  // Contar por product_id cuando esté disponible
+  const countsById: Record<string, number> = {};
+  const countsByName: Record<string, number> = {};
   for (const it of itemsLast30) {
-    counts[it.product_id] = (counts[it.product_id] || 0) + (it.quantity || 0);
+    if (it.product_id) {
+      countsById[it.product_id] = (countsById[it.product_id] || 0) + (it.quantity || 0);
+    } else if (it.product_name) {
+      countsByName[it.product_name] = (countsByName[it.product_name] || 0) + (it.quantity || 0);
+    }
   }
-  const topProductId = Object.entries(counts).sort((a,b) => b[1]-a[1])[0]?.[0];
-  if (topProductId) {
+
+  // Preferir product_id
+  const topById = Object.entries(countsById).sort((a,b) => b[1]-a[1])[0];
+  if (topById) {
+    const topProductId = topById[0];
+    const units = topById[1];
     const { data: prod } = await supabaseAdmin.from('products').select('id, name').eq('id', topProductId).single();
-    productoMasVendido = prod || null;
+    productoMasVendido = prod ? { name: prod.name, units } : { name: '—', units };
+  } else {
+    // Fallback por nombre
+    const topByName = Object.entries(countsByName).sort((a,b) => b[1]-a[1])[0];
+    if (topByName) {
+      productoMasVendido = { name: topByName[0], units: topByName[1] };
+    }
   }
 }
 
@@ -190,7 +206,7 @@ const { data: lowStockProducts } = await supabaseAdmin
       <div class="bg-white p-6 border border-primary-200">
         <p class="text-sm text-primary-500 uppercase tracking-wider">Producto Más Vendido</p>
         <p class="text-3xl font-display mt-1">{productoMasVendido ? productoMasVendido.name : '—'}</p>
-        <p class="text-xs text-primary-500 mt-2">Últimos 30 días por unidades</p>
+        <p class="text-xs text-primary-500 mt-2">{productoMasVendido ? `${productoMasVendido.units} uds` : 'Últimos 30 días por unidades'}</p>
       </div>
     </div>
     </div>

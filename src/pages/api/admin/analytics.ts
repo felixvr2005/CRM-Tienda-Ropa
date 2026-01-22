@@ -10,12 +10,41 @@ export const prerender = false;
 export const GET: APIRoute = async ({ request }) => {
   try {
     // Verificar autenticación (admin)
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    // Soportar token en header `Authorization: Bearer ...` o en cookie `sb-access-token` (fetch con credentials)
+    let accessToken: string | null = null;
+    const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      accessToken = authHeader.split(' ')[1];
+    } else {
+      const cookieHeader = request.headers.get('cookie') || '';
+      const match = cookieHeader.match(/sb-access-token=([^;]+)/);
+      if (match) accessToken = decodeURIComponent(match[1]);
+    }
+
+    if (!accessToken) {
       return new Response(
         JSON.stringify({ error: 'No autenticado' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Verificar que el token pertenece a un admin activo
+    // Usamos la función supabase.auth.getUser con el access token para recuperar el user id
+    const { data: userData, error: userError } = await (await import('@lib/supabase')).supabase.auth.getUser(accessToken as string);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    const authUser = userData.user;
+    const { data: adminUser, error: adminError } = await supabaseAdmin
+      .from('admin_users')
+      .select('id, is_active')
+      .eq('auth_user_id', authUser.id)
+      .eq('is_active', true)
+      .single();
+
+    if (adminError || !adminUser) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     }
 
     // Obtener parámetro de rango de fechas (por defecto últimos 7 días)

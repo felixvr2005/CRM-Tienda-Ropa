@@ -28,10 +28,11 @@ export default function SalesAnalyticsDashboard() {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('sb-access-token') || localStorage.getItem('token') || '';
       const response = await fetch('/api/admin/analytics?days=7', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-        }
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        // Include cookies in case the admin session is only stored in cookies
+        credentials: 'include'
       });
 
       if (!response.ok) {
