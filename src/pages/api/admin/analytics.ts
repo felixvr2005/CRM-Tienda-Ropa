@@ -20,6 +20,10 @@ export const GET: APIRoute = async ({ request }) => {
 
     const debugMode = url.searchParams.get('debug') === '1';
 
+    // Identificador de build para depuración en producción
+    const BUILD_TAG = process.env.GITHUB_SHA || process.env.COMMIT_SHA || process.env.BUILD_ID || process.env.npm_package_version || ('local-' + new Date().toISOString());
+    if (debugMode) console.log('Analytics debug: BUILD_TAG', BUILD_TAG);
+
     // Verificar autenticación (admin)
     // Soportar token en header `Authorization: Bearer ...` o en cookie `sb-access-token` (fetch con credentials)
     let accessToken: string | null = null;
@@ -72,7 +76,7 @@ export const GET: APIRoute = async ({ request }) => {
 
     if (debugMode) console.log('Analytics debug: startDate', startDate.toISOString());
 
-    // Obtener todas las órdenes en el rango
+    // Obtener todas las órdenes en el rango (sin nested order_items para evitar errores de columnas)
     const { data: orders, error: ordersError } = await supabaseAdmin
       .from('orders')
       .select(`
@@ -83,8 +87,7 @@ export const GET: APIRoute = async ({ request }) => {
         subtotal,
         discount_amount,
         shipping_cost,
-        created_at,
-        order_items(quantity, total_price)
+        created_at
       `)
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: true });
@@ -93,7 +96,19 @@ export const GET: APIRoute = async ({ request }) => {
       throw ordersError;
     }
 
-    // Procesar datos para analytics
+    // Obtener items dentro del mismo rango para calcular totales y top-seller
+    const { data: itemsInRange, error: itemsInRangeError } = await supabaseAdmin
+      .from('order_items')
+      .select('id, order_id, product_id, product_name, quantity, unit_price, created_at')
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: true });
+
+    if (itemsInRangeError) {
+      // no queremos romper la API por un fallo en items, pero lo logueamos
+      console.error('Analytics: failed to fetch order_items', itemsInRangeError);
+    }
+
+    // Procesar datos para analytics usando orders + itemsInRange
     const stats = {
       totalOrders: orders?.length || 0,
       totalRevenue: 0,
@@ -106,6 +121,13 @@ export const GET: APIRoute = async ({ request }) => {
 
     // Agrupar por día
     const dailyData: Record<string, any> = {};
+
+    // Precomputar items por order
+    const itemsByOrder: Record<string, any[]> = {};
+    (itemsInRange || []).forEach((it: any) => {
+      if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
+      itemsByOrder[it.order_id].push(it);
+    });
 
     orders?.forEach((order: any) => {
       const date = new Date(order.created_at);
@@ -123,10 +145,10 @@ export const GET: APIRoute = async ({ request }) => {
         };
       }
 
-      const itemCount = order.order_items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
+      const itemCount = (itemsByOrder[order.id] || []).reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
 
       dailyData[dateStr].orders += 1;
-      dailyData[dateStr].revenue += order.total_amount;
+      dailyData[dateStr].revenue += order.total_amount || 0;
       dailyData[dateStr].items += itemCount;
       dailyData[dateStr].discount += order.discount_amount || 0;
       dailyData[dateStr].shipping += order.shipping_cost || 0;
@@ -136,7 +158,7 @@ export const GET: APIRoute = async ({ request }) => {
       }
       dailyData[dateStr].statuses[order.status] += 1;
 
-      stats.totalRevenue += order.total_amount;
+      stats.totalRevenue += order.total_amount || 0;
       stats.totalItems += itemCount;
       stats.totalDiscount += order.discount_amount || 0;
       stats.totalShipping += order.shipping_cost || 0;
@@ -168,6 +190,9 @@ export const GET: APIRoute = async ({ request }) => {
       }))
     };
 
+    // Añadir tag de build para diagnóstico (solo cuando debugMode)
+    if (debugMode) overallStats.buildTag = BUILD_TAG;
+
     // Calcular producto más vendido server-side (últimos 30 días por defecto para top)
     try {
       const since = new Date();
@@ -179,24 +204,28 @@ export const GET: APIRoute = async ({ request }) => {
         .select('product_id, product_name, quantity, created_at')
         .gte('created_at', since.toISOString());
 
-      if (!itemsError && items && items.length > 0) {
+      if (!itemsError && items && (items as any[]).length > 0) {
+        const itemsList = items as any[];
         const countsById: Record<string, number> = {};
         const countsByName: Record<string, number> = {};
-        for (const it of items) {
-          if (it.product_id) {
-            countsById[it.product_id] = (countsById[it.product_id] || 0) + (it.quantity || 0);
-          } else if (it.product_name) {
-            countsByName[it.product_name] = (countsByName[it.product_name] || 0) + (it.quantity || 0);
+        for (const it of itemsList) {
+          if (it?.product_id) {
+            const idKey = String(it.product_id);
+            countsById[idKey] = (countsById[idKey] || 0) + (Number(it.quantity) || 0);
+          } else if (it?.product_name) {
+            const nameKey = String(it.product_name);
+            countsByName[nameKey] = (countsByName[nameKey] || 0) + (Number(it.quantity) || 0);
           }
         }
 
-        let top = null;
+        let top: any = null;
         const topById = Object.entries(countsById).sort((a,b) => b[1]-a[1])[0];
         if (topById) {
           const prodId = topById[0];
           const units = topById[1];
           const { data: prod } = await supabaseAdmin.from('products').select('id, name').eq('id', prodId).single();
-          top = prod ? { id: prod.id, name: prod.name, units } : { id: prodId, name: 'ID:' + prodId, units };
+          const prodObj: any = prod;
+          top = prodObj ? { id: prodObj.id, name: prodObj.name, units } : { id: prodId, name: 'ID:' + prodId, units };
         } else {
           const topByName = Object.entries(countsByName).sort((a,b) => b[1]-a[1])[0];
           if (topByName) {
@@ -205,7 +234,7 @@ export const GET: APIRoute = async ({ request }) => {
         }
 
         overallStats.topSeller = top;
-        if (debugMode) overallStats.debug_items_count = items.length;
+        if (debugMode) overallStats.debug_items_count = itemsList.length;
       } else {
         if (debugMode) overallStats.debug_items_error = itemsError?.message || null;
       }
@@ -221,6 +250,17 @@ export const GET: APIRoute = async ({ request }) => {
 
   } catch (error: any) {
     console.error('Error en analytics:', error);
+
+    // En modo debug devolver más información (stack, build tag)
+    if (debugMode) {
+      const payload: any = {
+        error: error.message || 'Error al obtener analíticas',
+        stack: error.stack || null,
+        buildTag: typeof BUILD_TAG !== 'undefined' ? BUILD_TAG : null
+      };
+      return new Response(JSON.stringify(payload), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    }
+
     return new Response(
       JSON.stringify({ error: error.message || 'Error al obtener analíticas' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
