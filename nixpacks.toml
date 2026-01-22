@@ -3,7 +3,7 @@ cmd = "node ./dist/server/entry.mjs"
 
 [phases.build]
 cmds = [
-  "npm ci",
+  "npm install",
   "npm run build"
 ]
 
