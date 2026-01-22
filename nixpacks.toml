@@ -4,7 +4,10 @@ cmd = "PORT=4321 node ./dist/server/entry.mjs"
 [phases.build]
 cmds = [
   "npm install",
-  "npm run build"
+  "npm run build",
+  "echo '--- LIST: dist/server ---' && ls -la dist/server || true",
+  "echo '--- LIST: dist/client ---' && ls -la dist/client || true",
+  "echo '--- GREP: analytics css ---' && (ls dist/server | grep analytics || true) && (ls dist/client | grep analytics || true) && (grep -R \"analytics\.[a-zA-Z0-9_]*\.css\" -n dist || true)"
 ]
 
 [variables]
