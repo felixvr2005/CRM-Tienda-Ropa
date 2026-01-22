@@ -1,6 +1,3 @@
-[start]
-cmd = "npm run preview"
-
 [phases.build]
 cmds = [
   "npm install",
@@ -9,6 +6,7 @@ cmds = [
 
 [variables]
 NODE_ENV = "production"
-HOST = "0.0.0.0"
-PORT = "3000"
 NIXPACKS_NODE_VERSION = "20"
+
+[phases.static]
+publish = "dist"
