@@ -1,15 +1,9 @@
-[build]
-cmds = ["npm run build"]
+[variables]
+NIXPACKS_NODE_VERSION = "20"
+
+[phases.build]
+dependsOn = []
+commands = ["npm ci --production false", "npm run build"]
 
 [start]
 cmd = "node ./dist/server/entry.mjs"
-
-[variables]
-# Node
-NIXPACKS_NODE_VERSION = "20"
-NODE_ENV = "production"
-HOST = "0.0.0.0"
-PORT = "4321"
-
-# Keep all public env vars from Coolify
-NIXPACKS_EXPOSE_PORT = "4321"
