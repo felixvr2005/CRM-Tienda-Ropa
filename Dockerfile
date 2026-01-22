@@ -51,6 +51,9 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=4321
 
+# Instalar wget para healthcheck
+RUN apk add --no-cache wget
+
 # Crear usuario no-root para seguridad
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 astro
@@ -69,9 +72,9 @@ USER astro
 # Exponer puerto
 EXPOSE 4321
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:4321/api/health || exit 1
+# Healthcheck - simple HTTP status check sin requerir ruta específica
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:4321/ || exit 1
 
 # Comando de inicio
 CMD ["node", "./dist/server/entry.mjs"]
