@@ -1,5 +1,5 @@
 [start]
-cmd = "node ./dist/server/entry.mjs"
+cmd = "npm run preview"
 
 [phases.build]
 cmds = [
