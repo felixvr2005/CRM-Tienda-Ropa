@@ -1,5 +1,5 @@
-# FashionStore - Dockerfile
-# Imagen optimizada para producción con Astro 5.0
+# FashionStore - Dockerfile para Coolify
+# Imagen optimizada para producción con Astro 5.0 + Node.js
 
 # ===========================
 # Stage 1: Builder
@@ -8,58 +8,54 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Instalar dependencias del sistema necesarias
+# Instalar herramientas necesarias para compilación
 RUN apk add --no-cache libc6-compat python3 make g++
 
-# Copiar archivos de configuración
+# Copiar package files
 COPY package.json package-lock.json* ./
 
-# Instalar todas las dependencias (including dev)
+# Instalar dependencias
 RUN npm ci
 
-# Copiar todo el código
+# Copiar código fuente
 COPY . .
 
 # Build de producción
 RUN npm run build
 
 # ===========================
-# Stage 2: Production Runner
+# Stage 2: Production Runtime
 # ===========================
-FROM node:20-alpine AS runner
+FROM node:20-alpine
 
 WORKDIR /app
 
+# Environment variables
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=4321
 
 # Instalar dependencias runtime
-RUN apk add --no-cache wget libc6-compat
+RUN apk add --no-cache wget ca-certificates
 
-# Crear usuario no-root para seguridad
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 astro
+# Crear usuario no-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-# Copiar archivos necesarios para producción
+# Copiar archivos build
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-# Cambiar propietario de los archivos
-RUN chown -R astro:nodejs /app
+# Cambiar permisos
+RUN chown -R nodejs:nodejs /app
 
-# Usar usuario no-root
-USER astro
+USER nodejs
 
-# Exponer puerto
 EXPOSE 4321
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+# Healthcheck para Coolify
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:4321/ || exit 1
 
-# Comando de inicio
 CMD ["node", "./dist/server/entry.mjs"]
