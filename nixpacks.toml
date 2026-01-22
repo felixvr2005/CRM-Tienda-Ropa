@@ -7,7 +7,8 @@ cmds = [
   "npm run build",
   "echo '--- LIST: dist/server ---' && ls -la dist/server || true",
   "echo '--- LIST: dist/client ---' && ls -la dist/client || true",
-  "echo '--- GREP: analytics css ---' && (ls dist/server | grep analytics || true) && (ls dist/client | grep analytics || true) && (grep -R \"analytics\.[a-zA-Z0-9_]*\.css\" -n dist || true)"
+  "echo '--- GREP: analytics css ---' && (ls dist/server | grep analytics || true) && (ls dist/client | grep analytics || true) && (grep -R \"analytics\.[a-zA-Z0-9_]*\.css\" -n dist || true)",
+  "echo '--- COPY analytics from server to client if exists ---' && mkdir -p dist/client && for f in dist/server/analytics.*.css; do [ -f \"$f\" ] && cp -v \"$f\" dist/client/ || true; done && ls -la dist/client | grep analytics || true"
 ]
 
 [variables]
