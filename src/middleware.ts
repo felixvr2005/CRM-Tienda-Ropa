@@ -7,6 +7,14 @@ import { defineMiddleware } from 'astro:middleware';
 import { supabase, supabaseAdmin } from './lib/supabase';
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  const { pathname } = context.url;
+
+  // Excluir rutas de archivos estáticos
+  const staticExtensions = ['.css', '.js', '.mjs', '.wasm', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.json', '.xml', '.txt'];
+  if (staticExtensions.some(ext => pathname.endsWith(ext))) {
+    return next();
+  }
+
   // Permitir CORS para formularios desde cualquier origen
   const request = context.request as any;
   
@@ -25,8 +33,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
     return cachedBody;
   };
-  
-  const { pathname } = context.url;
 
   // Rutas protegidas de admin (excepto login)
   const isAdminRoute = pathname.startsWith('/admin') && pathname !== '/admin/login';

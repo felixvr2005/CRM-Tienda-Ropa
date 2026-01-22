@@ -17,6 +17,15 @@ export default defineConfig({
   vite: {
     ssr: {
       noExternal: ['@supabase/supabase-js']
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          entryFileNames: '[name].mjs',
+          chunkFileNames: '[name].[hash].mjs',
+          assetFileNames: '[name].[hash][extname]'
+        }
+      }
     }
   },
   // Deshabilitar validación CSRF para permitir formularios POST en producción
