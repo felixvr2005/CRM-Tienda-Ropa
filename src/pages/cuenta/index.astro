@@ -110,6 +110,17 @@ console.log('Account debug:', {
   recentOrders: orders.length
 });
 
+// Mostrar debug en la página si se pasa ?debug=1 (temporal)
+const showDebug = new URL(Astro.request.url).searchParams.get('debug') === '1';
+const debugData = {
+  userEmail: user.email,
+  customerId: customer?.id || null,
+  ordersFoundTotal: allOrders.length,
+  ordersById: ordersById.length,
+  ordersByEmail: ordersByEmail.length,
+  recentOrders: orders.length
+};
+
 const orderStatusMap: Record<string, string> = {
   pending: 'Pendiente',
   confirmed: 'Confirmado',
@@ -159,6 +170,14 @@ function formatPrice(price: number) {
         <h2 class="text-xl font-bold text-primary-900">Pedidos Recientes</h2>
         <a href="/cuenta/pedidos" class="text-sm text-primary-600 hover:text-primary-900">Ver todos →</a>
       </div>
+
+      {showDebug ? (
+        <div class="bg-yellow-50 border border-yellow-200 p-4 mb-4 rounded text-sm">
+          <strong>DEBUG:</strong>
+          <pre class="text-xs mt-2">{JSON.stringify(debugData, null, 2)}</pre>
+        </div>
+      ) : null}
+
       {orders && orders.length > 0 ? (
         <div class="space-y-4">
           {orders.slice(0, 3).map((order: any) => (
