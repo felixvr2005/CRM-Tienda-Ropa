@@ -180,11 +180,11 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
               <div class="grid md:grid-cols-2 gap-4">
                 <div>
                   <p class="text-sm text-primary-500 mb-1">Número de Nota</p>
-                  <p class="font-mono font-medium text-primary-900">{creditNote.credit_note_number}</p>
+                  <p class="font-mono font-medium text-primary-900">{creditNote.id?.slice(0,8)}</p>
                 </div>
                 <div>
                   <p class="text-sm text-primary-500 mb-1">Monto</p>
-                  <p class="font-bold text-lg text-primary-900">{formatPrice(creditNote.amount)}</p>
+                  <p class="font-bold text-lg text-primary-900">{formatPrice((creditNote.refund_amount || 0) / 100)}</p>
                 </div>
                 <div>
                   <p class="text-sm text-primary-500 mb-1">Estado</p>

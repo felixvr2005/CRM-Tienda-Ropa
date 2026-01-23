@@ -79,7 +79,7 @@ let returnError: any = null;
 if (customerId) {
   const { data, error } = await supabaseAdmin
     .from('return_requests')
-    .select('id, status, reason, description, requested_amount, refund_amount, created_at, updated_at, order_id, customer_id, return_tracking_number, return_label_url, orders(order_number), credit_notes(id, refund_amount, status, credit_note_number, created_at)')
+    .select('id, status, reason, description, requested_amount, refund_amount, created_at, updated_at, order_id, customer_id, return_tracking_number, return_label_url, orders(order_number), credit_notes(id, refund_amount, status, created_at)')
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false });
 
@@ -98,7 +98,7 @@ if (orderIds.length > 0) {
 
   const { data: data2, error: error2 } = await supabaseAdmin
     .from('return_requests')
-    .select('id, status, reason, description, requested_amount, refund_amount, created_at, updated_at, order_id, customer_id, return_tracking_number, return_label_url, orders(order_number), credit_notes(id, refund_amount, status, credit_note_number, created_at)')
+    .select('id, status, reason, description, requested_amount, refund_amount, created_at, updated_at, order_id, customer_id, return_tracking_number, return_label_url, orders(order_number), credit_notes(id, refund_amount, status, created_at)')
     .in('order_id', uniqueOrderIds)
     .order('created_at', { ascending: false });
 
