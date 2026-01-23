@@ -105,8 +105,7 @@ const { data: products } = await supabase
                       </>
                     ) : (
                       <span class="font-medium">{formatPrice(product.price)}</span>
-                    )}
-                  </div>
+                    )}                    <div class="text-xs text-primary-400 mt-1">BD: {product.price}¢</div>                  </div>
                 </td>
                 <td class="px-4 py-3">
                   <div class="flex gap-2">
