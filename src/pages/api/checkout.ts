@@ -11,7 +11,7 @@ export const prerender = false;
 export const POST: APIRoute = async ({ request }) => {
   try {
     // Verificar que las claves de Stripe estén configuradas
-    if (!import.meta.env.STRIPE_SECRET_KEY || import.meta.env.STRIPE_SECRET_KEY.includes('sk_test_...')) {
+    if (!import.meta.env.STRIPE_SECRET_KEY || import.meta.env.STRIPE_SECRET_KEY === 'sk_test_...') {
       console.error('⚠️ STRIPE_SECRET_KEY no configurada en .env.local');
       return new Response(
         JSON.stringify({ 
@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    if (!import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY.includes('pk_test_...')) {
+    if (!import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY === 'pk_test_...') {
       console.error('⚠️ PUBLIC_STRIPE_PUBLISHABLE_KEY no configurada en .env.local');
       return new Response(
         JSON.stringify({ 
