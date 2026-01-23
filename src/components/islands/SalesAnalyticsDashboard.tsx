@@ -35,11 +35,19 @@ export default function SalesAnalyticsDashboard() {
         credentials: 'include'
       });
 
+      let data: any = null;
       if (!response.ok) {
-        throw new Error('Error al cargar analíticas');
+        try {
+          data = await response.json();
+          const msg = data?.error || data?.message || `HTTP ${response.status}`;
+          throw new Error(msg);
+        } catch (err: any) {
+          const text = await response.text().catch(() => null);
+          throw new Error(text || err.message || `HTTP ${response.status}`);
+        }
       }
 
-      const data = await response.json();
+      data = await response.json();
       setAnalytics(data);
       setError(null);
     } catch (err: any) {
@@ -111,6 +119,20 @@ export default function SalesAnalyticsDashboard() {
           <p className="text-sm text-primary-600 mb-1">Productos</p>
           <p className="text-3xl font-bold text-primary-900">{last7days.itemsSold}</p>
           <p className="text-xs text-primary-500 mt-2">Unidades vendidas</p>
+        </div>
+      </div>
+
+      {/* Top Seller Card */}
+      <div className="mt-4">
+        <div className="bg-white border border-primary-200 p-6 rounded flex items-center justify-between">
+          <div>
+            <p className="text-sm text-primary-600">Producto más vendido (últimos 30 días)</p>
+            <p className="text-lg font-semibold text-primary-900">{analytics.topSeller ? analytics.topSeller.name : 'Sin datos'}</p>
+            <p className="text-xs text-primary-500">{analytics.topSeller ? `${analytics.topSeller.units} unidades` : ''}</p>
+          </div>
+          {analytics.topSeller ? (
+            <div className="text-right text-sm text-primary-600">Unidades: <span className="font-bold text-primary-900">{analytics.topSeller.units}</span></div>
+          ) : null}
         </div>
       </div>
 
