@@ -74,7 +74,7 @@ const statusCounts = {
               <td class="px-6 py-4 text-sm text-gray-900">{ret.id.slice(0,8)}</td>
               <td class="px-6 py-4 text-sm text-gray-900">{ret.customers?.first_name} {ret.customers?.last_name}</td>
               <td class="px-6 py-4 text-sm text-gray-600">{ret.customers?.email || 'N/A'}</td>
-              <td class="px-6 py-4 text-sm font-semibold">€{ret.refund_amount || ret.requested_amount || '0.00'}</td>
+              <td class="px-6 py-4 text-sm font-semibold">€{(ret.refund_amount || 0).toFixed(2)}</td>
               <td class="px-6 py-4 text-sm">
                 <span class={`px-3 py-1 rounded-full text-xs font-semibold ${
                   ret.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :

@@ -132,11 +132,11 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
           </div>
           <div>
             <p class="text-sm text-primary-500 mb-1">Descripción</p>
-            <p class="font-medium text-primary-900">{returnRequest.description || 'Sin descripción'}</p>
+            <p class="font-medium text-primary-900">{returnRequest.notes || 'Sin descripción'}</p>
           </div>
           <div>
             <p class="text-sm text-primary-500 mb-1">Monto Solicitado</p>
-            <p class="font-bold text-lg text-primary-900">{formatPrice(returnRequest.requested_amount)}</p>
+            <p class="font-bold text-lg text-primary-900">{formatPrice(returnRequest.refund_amount || 0)}</p>
           </div>
           {returnRequest.label_code && (
             <div>

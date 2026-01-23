@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ params }) => {
       return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
     }
 
-    const refundAmount = Math.round(returnRequest.requested_amount * 100);
+    const refundAmount = Math.round((returnRequest.refund_amount || 0) * 100);
     let stripeRefundId = null;
 
     if (returnRequest.order?.payment_intent_id) {

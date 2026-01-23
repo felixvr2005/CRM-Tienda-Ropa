@@ -41,7 +41,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
         .insert({
           return_request_id: id,
           original_order_id: currentReturn.order_id,
-          refund_amount: Math.round(currentReturn.requested_amount * 100),
+          refund_amount: Math.round((currentReturn.refund_amount || 0) * 100),
           status: 'pending'
         } as any)
         .select()
