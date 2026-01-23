@@ -42,7 +42,7 @@ export async function GET({ request }: any) {
       // Get returns tied to orders
       const { data: byOrders, error: errorByOrders } = await supabaseAdmin
         .from('return_requests')
-        .select('id, order_id, customer_id, status, reason, created_at, orders(order_number), credit_notes(id, amount, status)')
+        .select('id, order_id, customer_id, status, reason, created_at, orders(order_number), credit_notes(id, refund_amount, status)')
         .in('order_id', orderIds)
         .order('created_at', { ascending: false });
 
@@ -58,7 +58,7 @@ export async function GET({ request }: any) {
       if (customer?.id) {
         const { data: byCustomer, error: errorByCustomer } = await supabaseAdmin
           .from('return_requests')
-          .select('id, order_id, customer_id, status, reason, created_at, orders(order_number), credit_notes(id, amount, status)')
+          .select('id, order_id, customer_id, status, reason, created_at, orders(order_number), credit_notes(id, refund_amount, status)')
           .eq('customer_id', customer.id)
           .order('created_at', { ascending: false });
 
