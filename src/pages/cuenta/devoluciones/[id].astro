@@ -46,24 +46,39 @@ if (!returnRequest) {
 
 // Validar que el request pertenece al usuario actual
 let allowed = false;
+let authReason = '';
 if (currentCustomer?.id) {
   if (returnRequest.customer_id === currentCustomer.id) {
     allowed = true;
+    authReason = 'customer_id matches currentCustomer';
   }
   if (!allowed && returnRequest.orders?.customer_id === currentCustomer.id) {
     allowed = true;
+    authReason = 'order.customer_id matches currentCustomer';
   }
 } else {
   // No hay fila customers -> permitir si la orden tiene el mismo email que el usuario (guest checkout)
   if (returnRequest.orders?.customer_email && returnRequest.orders.customer_email === user.email) {
     allowed = true;
+    authReason = 'order.customer_email matches user email (guest)';
   }
 }
 
 if (!allowed) {
-  // No pertenece al usuario -> redirigir a la lista
+  // No pertenece al usuario -> log para debugging y redirigir a la lista
+  console.log('Unauthorized access to return detail', { returnId: id, user: user?.email, customer: currentCustomer?.id, orderCustomerId: returnRequest.orders?.customer_id, orderEmail: returnRequest.orders?.customer_email });
   return Astro.redirect('/cuenta/devoluciones');
 }
+
+// Normalizar campos para evitar errores de runtime en cliente
+const safeReturnRequest = {
+  ...returnRequest,
+  return_request_items: Array.isArray(returnRequest.return_request_items) ? returnRequest.return_request_items : [],
+  credit_notes: Array.isArray(returnRequest.credit_notes) ? returnRequest.credit_notes : [],
+  refund_amount: returnRequest.refund_amount || 0,
+  notes: returnRequest.notes || ''
+};
+
 
 // Funciones de formato
 const formatPrice = (price: number) => {
@@ -167,9 +182,9 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
       <!-- Artículos en Devolución -->
       <div class="bg-white rounded-lg border border-primary-200 p-6">
         <h2 class="font-bold text-primary-900 mb-4">Artículos en Devolución</h2>
-        {returnRequest.return_request_items && returnRequest.return_request_items.length > 0 ? (
+        {safeReturnRequest.return_request_items && safeReturnRequest.return_request_items.length > 0 ? (
           <div class="space-y-4">
-            {returnRequest.return_request_items.map((item: any) => (
+            {safeReturnRequest.return_request_items.map((item: any) => (
               <div class="flex gap-4 pb-4 border-b border-primary-100 last:border-0 last:pb-0">
                 <div class="flex-1">
                   <p class="font-medium text-primary-900">{item.product_name}</p>
@@ -189,10 +204,10 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
       </div>
 
       <!-- Nota de Crédito -->
-      {returnRequest.credit_notes && returnRequest.credit_notes.length > 0 && (
+      {safeReturnRequest.credit_notes && safeReturnRequest.credit_notes.length > 0 && (
         <div class="bg-white rounded-lg border border-primary-200 p-6">
           <h2 class="font-bold text-primary-900 mb-4">Nota de Crédito</h2>
-          {returnRequest.credit_notes.map((creditNote: any) => (
+          {safeReturnRequest.credit_notes.map((creditNote: any) => (
             <div key={creditNote.id} class="space-y-3">
               <div class="grid md:grid-cols-2 gap-4">
                 <div>
@@ -224,22 +239,22 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
       )}
 
       <!-- Información del Pedido Original -->
-      {returnRequest.orders && (
+      {safeReturnRequest.orders && (
         <div class="bg-white rounded-lg border border-primary-200 p-6">
           <h2 class="font-bold text-primary-900 mb-4">Pedido Original</h2>
           <div class="grid md:grid-cols-2 gap-4">
             <div>
               <p class="text-sm text-primary-500 mb-1">Número de Pedido</p>
               <a 
-                href={`/cuenta/pedidos/${returnRequest.orders.order_number}`}
+                href={`/cuenta/pedidos/${safeReturnRequest.orders.order_number}`}
                 class="font-medium text-primary-600 hover:text-primary-900 underline"
               >
-                #{returnRequest.orders.order_number}
+                #{safeReturnRequest.orders.order_number}
               </a>
             </div>
             <div>
               <p class="text-sm text-primary-500 mb-1">Total del Pedido</p>
-              <p class="font-bold text-primary-900">{formatPrice(returnRequest.orders.total_amount)}</p>
+              <p class="font-bold text-primary-900">{formatPrice(safeReturnRequest.orders.total_amount)}</p>
             </div>
           </div>
         </div>
