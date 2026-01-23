@@ -356,6 +356,17 @@ export async function getFilteredProducts(filters: ProductFilters) {
 
   let products = data || [];
 
+  // Normalizar precios a euros
+  products = products.map(p => ({
+    ...p,
+    price: p.price / 100,
+    original_price: p.original_price ? p.original_price / 100 : undefined,
+    variants: (p.variants || []).map((v: any) => ({
+      ...v,
+      price: v.price ? v.price / 100 : undefined,
+    })),
+  }));
+
   // Filtros post-query (colores y tallas requieren filtrar por variants)
   if (filters.colors && filters.colors.length > 0) {
     products = products.filter(p => 
