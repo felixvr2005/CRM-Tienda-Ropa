@@ -125,8 +125,8 @@ export const POST: APIRoute = async ({ request }) => {
     
     const session = await createCheckoutSession(
       lineItems,
-      `${new URL(request.url).origin}/checkout/success`,
-      `${new URL(request.url).origin}/carrito`,
+      `https://${new URL(request.url).host}/checkout/success`,
+      `https://${new URL(request.url).host}/carrito`,
       undefined, // customerEmail - se capturará en Stripe Checkout
       metadata
     );
