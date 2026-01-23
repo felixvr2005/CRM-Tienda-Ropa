@@ -106,7 +106,6 @@ const { data: products } = await supabase
                     ) : (
                       <span class="font-medium">{formatPrice(product.price / 100)}</span>
                     )}
-                    <div class="text-xs text-primary-400 mt-1">Debug: {product.price} → {product.price / 100}€</div>
                   </div>
                 </td>
                 <td class="px-4 py-3">
