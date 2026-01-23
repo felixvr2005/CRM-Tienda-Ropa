@@ -37,11 +37,30 @@ if (!currentCustomer?.id) {
 }
 
 // Obtener devoluciones del cliente
-const { data: returnRequests, error: returnError } = await supabaseAdmin
+// También incluir devoluciones cuyo order_id pertenece a pedidos del cliente
+const { data: customerOrders } = await supabaseAdmin
+  .from('orders')
+  .select('id')
+  .eq('customer_id', currentCustomer.id);
+
+const orderIds = (customerOrders || []).map((o: any) => o.id);
+
+let returnQuery = supabaseAdmin
   .from('return_requests')
   .select('id, status, reason, description, requested_amount, refund_amount, created_at, updated_at, order_id, customer_id, return_tracking_number, return_label_url, orders(order_number), credit_notes(id, amount, status, credit_note_number, created_at)')
-  .eq('customer_id', currentCustomer.id)
   .order('created_at', { ascending: false });
+
+let returnRequests;
+let returnError;
+
+if (orderIds.length > 0) {
+  // OR: customer_id == currentCustomer.id OR order_id IN (orderIds)
+  const idsList = orderIds.join(',');
+  const orFilter = `customer_id.eq.${currentCustomer.id},order_id.in.(${idsList})`;
+  ({ data: returnRequests, error: returnError } = await returnQuery.or(orFilter));
+} else {
+  ({ data: returnRequests, error: returnError } = await returnQuery.eq('customer_id', currentCustomer.id));
+}
 
 if (returnError) {
   console.error('Error fetching returns:', returnError);
