@@ -32,7 +32,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       is_featured,
       is_new,
       is_flash_offer,
-      is_active
+      is_active,
+      variants
     } = data;
 
     // Validar campos requeridos
@@ -95,6 +96,24 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       if (!newProduct) throw new Error('No se retornó ID del producto');
 
       productId = newProduct.id;
+
+      // Insertar variantes si vienen en la petición (solo en creación)
+      if (variants && Array.isArray(variants) && variants.length > 0) {
+        const variantInserts = variants.map((v: any) => ({
+          product_id: productId,
+          color: v.color || null,
+          size: v.size || null,
+          price: v.price || null,
+          stock: v.stock || 0,
+          sku: v.sku || null
+        }));
+
+        const { error: variantsError } = await supabaseAdmin
+          .from('product_variants')
+          .insert(variantInserts);
+
+        if (variantsError) throw variantsError;
+      }
     }
 
     return new Response(JSON.stringify({

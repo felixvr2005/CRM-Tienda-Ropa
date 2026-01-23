@@ -5,6 +5,7 @@
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
+import VariantImagesUploader from '@components/islands/VariantImagesUploader.tsx';
 
 export const prerender = false;
 
@@ -295,13 +296,14 @@ const pageTitle = isEditing ? `Editar: ${product?.name}` : 'Nuevo Producto';
         </div>
       </div>
 
-      <!-- Variantes (solo en edición) -->
-      {isEditing && (
-        <div class="bg-white border border-primary-200 rounded-lg p-6">
-          <h2 class="font-bold text-lg text-primary-900 mb-4">Variantes (Color + Talla)</h2>
-          
-          <div id="variantsContainer" class="space-y-4">
-            {variants.map((variant) => (
+      <!-- Variantes (creación y edición) -->
+      <div class="bg-white border border-primary-200 rounded-lg p-6">
+        <h2 class="font-bold text-lg text-primary-900 mb-4">Variantes (Color + Talla)</h2>
+
+        <div id="variantsContainer" class="space-y-4">
+          {isEditing ? (
+            // Mostrar variantes existentes en edición
+            variants.map((variant) => (
               <div class="border border-primary-200 rounded-lg p-4">
                 <div class="flex justify-between items-start mb-3">
                   <h3 class="font-medium text-primary-900">
@@ -343,17 +345,37 @@ const pageTitle = isEditing ? `Editar: ${product?.name}` : 'Nuevo Producto';
                 <p class="text-sm text-primary-600 p-3 bg-primary-50 rounded">
                   🖼️ Sección de imágenes por variante (se carga en el navegador)
                 </p>
-              </div>
-            ))}
-          </div>
 
-          {variants.length === 0 && (
-            <p class="text-center text-primary-500 py-8">
-              Guarda el producto primero para crear variantes
-            </p>
+                {isEditing && (
+                  // Montar el uploader real cuando la variante exista (edición)
+                  <div class="mt-4">
+                    <VariantImagesUploader variantId={variant.id} variantInfo={`${variant.color} / ${variant.size}`} productId={product?.id} />
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            // UI para crear variantes en la pantalla de creación
+            <div id="newVariantsList" class="space-y-3">
+              <p class="text-sm text-primary-500">Añade variantes antes de guardar. Puedes añadir color, talla, precio y stock. Las imágenes se podrán subir después de crear el producto.</p>
+              <div id="newVariants"></div>
+              <div class="mt-3">
+                <button id="addVariantBtn" type="button" class="px-4 py-2 bg-primary-900 text-white rounded">Añadir Variante</button>
+              </div>
+            </div>
           )}
         </div>
-      )}
+
+        {isEditing && variants.length === 0 && (
+          <p class="text-center text-primary-500 py-8">
+            Guarda el producto primero para crear variantes
+          </p>
+        )}
+
+        {!isEditing && (
+          <p class="text-center text-primary-500 py-4">Las imágenes se pueden añadir tras crear el producto.</p>
+        )}
+      </div>
 
       <!-- Acciones -->
       <div class="flex gap-4">
@@ -375,28 +397,76 @@ const pageTitle = isEditing ? `Editar: ${product?.name}` : 'Nuevo Producto';
   </div>
 
   <script>
-    const form = document.getElementById('productForm') as HTMLFormElement;
-    
+    const form = document.getElementById('productForm');
+    let newVariants = [];
+
+    function renderNewVariants() {
+      const container = document.getElementById('newVariants');
+      if (!container) return;
+      container.innerHTML = '';
+
+      newVariants.forEach((v, idx) => {
+        const div = document.createElement('div');
+        div.className = 'border border-primary-200 rounded-lg p-3';
+        div.innerHTML = `
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <div><label class="text-xs text-primary-600 block mb-1">Color</label><input type="text" data-idx="${idx}" data-field="color" value="${v.color || ''}" class="w-full px-2 py-1 border rounded text-sm"/></div>
+            <div><label class="text-xs text-primary-600 block mb-1">Talla</label><input type="text" data-idx="${idx}" data-field="size" value="${v.size || ''}" class="w-full px-2 py-1 border rounded text-sm"/></div>
+            <div><label class="text-xs text-primary-600 block mb-1">Precio</label><input type="number" step="0.01" data-idx="${idx}" data-field="price" value="${v.price || ''}" class="w-full px-2 py-1 border rounded text-sm"/></div>
+            <div><label class="text-xs text-primary-600 block mb-1">Stock</label><input type="number" data-idx="${idx}" data-field="stock" value="${v.stock || 0}" class="w-full px-2 py-1 border rounded text-sm"/></div>
+          </div>
+          <div class="flex gap-2"><button type="button" data-idx="${idx}" class="removeVariantBtn px-3 py-1 bg-red-100 text-red-700 rounded">Eliminar</button></div>
+        `;
+        container.appendChild(div);
+      });
+
+      // attach input listeners
+      container.querySelectorAll('input').forEach((input) => {
+        input.addEventListener('input', (e) => {
+          const el = e.target;
+          const idx = parseInt(el.dataset.idx);
+          const field = el.dataset.field;
+          newVariants[idx][field] = (field === 'price' || field === 'stock') ? (parseFloat(el.value) || 0) : el.value;
+        });
+      });
+
+      // attach remove listeners
+      container.querySelectorAll('.removeVariantBtn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(btn.dataset.idx);
+          newVariants.splice(idx, 1);
+          renderNewVariants();
+        });
+      });
+    }
+
+    document.getElementById('addVariantBtn')?.addEventListener('click', () => {
+      newVariants.push({ color: '', size: '', price: null, stock: 0, sku: null });
+      renderNewVariants();
+    });
+
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const formData = new FormData(form);
       const productData = {
         name: formData.get('name'),
         description: formData.get('description'),
         category_id: formData.get('category_id') || null,
         product_type_id: formData.get('product_type_id'),
-        price: parseFloat(formData.get('price') as string),
-        compare_at_price: formData.get('compare_at_price') ? parseFloat(formData.get('compare_at_price') as string) : null,
-        discount_percentage: parseInt(formData.get('discount_percentage') as string) || 0,
+        price: parseFloat(formData.get('price')),
+        compare_at_price: formData.get('compare_at_price') ? parseFloat(formData.get('compare_at_price')) : null,
+        discount_percentage: parseInt(formData.get('discount_percentage')) || 0,
         brand: formData.get('brand'),
         material: formData.get('material'),
         care_instructions: formData.get('care_instructions'),
         is_featured: formData.get('is_featured') === 'on',
         is_new: formData.get('is_new') === 'on',
         is_flash_offer: formData.get('is_flash_offer') === 'on',
-        is_active: formData.get('is_active') === 'on'
+        is_active: formData.get('is_active') === 'on',
+        variants: newVariants.length ? newVariants : undefined
       };
+
 
       try {
         const response = await fetch('/api/admin/products/save', {

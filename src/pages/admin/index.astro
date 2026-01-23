@@ -206,7 +206,10 @@ const { data: lowStockProducts } = await supabaseAdmin
       <div class="bg-white p-6 border border-primary-200">
         <p class="text-sm text-primary-500 uppercase tracking-wider">Producto Más Vendido</p>
         <p class="text-3xl font-display mt-1">{productoMasVendido ? productoMasVendido.name : '—'}</p>
-        <p class="text-xs text-primary-500 mt-2">{productoMasVendido ? `${productoMasVendido.units} uds` : 'Últimos 30 días por unidades'}</p>
+        <p class="text-xs text-primary-500 mt-2">{productoMasVendido ? `${productoMasVendido.units} uds` : `Últimos 30 días por unidades`}</p>
+        {(!productoMasVendido && itemsLast30) ? (
+          <p class="text-xs text-primary-400 mt-2">Datos encontrados: {itemsLast30.length} items (fallback por nombre si product_id es null)</p>
+        ) : null}
       </div>
     </div>
     </div>
