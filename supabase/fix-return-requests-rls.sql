@@ -17,7 +17,11 @@ CREATE POLICY "Customers can create return requests"
   ON public.return_requests
   FOR INSERT
   WITH CHECK (
-    auth.uid() = customer_id
+    EXISTS (
+      SELECT 1 FROM public.customers c
+      WHERE c.id = customer_id
+      AND c.auth_user_id = auth.uid()
+    )
   );
 
 -- 2. Clientes pueden ver sus propias solicitudes
@@ -25,15 +29,31 @@ CREATE POLICY "Customers can read their own return requests"
   ON public.return_requests
   FOR SELECT
   USING (
-    auth.uid() = customer_id
+    EXISTS (
+      SELECT 1 FROM public.customers c
+      WHERE c.id = customer_id
+      AND c.auth_user_id = auth.uid()
+    )
   );
 
 -- 3. Clientes pueden actualizar sus solicitudes (no cambiar estado críticos)
 CREATE POLICY "Customers can update their own return requests"
   ON public.return_requests
   FOR UPDATE
-  USING (auth.uid() = customer_id)
-  WITH CHECK (auth.uid() = customer_id);
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.customers c
+      WHERE c.id = customer_id
+      AND c.auth_user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.customers c
+      WHERE c.id = customer_id
+      AND c.auth_user_id = auth.uid()
+    )
+  );
 
 -- 4. Admins pueden LEER todas las solicitudes
 CREATE POLICY "Admins can read all return requests"
@@ -99,8 +119,9 @@ BEGIN
       USING (
         EXISTS (
           SELECT 1 FROM public.return_requests rr
+          JOIN public.customers c ON c.id = rr.customer_id
           WHERE rr.id = return_request_id
-          AND rr.customer_id = auth.uid()
+          AND c.auth_user_id = auth.uid()
         )
       );
 
