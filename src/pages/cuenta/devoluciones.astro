@@ -32,35 +32,94 @@ const { data: currentCustomer } = await supabaseAdmin
   .eq('auth_user_id', user.id)
   .single();
 
-if (!currentCustomer?.id) {
-  return Astro.redirect('/cuenta/login?redirect=/cuenta/devoluciones');
+// Si no hay fila customers para este auth_user_id, no redirigimos; intentamos buscar por email (guest checkouts)
+let customerId = null;
+if (currentCustomer?.id) {
+  customerId = currentCustomer.id;
+} else {
+  // Intentar encontrar pedidos por email como fallback
+  const { data: ordersByEmail } = await supabaseAdmin
+    .from('orders')
+    .select('id')
+    .eq('customer_email', user.email)
+    .limit(200);
+
+  if (ordersByEmail && ordersByEmail.length > 0) {
+    // Usamos esos pedidos para buscar devoluciones
+    const fallbackOrderIds = ordersByEmail.map((o: any) => o.id);
+    // Continuaremos abajo usando orderIds
+    customerId = null;
+    var fallbackOrderIdsVar = fallbackOrderIds;
+  } else {
+    // No hay customer ni pedidos asociados al email -> mostrar vacío sin error
+    customerId = null;
+    var fallbackOrderIdsVar = [];
+  }
 }
 
-// Obtener devoluciones del cliente
-// También incluir devoluciones cuyo order_id pertenece a pedidos del cliente
-const { data: customerOrders } = await supabaseAdmin
+// Obtener pedidos asociados por customer_id y por email (fallback)
+const { data: ordersByCustomer } = customerId ? await supabaseAdmin
   .from('orders')
   .select('id')
-  .eq('customer_id', currentCustomer.id);
+  .eq('customer_id', customerId)
+  .limit(1000) : { data: [] };
 
-const orderIds = (customerOrders || []).map((o: any) => o.id);
+const { data: ordersByEmail } = await supabaseAdmin
+  .from('orders')
+  .select('id')
+  .eq('customer_email', user.email)
+  .limit(1000);
 
-let returnQuery = supabaseAdmin
-  .from('return_requests')
-  .select('id, status, reason, description, requested_amount, refund_amount, created_at, updated_at, order_id, customer_id, return_tracking_number, return_label_url, orders(order_number), credit_notes(id, amount, status, credit_note_number, created_at)')
-  .order('created_at', { ascending: false });
+const orderIds = [ ...(ordersByCustomer || []).map((o:any)=>o.id), ...(ordersByEmail || []).map((o:any)=>o.id) ];
 
-let returnRequests;
-let returnError;
+let returnRequests: any[] = [];
+let returnError: any = null;
 
-if (orderIds.length > 0) {
-  // OR: customer_id == currentCustomer.id OR order_id IN (orderIds)
-  const idsList = orderIds.join(',');
-  const orFilter = `customer_id.eq.${currentCustomer.id},order_id.in.(${idsList})`;
-  ({ data: returnRequests, error: returnError } = await returnQuery.or(orFilter));
-} else {
-  ({ data: returnRequests, error: returnError } = await returnQuery.eq('customer_id', currentCustomer.id));
+// 1) Devoluciones directamente por customer_id
+if (customerId) {
+  const { data, error } = await supabaseAdmin
+    .from('return_requests')
+    .select('id, status, reason, description, requested_amount, refund_amount, created_at, updated_at, order_id, customer_id, return_tracking_number, return_label_url, orders(order_number), credit_notes(id, amount, status, credit_note_number, created_at)')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching returns by customer_id:', error);
+    returnError = error;
+  } else if (data) {
+    returnRequests = returnRequests.concat(data);
+  }
 }
+
+// 2) Devoluciones por order_ids (covers guest checkouts or email-linked orders)
+if (orderIds.length > 0) {
+  // dedupe orderIds
+  const uniqueOrderIds = Array.from(new Set(orderIds));
+
+  const { data: data2, error: error2 } = await supabaseAdmin
+    .from('return_requests')
+    .select('id, status, reason, description, requested_amount, refund_amount, created_at, updated_at, order_id, customer_id, return_tracking_number, return_label_url, orders(order_number), credit_notes(id, amount, status, credit_note_number, created_at)')
+    .in('order_id', uniqueOrderIds)
+    .order('created_at', { ascending: false });
+
+  if (error2) {
+    console.error('Error fetching returns by order_ids:', error2);
+    returnError = returnError || error2;
+  } else if (data2) {
+    returnRequests = returnRequests.concat(data2);
+  }
+}
+
+// Deduplicate by return id and sort by created_at desc
+const seen = new Set();
+returnRequests = returnRequests
+  .filter(r => {
+    if (!r || !r.id) return false;
+    if (seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
+  })
+  .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
 if (returnError) {
   console.error('Error fetching returns:', returnError);
