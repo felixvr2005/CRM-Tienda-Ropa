@@ -310,10 +310,10 @@ export async function getFilteredProducts(filters: ProductFilters) {
 
   // Filtro por precio
   if (filters.minPrice !== undefined) {
-    query = query.gte('price', filters.minPrice);
+    query = query.gte('price', Math.round(filters.minPrice * 100));
   }
   if (filters.maxPrice !== undefined) {
-    query = query.lte('price', filters.maxPrice);
+    query = query.lte('price', Math.round(filters.maxPrice * 100));
   }
 
   // Filtro por descuento
@@ -410,8 +410,8 @@ export async function getAvailableFilters(categorySlug?: string) {
 
   data.forEach(product => {
     const price = product.discount_percentage > 0 
-      ? product.price * (1 - product.discount_percentage / 100)
-      : product.price;
+      ? (product.price / 100) * (1 - product.discount_percentage / 100)
+      : product.price / 100;
     
     minPrice = Math.min(minPrice, price);
     maxPrice = Math.max(maxPrice, price);

@@ -90,7 +90,7 @@ export default function ProductViewer({
           productId={productId}
           productName={productName}
           productSlug={productSlug}
-          productPrice={productPrice}
+          productPrice={priceInEuros}
           productDiscount={productDiscount}
           productImage={productImage}
           variants={variants}

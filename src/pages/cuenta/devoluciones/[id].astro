@@ -36,16 +36,48 @@ const url = new URL(Astro.request.url);
 const debugMode = url.searchParams.get('debug') === 'true';
 
 // Obtener devolución y datos de la orden para validación por email si hace falta
-const { data: returnRequest, error } = await supabaseAdmin
-  .from('return_requests')
-  .select('*, orders(customer_id, customer_email, order_number), return_request_items(*), credit_notes(*)')
-  .eq('id', id)
-  .single();
+let returnRequest = null;
+let returnRequestError: any = null;
+try {
+  const res = await supabaseAdmin
+    .from('return_requests')
+    .select('*, orders(customer_id, customer_email, order_number), return_request_items(*), credit_notes(*)')
+    .eq('id', id)
+    .single();
+  returnRequest = res.data;
+  returnRequestError = res.error;
+} catch (err) {
+  // Normalmente PostgREST no lanza, pero por si acaso
+  returnRequestError = err;
+}
+
+// Si la consulta anidada falla porque no existe la relación FK (PostgREST PGRST200), fallback con consultas separadas
+if (!returnRequest && returnRequestError && (returnRequestError.code === 'PGRST200' || /foreign key relationship/i.test(returnRequestError.message || ''))) {
+  console.log('Return detail: nested select failed, falling back to separate queries', { id, error: returnRequestError });
+
+  const { data: parent, error: parentError } = await supabaseAdmin
+    .from('return_requests')
+    .select('*, orders(customer_id, customer_email, order_number), credit_notes(*)')
+    .eq('id', id)
+    .single();
+
+  const { data: items, error: itemsError } = await supabaseAdmin
+    .from('return_request_items')
+    .select('*')
+    .eq('return_request_id', id);
+
+  if (parent) {
+    returnRequest = { ...parent, return_request_items: Array.isArray(items) ? items : [], credit_notes: parent.credit_notes || [] };
+    returnRequestError = parentError || itemsError;
+  } else {
+    console.log('Return detail: fallback failed', { id, parentError, itemsError, originalError: returnRequestError });
+  }
+}
 
 if (!returnRequest) {
-  console.log('Return detail: not found', { id, user: user?.email, customerId: currentCustomer?.id });
+  console.log('Return detail: not found', { id, user: user?.email, customerId: currentCustomer?.id, error: returnRequestError });
   if (debugMode) {
-    return new Response(JSON.stringify({ error: 'not_found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'not_found', details: returnRequestError }), { status: 404, headers: { 'Content-Type': 'application/json' } });
   }
   return Astro.redirect('/cuenta/devoluciones');
 }

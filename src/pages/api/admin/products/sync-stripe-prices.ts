@@ -60,7 +60,7 @@ export const PUT: APIRoute = async ({ request }) => {
       // Sincronizar cada variante
       if (product.variants && product.variants.length > 0) {
         for (const variant of product.variants as any[]) {
-          const priceInCents = Math.round(variant.price * 100);
+          const priceInCents = variant.price; // Ya está en centavos
 
           if (variant.stripe_price_id) {
             // Actualizar metadatos del precio existente
@@ -68,7 +68,7 @@ export const PUT: APIRoute = async ({ request }) => {
               await stripe.prices.update(variant.stripe_price_id, {
                 metadata: {
                   sync_date: new Date().toISOString(),
-                  price_eur: variant.price.toString(),
+                  price_eur: (variant.price / 100).toString(),
                   color: variant.color || '',
                   size: variant.size || ''
                 }
@@ -88,7 +88,7 @@ export const PUT: APIRoute = async ({ request }) => {
         }
       } else {
         // Sincronizar precio base del producto
-        const priceInCents = Math.round(product.price * 100);
+        const priceInCents = product.price; // Ya está en centavos
 
         const stripePrices = await stripe.prices.list({
           product: product.stripe_product_id,
