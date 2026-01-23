@@ -35,6 +35,45 @@ export async function GET({ request }: any) {
 
     const orderIds = (orders || []).map((o: any) => o.id);
 
+    // If an id query param is provided, return detailed debug info for that return request
+    const url = new URL(request.url);
+    const debugId = url.searchParams.get('id');
+    if (debugId) {
+      const { data: returnRequest, error: returnReqError } = await supabaseAdmin
+        .from('return_requests')
+        .select('*, orders(customer_id, customer_email, order_number)')
+        .eq('id', debugId)
+        .single();
+
+      if (returnReqError || !returnRequest) {
+        return new Response(JSON.stringify({ error: 'Return request not found', details: returnReqError }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+      }
+
+      // Authorization check (same logic as details page)
+      let allowed = false;
+      let reason = '';
+
+      if (customer?.id) {
+        if (returnRequest.customer_id === customer.id) {
+          allowed = true;
+          reason = 'customer_id matches currentCustomer';
+        } else if (returnRequest.orders?.customer_id === customer.id) {
+          allowed = true;
+          reason = 'order.customer_id matches currentCustomer';
+        }
+      } else {
+        if (returnRequest.orders?.customer_email && returnRequest.orders.customer_email === user.email) {
+          allowed = true;
+          reason = 'order.customer_email matches user email (guest)';
+        }
+      }
+
+      return new Response(JSON.stringify({ user: { id: user.id, email: user.email }, customer, returnRequest, allowed, reason }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // Find returns by customer_id OR by order_id in orderIds
     let returnsQuery = supabaseAdmin.from('return_requests').select('id, order_id, customer_id, status, reason, created_at').order('created_at', { ascending: false });
 
