@@ -138,11 +138,23 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('Checkout error:', error);
+    console.error('Checkout error completo:', error);
     console.error('Error message:', error.message);
     console.error('Error type:', error.type);
+    console.error('Error code:', error.code);
+    console.error('Error param:', error.param);
+    if (error.raw) {
+      console.error('Error raw:', error.raw);
+    }
     return new Response(
-      JSON.stringify({ error: error.message || 'Error al procesar el pago' }),
+      JSON.stringify({ 
+        error: error.message || 'Error al procesar el pago',
+        details: {
+          type: error.type,
+          code: error.code,
+          param: error.param
+        }
+      }),
       { status: 500 }
     );
   }

@@ -104,7 +104,7 @@ export default function CartPageContent() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert('Error al procesar el pago');
+        alert('Error al procesar el pago: ' + (data.error || 'Error desconocido'));
       }
     } catch (error) {
       console.error('Checkout error:', error);
