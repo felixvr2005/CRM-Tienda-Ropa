@@ -7,7 +7,10 @@ ALTER TABLE public.return_requests DISABLE ROW LEVEL SECURITY;
 -- Limpiar todas las políticas existentes
 DROP POLICY IF EXISTS "Customers can create return requests" ON public.return_requests;
 DROP POLICY IF EXISTS "Customers can read their own return requests" ON public.return_requests;
+DROP POLICY IF EXISTS "Customers can update their own return requests" ON public.return_requests;
 DROP POLICY IF EXISTS "Admins can read all return requests" ON public.return_requests;
+DROP POLICY IF EXISTS "Admins can update all return requests" ON public.return_requests;
+DROP POLICY IF EXISTS "Admins can delete return requests" ON public.return_requests;
 
 -- Volver a habilitar RLS
 ALTER TABLE public.return_requests ENABLE ROW LEVEL SECURITY;
