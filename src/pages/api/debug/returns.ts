@@ -4,6 +4,8 @@ export const prerender = false;
 
 export async function GET({ request }: any) {
   try {
+    let returnError: any = null;
+    let returnRequests: any[] = [];
     const cookieHeader = request.headers.get('cookie') || '';
     const accessToken = cookieHeader.split(';').map(s => s.trim()).find(c => c.startsWith('sb-access-token='))?.split('=')[1];
 
@@ -36,7 +38,6 @@ export async function GET({ request }: any) {
     // Find returns by customer_id OR by order_id in orderIds
     let returnsQuery = supabaseAdmin.from('return_requests').select('id, order_id, customer_id, status, reason, created_at').order('created_at', { ascending: false });
 
-    let returnRequests;
     if (orderIds.length > 0) {
       // Get returns tied to orders
       const { data: byOrders, error: errorByOrders } = await supabaseAdmin
@@ -84,6 +85,11 @@ export async function GET({ request }: any) {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    console.error('Error in /api/debug/returns:', err);
+    const message = err?.message || String(err);
+    const deployHint = message.includes('catch is not a function')
+      ? 'Old deployment detected or incompatible runtime. Trigger a redeploy to pick up latest commits.'
+      : null;
+    return new Response(JSON.stringify({ error: message, hint: deployHint }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
