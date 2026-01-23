@@ -1,0 +1,84 @@
+---
+// Página pública de depuración para comprobar si desde el navegador (con sesión activa) se puede leer una devolución
+const { id } = Astro.params;
+---
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Devolución - {id}</title>
+    <style>body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:20px;background:#f7fafc;color:#111}pre{background:#fff;padding:12px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:auto}</style>
+  </head>
+  <body>
+    <h1>Debug Devolución</h1>
+    <p>ID: <strong>{id}</strong></p>
+    <p>Abre esta página estando <strong>logueado</strong> con la cuenta del cliente y verás la respuesta de la consulta hecha desde tu navegador.</p>
+    <div id="status">Cargando...</div>
+    <pre id="out">Esperando resultado...</pre>
+
+    <script type="module">
+      async function run() {
+        const out = document.getElementById('out');
+        const status = document.getElementById('status');
+        try {
+          const RETURN_ID = '{id}';
+          status.textContent = 'Consultando via Supabase client (browser)...';
+
+          if (window.supabase) {
+            const { data, error } = await window.supabase
+              .from('return_requests')
+              .select('*, orders(customer_id, customer_email, order_number), return_request_items(*), credit_notes(*)')
+              .eq('id', RETURN_ID)
+              .single();
+
+            if (error) {
+              status.textContent = 'Error desde Supabase client (browser): ' + (error.message || JSON.stringify(error));
+              out.textContent = JSON.stringify({ data: data || null, error }, null, 2);
+            } else {
+              status.textContent = 'Resultado desde Supabase client (browser)';
+              out.textContent = JSON.stringify(data || null, null, 2);
+            }
+            return;
+          }
+
+          // Fallback: llamar al endpoint server-side debug
+          status.textContent = 'Consultando /api/debug/returns (server fallback)...';
+          const r = await fetch(`/api/debug/returns?id=${RETURN_ID}`);
+          const json = await r.json();
+          status.textContent = `Resultado server (status ${r.status})`;
+          out.textContent = JSON.stringify(json, null, 2);
+        } catch (err) {
+          status.textContent = 'Error ejecutando debug:';
+          out.textContent = (err && err.message) ? err.message : String(err);
+        }
+      }
+
+      run();
+    </script>
+  </body>
+</html>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Devolución - {id}</title>
+    <style>body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:20px;background:#f7fafc;color:#111}pre{background:#fff;padding:12px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:auto}</style>
+  </head>
+  <body>
+    <h1>Debug Devolución</h1>
+    <p>ID: <strong>{id}</strong></p>
+    <p>Abre esta página estando <strong>logueado</strong> con la cuenta del cliente y verás la respuesta de la consulta hecha desde tu navegador.</p>
+    <div id="status">Cargando...</div>
+    <pre id="out">Esperando resultado...</pre>
+
+    <script type="module">
+      async function run() {
+        const out = document.getElementById('out');
+        const status = document.getElementById('status');
+        try {
+          status.textContent = 'Consultando via Supabase client (browser)...';
+
+          // Usar la librería pública si está cargada; sino usar fetch a /api/debug/returns
+          const RETURN_ID = '
