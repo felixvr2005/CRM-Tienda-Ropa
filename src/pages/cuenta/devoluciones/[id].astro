@@ -43,11 +43,21 @@ const { data: returnRequest, error } = await supabaseAdmin
   .single();
 
 if (!returnRequest) {
+  console.log('Return detail: not found', { id, user: user?.email, customerId: currentCustomer?.id });
   if (debugMode) {
     return new Response(JSON.stringify({ error: 'not_found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
   }
   return Astro.redirect('/cuenta/devoluciones');
 }
+
+// Log some info to help debugging (server-side)
+console.log('Return detail hit', {
+  id,
+  user: user?.email,
+  customerId: currentCustomer?.id,
+  items: Array.isArray(returnRequest.return_request_items) ? returnRequest.return_request_items.length : 'missing',
+  creditNotes: Array.isArray(returnRequest.credit_notes) ? returnRequest.credit_notes.length : 'missing'
+});
 
 // If debug mode requested, return auth-check info immediately
 if (debugMode) {
@@ -63,6 +73,7 @@ if (debugMode) {
     allowed = true; reason = 'order.customer_email matches user email (guest)';
   }
 
+  console.log('Return detail auth check', { id, allowed, reason });
   return new Response(JSON.stringify({ user: { id: user.id, email: user.email }, customer: currentCustomer, returnRequest, allowed, reason }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
 // Validar que el request pertenece al usuario actual
