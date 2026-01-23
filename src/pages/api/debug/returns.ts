@@ -38,18 +38,45 @@ export async function GET({ request }: any) {
 
     let returnRequests;
     if (orderIds.length > 0) {
-      const idsList = `(${orderIds.join(',')})`;
-      // use raw SQL for clarity
-      const { data: rawReturns } = await supabaseAdmin.rpc('', {} as any).catch(() => ({ data: null }));
+      // Get returns tied to orders
+      const { data: byOrders, error: errorByOrders } = await supabaseAdmin
+        .from('return_requests')
+        .select('id, order_id, customer_id, status, reason, created_at, orders(order_number), credit_notes(id, amount, status)')
+        .in('order_id', orderIds)
+        .order('created_at', { ascending: false });
 
-      // fallback to two queries
-      const { data: byCustomer } = await supabaseAdmin.from('return_requests').select('*').eq('customer_id', customer?.id);
-      const { data: byOrders } = await supabaseAdmin.from('return_requests').select('*').in('order_id', orderIds);
-      const merged = [...(byCustomer || []), ...(byOrders || [])];
-      returnRequests = merged;
+      if (errorByOrders) {
+        console.error('Error fetching returns by order IDs:', errorByOrders);
+        returnRequests = byOrders || [];
+        returnError = returnError || errorByOrders;
+      } else {
+        returnRequests = byOrders || [];
+      }
+
+      // Also include returns for the customer (if exists)
+      if (customer?.id) {
+        const { data: byCustomer, error: errorByCustomer } = await supabaseAdmin
+          .from('return_requests')
+          .select('id, order_id, customer_id, status, reason, created_at, orders(order_number), credit_notes(id, amount, status)')
+          .eq('customer_id', customer.id)
+          .order('created_at', { ascending: false });
+
+        if (errorByCustomer) {
+          console.error('Error fetching returns by customer:', errorByCustomer);
+          returnError = returnError || errorByCustomer;
+        } else {
+          returnRequests = Array.from(new Map([...(returnRequests || []), ...(byCustomer || [])].map(r => [r.id, r])).values());
+        }
+      }
     } else {
-      const { data } = await returnsQuery.eq('customer_id', customer?.id);
-      returnRequests = data || [];
+      const { data, error } = await returnsQuery.eq('customer_id', customer?.id);
+      if (error) {
+        console.error('Error fetching returns:', error);
+        returnError = error;
+        returnRequests = data || [];
+      } else {
+        returnRequests = data || [];
+      }
     }
 
     return new Response(JSON.stringify({ user: { id: user.id, email: user.email }, customer, orders: orderIds, returnCount: returnRequests.length, returnSamples: returnRequests.slice(0, 10) }), {
