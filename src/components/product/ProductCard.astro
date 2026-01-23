@@ -13,7 +13,7 @@ interface Props {
 
 const { product, showQuickAdd = false } = Astro.props;
 
-const finalPrice = calculateDiscountedPrice(product.price / 100, product.discount_percentage);
+const finalPrice = calculateDiscountedPrice(product.price, product.discount_percentage);
 const hasDiscount = product.discount_percentage > 0;
 const stock = getTotalStock(product.variants || []);
 const isLowStock = stock > 0 && stock <= 5;
@@ -81,7 +81,7 @@ const isLowStock = stock > 0 && stock <= 5;
       </span>
       {hasDiscount && (
         <span class="text-sm text-primary-400 line-through">
-          {formatPrice(product.price / 100)}
+          {formatPrice(product.price)}
         </span>
       )}
     </div>

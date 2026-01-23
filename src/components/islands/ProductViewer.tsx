@@ -54,7 +54,7 @@ export default function ProductViewer({
   const firstColor = colors.length > 0 ? colors[0].name : null;
 
   // Convertir precio de centavos a euros
-  const priceInEuros = productPrice / 100;
+  const priceInEuros = productPrice;
   const discountedPrice = priceInEuros * (1 - productDiscount / 100);
 
   return (
@@ -90,7 +90,7 @@ export default function ProductViewer({
           productId={productId}
           productName={productName}
           productSlug={productSlug}
-          productPrice={priceInEuros}
+          productPrice={productPrice}
           productDiscount={productDiscount}
           productImage={productImage}
           variants={variants}

@@ -97,14 +97,14 @@ const { data: products } = await supabase
                     {product.discount_percentage > 0 ? (
                       <>
                         <span class="text-red-600 font-medium">
-                          {formatPrice(product.price / 100 * (1 - product.discount_percentage / 100))}
+                          {formatPrice(product.price * (1 - product.discount_percentage / 100))}
                         </span>
                         <span class="text-xs text-primary-400 line-through ml-2">
-                          {formatPrice(product.price / 100)}
+                          {formatPrice(product.price)}
                         </span>
                       </>
                     ) : (
-                      <span class="font-medium">{formatPrice(product.price / 100)}</span>
+                      <span class="font-medium">{formatPrice(product.price)}</span>
                     )}
                   </div>
                 </td>
