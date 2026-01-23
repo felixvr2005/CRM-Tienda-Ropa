@@ -32,6 +32,8 @@ const { data: currentCustomer } = await supabaseAdmin
 
 // Nota: No redirigimos inmediatamente si no existe fila en `customers` (guest checkout)
 const { id } = Astro.params;
+const url = new URL(Astro.request.url);
+const debugMode = url.searchParams.get('debug') === 'true';
 
 // Obtener devolución y datos de la orden para validación por email si hace falta
 const { data: returnRequest, error } = await supabaseAdmin
@@ -41,9 +43,28 @@ const { data: returnRequest, error } = await supabaseAdmin
   .single();
 
 if (!returnRequest) {
+  if (debugMode) {
+    return new Response(JSON.stringify({ error: 'not_found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  }
   return Astro.redirect('/cuenta/devoluciones');
 }
 
+// If debug mode requested, return auth-check info immediately
+if (debugMode) {
+  let allowed = false;
+  let reason = '';
+  if (currentCustomer?.id) {
+    if (returnRequest.customer_id === currentCustomer.id) {
+      allowed = true; reason = 'customer_id matches currentCustomer';
+    } else if (returnRequest.orders?.customer_id === currentCustomer.id) {
+      allowed = true; reason = 'order.customer_id matches currentCustomer';
+    }
+  } else if (returnRequest.orders?.customer_email && returnRequest.orders.customer_email === user.email) {
+    allowed = true; reason = 'order.customer_email matches user email (guest)';
+  }
+
+  return new Response(JSON.stringify({ user: { id: user.id, email: user.email }, customer: currentCustomer, returnRequest, allowed, reason }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+}
 // Validar que el request pertenece al usuario actual
 let allowed = false;
 let authReason = '';
