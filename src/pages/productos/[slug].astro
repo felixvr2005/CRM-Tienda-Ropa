@@ -90,7 +90,7 @@ if (variants && variants.length > 0) {
       productId={product.id}
       productName={product.name}
       productSlug={product.slug}
-      productPrice={product.price}
+      productPrice={product.price / 100}
       productDiscount={product.discount_percentage}
       productImage={defaultImages[0] || '/images/products/placeholder.jpg'}
       variants={variants || []}
