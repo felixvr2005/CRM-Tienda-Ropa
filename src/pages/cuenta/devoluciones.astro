@@ -32,8 +32,29 @@ const { data: currentCustomer } = await supabaseAdmin
   .eq('auth_user_id', user.id)
   .single();
 
-if (!currentCustomer?.id) {
-  return Astro.redirect('/cuenta/login?redirect=/cuenta/devoluciones');
+// Si no hay fila customers para este auth_user_id, no redirigimos; intentamos buscar por email (guest checkouts)
+let customerId = null;
+if (currentCustomer?.id) {
+  customerId = currentCustomer.id;
+} else {
+  // Intentar encontrar pedidos por email como fallback
+  const { data: ordersByEmail } = await supabaseAdmin
+    .from('orders')
+    .select('id')
+    .eq('customer_email', user.email)
+    .limit(200);
+
+  if (ordersByEmail && ordersByEmail.length > 0) {
+    // Usamos esos pedidos para buscar devoluciones
+    const fallbackOrderIds = ordersByEmail.map((o: any) => o.id);
+    // Continuaremos abajo usando orderIds
+    customerId = null;
+    var fallbackOrderIdsVar = fallbackOrderIds;
+  } else {
+    // No hay customer ni pedidos asociados al email -> mostrar vacío sin error
+    customerId = null;
+    var fallbackOrderIdsVar = [];
+  }
 }
 
 // Obtener devoluciones del cliente
@@ -41,9 +62,10 @@ if (!currentCustomer?.id) {
 const { data: customerOrders } = await supabaseAdmin
   .from('orders')
   .select('id')
-  .eq('customer_id', currentCustomer.id);
+  .eq('customer_id', customerId || '')
+  .limit(200);
 
-const orderIds = (customerOrders || []).map((o: any) => o.id);
+const orderIds = (customerOrders || []).map((o: any) => o.id).concat(fallbackOrderIdsVar || []);
 
 let returnQuery = supabaseAdmin
   .from('return_requests')
