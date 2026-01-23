@@ -11,11 +11,6 @@ UPDATE products
 SET compare_at_price = compare_at_price * 100
 WHERE compare_at_price < 1000 AND compare_at_price IS NOT NULL;
 
--- Actualizar precios de variantes si existen
-UPDATE product_variants
-SET price = price * 100
-WHERE price < 1000;
-
 -- Verificar cambios
 SELECT 'Productos actualizados:' as info, COUNT(*) as count
 FROM products
