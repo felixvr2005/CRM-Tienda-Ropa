@@ -30,21 +30,38 @@ const { data: currentCustomer } = await supabaseAdmin
   .eq('auth_user_id', user.id)
   .single();
 
-if (!currentCustomer?.id) {
-  return Astro.redirect('/cuenta/login?redirect=/cuenta/devoluciones');
-}
-
+// Nota: No redirigimos inmediatamente si no existe fila en `customers` (guest checkout)
 const { id } = Astro.params;
 
-// Obtener devolución
+// Obtener devolución y datos de la orden para validación por email si hace falta
 const { data: returnRequest, error } = await supabaseAdmin
   .from('return_requests')
-  .select('*, orders(*), return_request_items(*), credit_notes(*)')
+  .select('*, orders(customer_id, customer_email, order_number), return_request_items(*), credit_notes(*)')
   .eq('id', id)
-  .eq('customer_id', currentCustomer.id)
   .single();
 
 if (!returnRequest) {
+  return Astro.redirect('/cuenta/devoluciones');
+}
+
+// Validar que el request pertenece al usuario actual
+let allowed = false;
+if (currentCustomer?.id) {
+  if (returnRequest.customer_id === currentCustomer.id) {
+    allowed = true;
+  }
+  if (!allowed && returnRequest.orders?.customer_id === currentCustomer.id) {
+    allowed = true;
+  }
+} else {
+  // No hay fila customers -> permitir si la orden tiene el mismo email que el usuario (guest checkout)
+  if (returnRequest.orders?.customer_email && returnRequest.orders.customer_email === user.email) {
+    allowed = true;
+  }
+}
+
+if (!allowed) {
+  // No pertenece al usuario -> redirigir a la lista
   return Astro.redirect('/cuenta/devoluciones');
 }
 
