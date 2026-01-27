@@ -44,12 +44,17 @@ export default function CouponInput({ onCouponApplied, onCouponRemoved }: Coupon
         return;
       }
 
+      // Normalizar respuesta esperada desde la API
+      const discountAmountFromApi = typeof data.discount_amount === 'number' ? data.discount_amount : 0;
+      const discountPercentageFromApi = typeof data.discount_percentage === 'number' ? data.discount_percentage : 0;
+
       setAppliedCode(code.toUpperCase());
-      setDiscountAmount(data.discount || 0);
-      setSuccess(`¡Cupón aplicado! Descuento: -${data.discount_percentage || 0}%`);
+      setDiscountAmount(discountAmountFromApi);
+      setSuccess(`¡Cupón aplicado! Descuento: -${discountPercentageFromApi || 0}%`);
       setCode('');
 
-      onCouponApplied?.(code.toUpperCase(), data.discount || 0);
+      // Pasar el monto del descuento (en euros) al caller
+      onCouponApplied?.(code.toUpperCase(), discountAmountFromApi);
     } catch (err) {
       console.error('Coupon validation error:', err);
       setError('Error al validar el cupón');

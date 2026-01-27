@@ -5,6 +5,8 @@
 import { useStore } from '@nanostores/react';
 import { useEffect } from 'react';
 import { $cartCount, initCart } from '@stores/cart';
+// Init client-only listeners (auth state → cart sync)
+import '@lib/client-init';
 
 export default function CartIcon() {
   const count = useStore($cartCount);

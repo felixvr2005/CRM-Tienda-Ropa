@@ -88,20 +88,42 @@ export default function CartPageContent() {
     if (cart.length === 0) return;
     setIsProcessing(true);
 
+    // Intentar obtener email del usuario autenticado (si existe) para permitir checkout desde el carrito
+    let customerEmail: string | null = null;
     try {
-      const response = await fetch('/api/checkout', {
+      const authState = (window as any).__FASHION_AUTH_STATE;
+      customerEmail = authState?.user?.email || null;
+    } catch (e) {
+      customerEmail = null;
+    }
+
+    // Si no hay email, redirigir a la página de checkout para rellenar datos (email/dirección)
+    if (!customerEmail) {
+      window.location.href = '/checkout';
+      return;
+    }
+
+    try {
+      const payload = {
+        items: cart,
+        couponCode: appliedCoupon?.code || null,
+        discountAmount: discountAmount || 0,
+        subtotal,
+        shippingCost: shipping,
+        shippingMethod: 'standard',
+        total,
+        email: customerEmail
+      } as const;
+
+      const response = await fetch('/api/checkout/create-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          items: cart,
-          couponCode: appliedCoupon?.code || null,
-          discountAmount: discountAmount 
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
-      if (data.url) {
+      if (response.ok && data.url) {
         window.location.href = data.url;
       } else {
         alert('Error al procesar el pago: ' + (data.error || 'Error desconocido'));

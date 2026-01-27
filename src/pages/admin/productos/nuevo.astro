@@ -12,6 +12,12 @@ const { data: categories } = await supabase
   .from('categories')
   .select('id, name')
   .order('name');
+
+// Obtener tipos de producto para el selector (requerido por la API)
+const { data: productTypes } = await supabase
+  .from('product_types')
+  .select('id, name')
+  .order('name');
 ---
 
 <AdminLayout title="Nuevo Producto">
@@ -66,6 +72,22 @@ const { data: categories } = await supabase
             <option value="">Sin categoría</option>
             {categories?.map((cat) => (
               <option value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Tipo de producto *
+          </label>
+          <select
+            name="product_type_id"
+            required
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+          >
+            <option value="">Selecciona un tipo</option>
+            {productTypes?.map((t) => (
+              <option value={t.id}>{t.name}</option>
             ))}
           </select>
         </div>

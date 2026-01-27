@@ -283,8 +283,15 @@ if (user) {
         showSuccess('¡Bienvenido! Redirigiendo...');
         console.log('Redirigiendo a inicio...');
 
-        // Redirigir a la página principal (donde está el popup de newsletter)
-        const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '/';
+        // Merge del carrito de invitado al usuario (importado desde @stores/cart)
+        try {
+          await mergeCartOnLogin(data.user.id);
+        } catch (mergeErr) {
+          console.warn('Merge cart failed, continuing redirect', mergeErr);
+        }
+
+        // Redirigir a la tienda para clientes; si viene redirect en query, respetarlo
+        const redirectTo = new URLSearchParams(window.location.search).get('redirect') || '/productos';
         window.location.replace(redirectTo);
         return;
       } else {
