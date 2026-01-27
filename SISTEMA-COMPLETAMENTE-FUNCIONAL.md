@@ -159,7 +159,7 @@ Estado: ✅ CONFIGURADO
 ### Credenciales Configuradas
 ```
 Email: felixvr2005@gmail.com
-Contraseña de app: yglxkxkzrvcmciqq
+Contraseña de app: <REDACTED - GENERATE LOCALLY>
 SMTP: smtp.gmail.com
 Puerto: 465
 ```
@@ -345,16 +345,16 @@ SUPABASE_SERVICE_KEY=eyJhbGc... (clave muy larga)
 
 # Stripe
 PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51SXzXlRrW2kGomeyAxCOtKQLLoRBVv5zwbwotI3GdE0MlvF3YWUlb8WIv9T6vCZNvaOPF4prkaa6y1JzZA6dPnQf00gwiIxySN
-STRIPE_SECRET_KEY=sk_test_51SXzXlRrW2kGomeyvD6pFi2uUKew3HgdG9GfBuay0MJIVzCbAbwIPAR8NaDmjN990dAnlaDIpuIm1WDq8yYRNYea00NQuDx0fh
+STRIPE_SECRET_KEY=<REDACTED - SET IN SECRET MANAGER>
 
 # Cloudinary
 PUBLIC_CLOUDINARY_CLOUD_NAME=dwyksbbk0
 PUBLIC_CLOUDINARY_API_KEY=728481631991241
-CLOUDINARY_API_SECRET=1kNcl6UR3P_BVNN9FdyqV_9isKs
+CLOUDINARY_API_SECRET=<REDACTED - SET IN SECRET MANAGER>
 
 # Gmail
 GMAIL_USER=felixvr2005@gmail.com
-GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+GMAIL_APP_PASSWORD=<REDACTED - SET IN ENV>
 
 # Entorno
 NODE_ENV=development

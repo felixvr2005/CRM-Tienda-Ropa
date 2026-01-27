@@ -283,7 +283,7 @@ cat .env.local
 
 # Debe tener:
 # GMAIL_USER=tu_correo@gmail.com
-# GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+# GMAIL_APP_PASSWORD=<REDACTED - CONFIG IN .env.local OR SECRET MANAGER>
 ```
 
 ### Paso 3: Verificar Conexión

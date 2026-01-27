@@ -137,7 +137,7 @@ npm install nodemailer @types/nodemailer
 
 # 2. Configurar .env.local
 GMAIL_USER=tu_correo@gmail.com
-GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+GMAIL_APP_PASSWORD=<REDACTED - SET IN .env.local OR SECRET MANAGER>
 ADMIN_EMAIL=admin@tu-tienda.com
 
 # 3. Acceder al panel
@@ -279,7 +279,7 @@ Método: Tarjeta de Crédito Mastercard
 ### Variables de Entorno (.env.local)
 ```
 GMAIL_USER=tu_correo@gmail.com
-GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+GMAIL_APP_PASSWORD=<REDACTED - SET IN ENV>
 ADMIN_EMAIL=admin@tu-tienda.com
 SUPPORT_EMAIL=soporte@tu-tienda.com
 COMPANY_NAME=Mi Tienda de Ropa

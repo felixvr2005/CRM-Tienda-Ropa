@@ -94,7 +94,7 @@
       • Abre .env.local
       • Copia las variables:
         GMAIL_USER=tu_correo@gmail.com
-        GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+        GMAIL_APP_PASSWORD=<REDACTED - SET IN SECRET MANAGER>
         ADMIN_EMAIL=admin@tu-tienda.com
 
   3️⃣  USAR (Inmediato)
@@ -105,15 +105,13 @@
 
 
 ┌───────────────────────────────────────────────────────────────────┐
-│ 🔑 CONTRASEÑA DE APLICACIÓN GMAIL                                │
+│ 🔑 CREDENCIALES DE APLICACIÓN (REDACTADAS)                       │
 └───────────────────────────────────────────────────────────────────┘
 
-    yglxkxkzrvcmciqq
+    <REDACTED - DO NOT STORE SECRETS IN THE REPOSITORY>
 
-  (Ya lista para usar en GMAIL_APP_PASSWORD)
-  
-  Esta es una contraseña de aplicación segura, no tu contraseña
-  de Gmail. Perfecta para este proyecto.
+  Configure `GMAIL_APP_PASSWORD` en su entorno local o en el secret manager
+  del proveedor antes de desplegar. No incluya contraseñas en commits.
 
 
 ┌───────────────────────────────────────────────────────────────────┐

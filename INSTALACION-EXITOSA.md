@@ -18,7 +18,7 @@
 ### ✅ Configuración
 - ✓ Credenciales de Gmail configuradas en `.env.local`
   - Email: `felixvr2005@gmail.com`
-  - Contraseña: `yglxkxkzrvcmciqq`
+  - Contraseña: `<REDACTED - DO NOT STORE IN REPO>`
 
 ### ✅ Código
 - ✓ Sistema de correos funcionando

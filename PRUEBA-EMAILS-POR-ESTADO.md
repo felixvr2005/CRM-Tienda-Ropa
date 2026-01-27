@@ -214,7 +214,7 @@
    - `.env.local` debe tener:
    ```
    GMAIL_USER=felixvr2005@gmail.com
-   GMAIL_PASSWORD=yglxkxkzrvcmciqq
+   GMAIL_PASSWORD=<REDACTED - CONFIG IN .env.local>
    ```
 
 5. **¿Server reloaded los cambios?**

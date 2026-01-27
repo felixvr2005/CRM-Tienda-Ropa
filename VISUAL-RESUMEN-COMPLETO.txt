@@ -414,7 +414,7 @@ RESULTADO: Tu tienda pasó de manual a PROFESIONAL y AUTOMATIZADA en 3 horas.
 Generado: 19 de enero de 2026
 Versión: 1.0
 Estado: ✅ LISTO PARA PRODUCCIÓN
-Contraseña: yglxkxkzrvcmciqq
+Contraseña: <REDACTED - GENERATE LOCALLY>
 Soporte: Ver documentación incluida
 
 ═══════════════════════════════════════════════════════════════════════════

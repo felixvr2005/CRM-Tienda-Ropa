@@ -18,7 +18,7 @@ PASO 1: Configurar variables de entorno en .env.local
 ```
 # Gmail
 GMAIL_USER=tu_correo@gmail.com
-GMAIL_APP_PASSWORD=yglx kxkz rvcm ciqq
+GMAIL_APP_PASSWORD=<REDACTED - GENERATE APP PASSWORD LOCALLY>
 
 # Configuración General
 ADMIN_EMAIL=admin@tu-tienda.com
@@ -27,9 +27,9 @@ PUBLIC_URL=https://tu-sitio.com
 ```
 
 IMPORTANTE:
-- Usar contraseña de aplicación de Gmail (16 caracteres sin espacios)
-- La contraseña proporcionada es: yglxkxkzrvcmciqq
-- Activar "Verificación en 2 pasos" en Google
+- Use una contraseña de aplicación de Gmail (16 caracteres, sin espacios).
+- No compartir ni commitear la contraseña: configúrela en su entorno local o en el secret manager del proveedor.
+- Active "Verificación en 2 pasos" en Google y genere la contraseña en: https://myaccount.google.com/apppasswords
 - Generar una nueva contraseña de aplicación en: https://myaccount.google.com/apppasswords
 */
 

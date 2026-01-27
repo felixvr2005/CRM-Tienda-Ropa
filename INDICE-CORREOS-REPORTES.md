@@ -157,14 +157,14 @@
 
 ### Contraseña de Aplicación Gmail
 ```
-yglxkxkzrvcmciqq
+<REDACTED - DO NOT STORE SECRETS>
 ```
 *(Usar en GMAIL_APP_PASSWORD, sin espacios)*
 
 ### Variables de Entorno Requeridas
 ```
 GMAIL_USER=tu_correo@gmail.com
-GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+GMAIL_APP_PASSWORD=<REDACTED - CONFIG IN ENV>
 ADMIN_EMAIL=admin@tu-tienda.com
 SUPPORT_EMAIL=soporte@tu-tienda.com
 COMPANY_NAME=Mi Tienda

@@ -177,7 +177,7 @@ CONFIGURACIÓN NECESARIA
 
 .env.local (obligatorio):
   GMAIL_USER                 = tu_correo@gmail.com
-  GMAIL_APP_PASSWORD         = yglxkxkzrvcmciqq
+  GMAIL_APP_PASSWORD         = <REDACTED - SET IN ENV>
   ADMIN_EMAIL                = admin@tu-tienda.com
 
 .env.local (opcional):

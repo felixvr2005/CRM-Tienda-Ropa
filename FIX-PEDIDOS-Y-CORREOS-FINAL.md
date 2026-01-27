@@ -23,10 +23,10 @@
 - Después:
   ```typescript
   const gmailUser = process.env.GMAIL_USER || 'felixvr2005@gmail.com';
-  const gmailPassword = process.env.GMAIL_APP_PASSWORD || 'yglxkxkzrvcmciqq';
+  const gmailPassword = process.env.GMAIL_APP_PASSWORD || '';
   ```
 
-✅ **Resultado:** Ahora incluso si las variables de entorno no se cargan, usamos los valores hardcodeados como fallback.
+✅ **Resultado:** Se eliminó el fallback hardcodeado y ahora se requiere `GMAIL_APP_PASSWORD` en entorno; configurar en secrets del proveedor o en `.env.local` (no comitear).
 
 ---
 

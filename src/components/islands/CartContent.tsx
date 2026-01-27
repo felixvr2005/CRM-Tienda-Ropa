@@ -14,7 +14,7 @@ import {
   getCartTimeRemaining,
   startCartExpirationTimer
 } from '@stores/cart';
-import { formatPrice } from '@lib/utils';
+import { formatPrice, computeShippingCost } from '@lib/utils';
 
 export default function CartContent() {
   const cart = useStore($cart);
@@ -76,7 +76,7 @@ export default function CartContent() {
     );
   }
   
-  const shippingCost = subtotal >= 100 ? 0 : 5.95;
+  const shippingCost = computeShippingCost(subtotal, 'standard');
   const total = subtotal + shippingCost;
   
   return (

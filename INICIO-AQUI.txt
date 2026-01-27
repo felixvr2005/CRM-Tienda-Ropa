@@ -83,7 +83,7 @@ PASO 1: Instalar
 
 PASO 2: Configurar .env.local
   GMAIL_USER=tu_correo@gmail.com
-  GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+  GMAIL_APP_PASSWORD=<REDACTED - SET LOCALLY>
   ADMIN_EMAIL=admin@tu-tienda.com
 
 PASO 3: Acceder
@@ -122,11 +122,11 @@ Admin (30+):
 
 ═══════════════════════════════════════════════════════════════
 
-🔑 CONTRASEÑA DE APLICACIÓN GMAIL:
+🔑 CREDENCIALES DE APLICACIÓN (REDACTADAS)
 
-  yglxkxkzrvcmciqq
+  <REDACTED - DO NOT COMMIT SECRETS; SET GMAIL_APP_PASSWORD IN ENV>
 
-(Ya configurada en GMAIL_APP_PASSWORD)
+(Configure la contraseña de aplicación en su entorno local o en el secret manager)
 
 ═══════════════════════════════════════════════════════════════
 

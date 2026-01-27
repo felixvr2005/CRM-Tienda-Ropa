@@ -508,6 +508,7 @@ const provinces = [
   let shippingCost = 4.95;
   let discount = 0;
   let appliedCoupon: any = null;
+  const FREE_SHIPPING_THRESHOLD = parseFloat(import.meta.env.PUBLIC_FREE_SHIPPING_THRESHOLD || '100');
 
   const updateTotals = () => {
     const subtotalEl = document.getElementById('subtotal');
@@ -518,8 +519,9 @@ const provinces = [
 
     if (subtotalEl) subtotalEl.textContent = formatPrice(subtotal);
     
-    // Envío gratis a partir de 50€
-    if (subtotal >= 50) {
+    // Envío gratis a partir del umbral configurable (por defecto 100€)
+    const FREE_SHIPPING_THRESHOLD = parseFloat(import.meta.env.PUBLIC_FREE_SHIPPING_THRESHOLD || '100');
+    if (subtotal >= FREE_SHIPPING_THRESHOLD) {
       shippingCost = 0;
       const standardPrice = document.getElementById('standardPrice');
       if (standardPrice) standardPrice.textContent = 'Gratis';
@@ -544,7 +546,7 @@ const provinces = [
       const method = (e.target as HTMLInputElement).value;
       if (method === 'express') shippingCost = 9.95;
       else if (method === 'store') shippingCost = 0;
-      else shippingCost = subtotal >= 50 ? 0 : 4.95;
+      else shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 4.95;
       updateTotals();
     });
   });

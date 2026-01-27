@@ -98,7 +98,7 @@ SCRIPTS:
 
 2️⃣  CONFIGURAR .env.local
     GMAIL_USER=tu_correo@gmail.com
-    GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+    GMAIL_APP_PASSWORD=<REDACTED - DO NOT COMMIT SECRETS>
     ADMIN_EMAIL=admin@tu-tienda.com
 
 3️⃣  ACCEDER
@@ -125,7 +125,7 @@ REFERENCIA:
 
 🔑 CONTRASEÑA GMAIL:
 
-  yglxkxkzrvcmciqq
+  <REDACTED - DO NOT COMMIT SECRETS>
 
 (Ya lista en tu GMAIL_APP_PASSWORD)
 

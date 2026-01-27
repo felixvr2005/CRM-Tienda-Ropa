@@ -21,7 +21,7 @@ Crea o edita tu archivo `.env.local`:
 ```
 # Gmail Configuration
 GMAIL_USER=tu_correo@gmail.com
-GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+GMAIL_APP_PASSWORD=<REDACTED - GENERATE APP PASSWORD LOCALLY>
 
 # Admin Configuration
 ADMIN_EMAIL=admin@tu-tienda.com
@@ -32,7 +32,7 @@ COMPANY_NAME=Mi Tienda
 PUBLIC_URL=http://localhost:3000
 ```
 
-**IMPORTANTE**: La contraseña de aplicación es: `yglxkxkzrvcmciqq`
+**IMPORTANTE**: No incluya contraseñas reales en el repositorio. Genere una contraseña de aplicación en Google y configúrela en su `.env.local` o en el secret manager del proveedor de despliegue.
 
 ### PASO 3: Verificar Configuración
 

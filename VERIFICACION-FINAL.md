@@ -24,13 +24,13 @@ Estado: Sistema FUNCIONAL - Listos para pruebas finales
 **Claves:**
 ```
 PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51SXzXlRrW2kGomeyAxCOtKQLLoRBVv5zwbwotI3GdE0MlvF3YWUlb8WIv9T6vCZNvaOPF4prkaa6y1JzZA6dPnQf00gwiIxySN
-STRIPE_SECRET_KEY=sk_test_51SXzXlRrW2kGomeyvD6pFi2uUKew3HgdG9GfBuay0MJIVzCbAbwIPAR8NaDmjN990dAnlaDIpuIm1WDq8yYRNYea00NQuDx0fh
+STRIPE_SECRET_KEY=<REDACTED - SET IN SECRET MANAGER>
 ```
 
 ### 4. ✅ Gmail configurado
 ```
 GMAIL_USER=felixvr2005@gmail.com
-GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq
+GMAIL_APP_PASSWORD=<REDACTED - DO NOT STORE IN REPO>
 ```
 
 ---

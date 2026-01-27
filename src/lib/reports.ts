@@ -279,7 +279,7 @@ const calculateFinancialMetrics = (orders: any[]) => {
 };
 
 // Obtener productos más vendidos
-const getTopProducts = async (orders: any[]) => {
+export const getTopProducts = async (orders: any[]) => {
     const productMap = new Map();
 
     orders.forEach((order) => {

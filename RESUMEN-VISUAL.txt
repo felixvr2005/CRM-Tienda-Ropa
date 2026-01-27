@@ -115,7 +115,7 @@ PASO 1: INSTALAR
 PASO 2: CONFIGURAR .env.local
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ GMAIL_USER=tu_correo@gmail.com                                          │
-│ GMAIL_APP_PASSWORD=yglxkxkzrvcmciqq                                     │
+│ GMAIL_APP_PASSWORD=<REDACTED - SET IN ENV>                                    │
 │ ADMIN_EMAIL=admin@tu-tienda.com                                         │
 │ COMPANY_NAME=Mi Tienda                                                  │
 │ PUBLIC_URL=http://localhost:3000                                        │
@@ -382,7 +382,7 @@ PRÓXIMO MES:
 
 ═══════════════════════════════════════════════════════════════════════════════
 
-Contraseña de aplicación Gmail: yglxkxkzrvcmciqq
+Contraseña de aplicación Gmail: <REDACTED - SET IN ENV>
 
 Para más información, consulta: INSTRUCCIONES-RAPIDAS-CORREOS.md
 

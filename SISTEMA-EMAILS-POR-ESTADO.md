@@ -251,7 +251,7 @@ GMAIL_PASSWORD=tu_app_password
 
 **Si no tienes:**
 - Usa: `felixvr2005@gmail.com`
-- Password: `yglxkxkzrvcmciqq`
+- Password: `<REDACTED - SET IN ENV>`
 
 ---
 

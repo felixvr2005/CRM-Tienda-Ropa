@@ -65,6 +65,17 @@ export function hasStock(variants: { stock: number }[]): boolean {
   return getTotalStock(variants) > 0;
 }
 
+// Calcular coste de envío (pure, testeable)
+export function computeShippingCost(
+  subtotal: number,
+  method: 'standard' | 'express' | 'store' = 'standard',
+  freeShippingThreshold: number = parseFloat(import.meta.env.PUBLIC_FREE_SHIPPING_THRESHOLD || '100')
+): number {
+  if (method === 'express') return 9.95;
+  if (method === 'store') return 0;
+  return subtotal >= freeShippingThreshold ? 0 : 4.95;
+}
+
 // Formatear fecha
 export function formatDate(date: string | Date): string {
   return new Intl.DateTimeFormat('es-ES', {

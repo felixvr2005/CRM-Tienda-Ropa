@@ -98,8 +98,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   // Calcular totales
   const subtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
-  // Free shipping threshold aligned with checkout UI (50€)
-  const shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 50 ? 0 : 4.95);
+  // Free shipping threshold aligned with checkout UI (100€)
+  const shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 100 ? 0 : 4.95);
   const totalAmount = (session.amount_total || 0) / 100; // Stripe usa centavos
 
   // Buscar o crear customer (por email). Si existe, usar id; si no, crear cliente para poder asociar pedidos a clientes sin cuenta

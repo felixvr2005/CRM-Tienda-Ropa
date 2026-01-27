@@ -124,10 +124,10 @@ export type { EmailTemplate, CustomerEmailData, AdminEmailData };
 // Configurar transporte de correo
 const createEmailTransport = () => {
     const gmailUser = process.env.GMAIL_USER || 'felixvr2005@gmail.com';
-    const gmailPassword = process.env.GMAIL_APP_PASSWORD || 'yglxkxkzrvcmciqq';
+    const gmailPassword = process.env.GMAIL_APP_PASSWORD || '';
     
     if (!gmailUser || !gmailPassword) {
-        console.error('Variables de email no configuradas:', { gmailUser: !!gmailUser, gmailPassword: !!gmailPassword });
+        console.error('Variables de email no configuradas (GMAIL_USER / GMAIL_APP_PASSWORD faltantes).');
     }
     
     console.log('Usando email:', gmailUser);

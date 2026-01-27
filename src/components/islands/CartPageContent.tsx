@@ -5,7 +5,7 @@
 import { useStore } from '@nanostores/react';
 import { useState, useEffect } from 'react';
 import { $cart, removeFromCart, updateQuantity, clearCart, getCartTimeRemaining, startCartExpirationTimer, type CartItem } from '@stores/cart';
-import { formatPrice } from '@lib/utils';
+import { formatPrice, computeShippingCost } from '@lib/utils';
 import CouponInput from './CouponInput';
 
 export default function CartPageContent() {
@@ -74,7 +74,7 @@ export default function CartPageContent() {
     return acc + item.price * item.quantity;
   }, 0);
 
-  const shipping = subtotal >= 100 ? 0 : 5.95;
+  const shipping = computeShippingCost(subtotal, 'standard');
   
   // Aplicar descuento del cupón si existe
   let discountAmount = 0;

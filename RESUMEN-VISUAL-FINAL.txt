@@ -228,7 +228,7 @@ TIEMPO: 1 minuto
 
 ✅ Gmail
    • Email: felixvr2005@gmail.com
-   • Contraseña: yglxkxkzrvcmciqq
+   • Contraseña: <REDACTED - GENERATE LOCALLY>
 
 ✅ Cloudinary
    • Para gestión de imágenes
