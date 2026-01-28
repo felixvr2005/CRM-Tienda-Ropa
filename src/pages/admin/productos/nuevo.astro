@@ -301,6 +301,7 @@ const { data: productTypes } = await supabase
         name: formData.get('name'),
         description: formData.get('description') || null,
         category_id: formData.get('category_id') || null,
+        product_type_id: formData.get('product_type_id') || null,
         price: parseFloat(formData.get('price')),
         discount_percentage: parseInt(formData.get('discount_percentage')) || 0,
         ...(images.length > 0 && { images }),
@@ -323,18 +324,34 @@ const { data: productTypes } = await supabase
       });
       
       try {
-        const response = await fetch('/api/admin/products', {
+        // Send flattened product payload (same shape as edit form)
+      const payload = {
+        ...product,
+        variants: variants.length ? variants : undefined
+      };
+
+      const response = await fetch('/api/admin/products/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product, variants }),
+          body: JSON.stringify(payload),
         });
         
-        const data = await response.json();
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (e) {
+          // No JSON returned
+        }
         
         if (response.ok) {
           window.location.href = '/admin/productos';
+        } else if (response.status === 401) {
+          errorDiv.textContent = data.error || 'No autorizado. Por favor inicia sesión como administrador.';
+          errorDiv.classList.remove('hidden');
+          // Opcional: redirigir al login admin
+          // window.location.href = '/admin/login';
         } else {
-          errorDiv.textContent = data.error || 'Error al crear el producto';
+          errorDiv.textContent = data.error || `Error al crear el producto (${response.status})`;
           errorDiv.classList.remove('hidden');
         }
       } catch (error) {
