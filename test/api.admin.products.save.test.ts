@@ -65,10 +65,24 @@ describe('POST /api/admin/products/save', () => {
     const request = new Request('http://localhost/api/admin/products/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product: productPayload })
+      body: JSON.stringify(productPayload)
     });
 
     const response = await POST({ request, cookies: makeCookies(undefined) } as any);
     expect(response.status).toBe(401);
+  });
+
+  it('returns 400 when required fields missing', async () => {
+    const incomplete = { name: '', price: 1 };
+    const request = new Request('http://localhost/api/admin/products/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(incomplete)
+    });
+
+    const response = await POST({ request, cookies: makeCookies('token') } as any);
+    expect(response.status).toBe(400);
+    const json = await response.json();
+    expect(json.error).toMatch(/Falta nombre/);
   });
 });

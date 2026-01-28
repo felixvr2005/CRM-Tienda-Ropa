@@ -276,33 +276,70 @@ const { data: productTypes } = await supabase
     // Form submission
     const form = document.getElementById('productForm');
     const errorDiv = document.getElementById('errorMessage');
-    
+    let isSubmitting = false;
+
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? match[2] : null;
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorDiv.classList.add('hidden');
-      
+
+      if (isSubmitting) return;
+
       const formData = new FormData(form);
-      
+
+      // Client-side validation
+      const nameVal = (formData.get('name') || '').toString().trim();
+      const priceVal = parseFloat(formData.get('price'));
+      const typeVal = (formData.get('product_type_id') || '').toString();
+
+      if (!nameVal) {
+        errorDiv.textContent = 'El nombre del producto es obligatorio.';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      if (!typeVal) {
+        errorDiv.textContent = 'Selecciona un tipo de producto antes de continuar.';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      if (!isFinite(priceVal) || priceVal < 0) {
+        errorDiv.textContent = 'Introduce un precio válido mayor o igual a 0.';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      // Check admin auth cookie present
+      const accessCookie = getCookie('sb-access-token');
+      if (!accessCookie) {
+        errorDiv.innerHTML = 'No autorizado. <a href="/admin/login" class="underline">Inicia sesión</a> como administrador e inténtalo de nuevo.';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
       // Obtener imágenes del textarea (que se actualiza automáticamente por ImageUploader)
       const imagesTextarea = document.getElementById('imagesInput');
       let images = [];
-      
+
       if (imagesTextarea && imagesTextarea.value.trim()) {
         images = imagesTextarea.value
           .split('\n')
           .map(url => url.trim())
           .filter(url => url.length > 0);
       }
-      
-      console.log('Images from textarea:', images);
-      
+
       // Parse form data
       const product = {
-        name: formData.get('name'),
+        name: nameVal,
         description: formData.get('description') || null,
         category_id: formData.get('category_id') || null,
-        product_type_id: formData.get('product_type_id') || null,
-        price: parseFloat(formData.get('price')),
+        product_type_id: typeVal || null,
+        price: priceVal,
         discount_percentage: parseInt(formData.get('discount_percentage')) || 0,
         ...(images.length > 0 && { images }),
         is_active: formData.get('is_active') === 'on',
@@ -310,7 +347,7 @@ const { data: productTypes } = await supabase
         is_new: formData.get('is_new') === 'on',
         is_flash_offer: formData.get('is_flash_offer') === 'on',
       };
-      
+
       // Parse variants
       const variants = [];
       const variantElements = document.querySelectorAll('[data-variant]');
@@ -322,34 +359,33 @@ const { data: productTypes } = await supabase
           variants.push({ size, color, stock });
         }
       });
-      
-      try {
-        // Send flattened product payload (same shape as edit form)
-      const payload = {
-        ...product,
-        variants: variants.length ? variants : undefined
-      };
 
-      const response = await fetch('/api/admin/products/save', {
+      try {
+        isSubmitting = true;
+        // Send flattened product payload (same shape as edit form)
+        const payload = {
+          ...product,
+          variants: variants.length ? variants : undefined
+        };
+
+        const response = await fetch('/api/admin/products/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        
+
         let data = {};
         try {
           data = await response.json();
         } catch (e) {
           // No JSON returned
         }
-        
+
         if (response.ok) {
           window.location.href = '/admin/productos';
         } else if (response.status === 401) {
           errorDiv.textContent = data.error || 'No autorizado. Por favor inicia sesión como administrador.';
           errorDiv.classList.remove('hidden');
-          // Opcional: redirigir al login admin
-          // window.location.href = '/admin/login';
         } else {
           errorDiv.textContent = data.error || `Error al crear el producto (${response.status})`;
           errorDiv.classList.remove('hidden');
@@ -357,6 +393,8 @@ const { data: productTypes } = await supabase
       } catch (error) {
         errorDiv.textContent = 'Error de conexión';
         errorDiv.classList.remove('hidden');
+      } finally {
+        isSubmitting = false;
       }
     });
   </script>
