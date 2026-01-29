@@ -434,19 +434,44 @@ export async function getAvailableFilters(categorySlug?: string) {
   });
 
   // Ordenar tallas
-  const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '85', '90', '95', '100', 'UNICA'];
-  const sortedSizes = Array.from(sizes).sort((a, b) => {
-    const aIndex = sizeOrder.indexOf(a);
-    const bIndex = sizeOrder.indexOf(b);
-    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
-  });
+  const allSizes = Array.from(sizes);
+  const isNumericOnly = allSizes.every(s => /^\d+$/.test(s));
+
+  let sortedSizes: string[];
+  if (isNumericOnly) {
+    // Orden numérico ascendente para tallas de calzado (35,36,37...)
+    sortedSizes = allSizes.sort((a, b) => Number(a) - Number(b));
+  } else {
+    const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '85', '90', '95', '100', 'UNICA'];
+    sortedSizes = allSizes.sort((a, b) => {
+      const aIndex = sizeOrder.indexOf(a);
+      const bIndex = sizeOrder.indexOf(b);
+      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+  }
+
+  // Intentar inferir sizeType a partir de los product_types en la categoría (cuando se proporciona categorySlug)
+  let inferredSizeType: 'standard' | 'shoe' | 'unique' = 'standard';
+  try {
+    const { data: pt } = await client
+      .from('product_types')
+      .select('size_type')
+      .in('id', (data || []).map((p: any) => p.product_type_id).filter(Boolean))
+      .limit(1);
+    if (pt && pt.length > 0 && pt[0].size_type) {
+      inferredSizeType = pt[0].size_type;
+    }
+  } catch (e) {
+    // noop - inference best-effort only
+  }
 
   return {
     colors: Array.from(colors).sort(),
     sizes: sortedSizes,
+    sizeType: inferredSizeType,
     priceRange: {
       min: minPrice === Infinity ? 0 : Math.floor(minPrice),
       max: maxPrice === 0 ? 1000 : Math.ceil(maxPrice)

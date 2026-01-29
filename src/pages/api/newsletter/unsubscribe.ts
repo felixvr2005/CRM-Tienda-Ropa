@@ -31,6 +31,7 @@ export async function GET({ request }: any) {
     // Marcar como no suscrito
     const { error: updateError } = await supabaseAdmin
       .from('newsletter_subscribers')
+      // @ts-ignore - table typings not present in workspace; runtime payload is valid
       .update({ subscribed: false, unsubscribed_at: new Date().toISOString() })
       .eq('email', email);
 
@@ -68,6 +69,7 @@ export async function POST({ request }: any) {
 
     const { error } = await supabaseAdmin
       .from('newsletter_subscribers')
+      // @ts-ignore - table typings not present in workspace; runtime payload is valid
       .update({ subscribed: false, unsubscribed_at: new Date().toISOString() })
       .eq('email', email);
 

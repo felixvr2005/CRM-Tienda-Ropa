@@ -122,7 +122,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const subtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
   // Free shipping threshold aligned with checkout UI (100€)
   const shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 100 ? 0 : 4.95);
-  const totalAmount = (session.amount_total || 0) / 100; // Stripe usa centavos
+  // Intentar obtener descuento desde metadata (si la UI lo envió)
+  const discountAmount = Number(metadata.discountAmount || metadata.discount_amount || 0) || 0;
+
+  // Stripe amount_total viene en céntimos; si no está presente o no coincide con el total calculado, preferimos el cálculo server-side
+  let totalAmount = (session.amount_total || 0) / 100; // Stripe usa centavos
+  const expectedTotal = Math.round((subtotal + shippingCost - discountAmount) * 100) / 100;
+  if (!totalAmount || Math.abs(totalAmount - expectedTotal) > 0.009) {
+    logger.warn(`Stripe total (${totalAmount}€) does not match expected total (${expectedTotal}€) for session ${session.id} — using server-calculated total`);
+    totalAmount = expectedTotal;
+  }
 
   // Buscar o crear customer (por email). Si existe, usar id; si no, crear cliente para poder asociar pedidos a clientes sin cuenta
   let customerId = null;

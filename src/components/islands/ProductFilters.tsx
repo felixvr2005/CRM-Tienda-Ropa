@@ -265,7 +265,13 @@ function FilterContent({
       {/* Tallas */}
       {availableFilters.sizes.length > 0 && (
         <div>
-          <h3 className="text-xs uppercase tracking-wider text-primary-500 mb-3">Talla</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs uppercase tracking-wider text-primary-500 mb-3">Talla</h3>
+            {availableFilters.sizeType === 'shoe' && (
+              <small className="text-xs text-primary-400">Tallas EU (calzado)</small>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-2">
             {availableFilters.sizes.map((size: string) => (
               <button
