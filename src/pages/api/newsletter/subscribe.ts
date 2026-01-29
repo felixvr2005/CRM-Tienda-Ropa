@@ -1,9 +1,14 @@
 import { supabaseAdmin } from '@lib/supabase';
 import nodemailer from 'nodemailer';
+import { ensureEnv } from '@lib/ensureEnv';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
-// Configurar nodemailer con Gmail (usando las credenciales que ya funcionan)
+// Verificar credenciales de envío en producción
+ensureEnv(['GMAIL_USER', 'GMAIL_APP_PASSWORD']);
+
+// Configurar nodemailer con Gmail (usando las credenciales que ya funcionan)"
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -61,7 +66,7 @@ async function sendNewsletterWelcomeEmail(email: string, discountCode: string) {
         
         <div class="footer">
           <p>Fashion Store - Tu tienda de moda online</p>
-          <p>Si deseas dejar de recibir emails, <a href="[unsubscribe_link]">haz clic aquí</a></p>
+          <p>Si deseas dejar de recibir emails, <a href="${(process.env.PUBLIC_APP_URL || 'https://tienda.com')}/unsubscribe?email=${encodeURIComponent(email)}&code=${discountCode}">haz clic aquí para darte de baja</a></p>
         </div>
       </div>
     </div>
@@ -76,7 +81,7 @@ async function sendNewsletterWelcomeEmail(email: string, discountCode: string) {
       subject: '¡Bienvenido! Tu código de descuento especial - Fashion Store',
       html: htmlContent
     });
-    console.log('✅ Email enviado a:', email);
+    logger.info('Email enviado a:', email);
     return true;
   } catch (error) {
     console.error('❌ Error enviando email:', error);
@@ -115,7 +120,7 @@ export async function POST({ request }: any) {
         discount_code: discountCode,
         subscribed_at: new Date().toISOString(),
         used: false
-      }, {
+      } as any, {
         onConflict: 'email'
       });
 

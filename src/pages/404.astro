@@ -1,0 +1,33 @@
+---
+import PublicLayout from '@layouts/PublicLayout.astro';
+export const prerender = false;
+---
+
+<PublicLayout title="Página no encontrada — 404">
+  <main class="max-w-4xl mx-auto py-24 px-6 text-center" role="main">
+    <h1 class="text-6xl font-display mb-6">404</h1>
+    <p class="text-xl text-primary-600 mb-6">Lo sentimos — no hemos encontrado la página que buscas.</p>
+
+    <div class="mb-8">
+      <a href="/" class="inline-block bg-primary-900 text-white px-6 py-3 rounded-md mr-3">Ir al inicio</a>
+      <a href="/productos" class="inline-block border border-primary-200 px-6 py-3 rounded-md">Ver productos</a>
+    </div>
+
+    <p class="text-sm text-primary-500 mb-6">Prueba buscar un producto o revisa alguno de los enlaces a continuación:</p>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-md mx-auto">
+      <a href="/categoria/camisas" class="text-sm text-primary-700 hover:underline">Camisas</a>
+      <a href="/categoria/pantalones" class="text-sm text-primary-700 hover:underline">Pantalones</a>
+      <a href="/categoria/accesorios" class="text-sm text-primary-700 hover:underline">Accesorios</a>
+      <a href="/categoria/ofertas" class="text-sm text-primary-700 hover:underline">Ofertas</a>
+    </div>
+
+    <form action="/productos" method="GET" class="mt-10 flex items-center justify-center gap-2">
+      <label for="q" class="sr-only">Buscar productos</label>
+      <input id="q" name="q" type="search" placeholder="Buscar producto" class="px-4 py-2 border border-primary-200 rounded-md w-64" />
+      <button type="submit" class="px-4 py-2 bg-primary-900 text-white rounded-md">Buscar</button>
+    </form>
+
+    <p class="text-xs text-primary-400 mt-8">Si crees que debería existir esta página, contacta a <a href="/contacto" class="underline">soporte</a>.</p>
+  </main>
+</PublicLayout>

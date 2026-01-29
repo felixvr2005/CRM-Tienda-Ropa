@@ -8,8 +8,12 @@ import Stripe from 'stripe';
 import { supabaseAdmin } from '@lib/supabase';
 import { sendCustomerEmail } from '@lib/email';
 import type { CustomerEmailData } from '@lib/email';
+import { ensureEnv } from '@lib/ensureEnv';
 
 export const prerender = false;
+
+// Aseguramos claves necesarias para el flujo de éxito de pago
+ensureEnv(['STRIPE_SECRET_KEY']);
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
 

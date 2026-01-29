@@ -7,6 +7,8 @@ import PublicLayout from '@layouts/PublicLayout.astro';
 import ProductCard from '@components/product/ProductCard.astro';
 import { getFilteredProducts, getAvailableFilters, getCategories } from '@lib/supabase';
 
+export const prerender = false;
+
 // Obtener parámetros de URL
 const url = new URL(Astro.request.url);
 const categorySlug = url.searchParams.get('categoria') || undefined;

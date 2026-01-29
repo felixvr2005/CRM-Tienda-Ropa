@@ -54,6 +54,9 @@ const canonicalURL = new URL(Astro.url.pathname, siteUrl);
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 </head>
 <body class="font-sans text-primary-900 antialiased">
+  <!-- Skip link: mejora accesibilidad para usuarios de teclado/lector de pantalla -->
+  <a href="#main-content" class="skip-link" style="position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden" onfocus="this.style.left='1rem';this.style.top='1rem';this.style.width='auto';this.style.height='auto'" onblur="this.style.left='-999px'">Ir al contenido</a>
+  <div id="main-content" tabindex="-1" aria-hidden="false"></div>
   <slot />
 </body>
 </html>

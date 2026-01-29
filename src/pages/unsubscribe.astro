@@ -1,0 +1,56 @@
+---
+import PublicLayout from '@layouts/PublicLayout.astro';
+export const prerender = false;
+
+const url = new URL(Astro.request.url);
+const status = url.searchParams.get('status') || undefined;
+const email = url.searchParams.get('email') || undefined;
+---
+
+<PublicLayout title="Anulación suscripción">
+  <main class="max-w-2xl mx-auto py-24 px-6 text-center">
+    {status === 'success' ? (
+      <section>
+        <h1 class="text-2xl font-medium mb-4">Has sido dado de baja ✅</h1>
+        <p class="text-primary-600 mb-6">La dirección <strong>{email}</strong> ha sido eliminada de nuestra lista de envíos.</p>
+        <a href="/" class="inline-block bg-primary-900 text-white px-6 py-3 rounded-md">Volver a la tienda</a>
+      </section>
+    ) : (
+      <section>
+        <h1 class="text-2xl font-medium mb-4">Darse de baja del newsletter</h1>
+        <p class="text-primary-600 mb-6">Si deseas darte de baja, introduce tu email y el código que recibiste por correo.</p>
+        <form id="unsubscribeForm" class="max-w-md mx-auto">
+          <label for="email" class="sr-only">Email</label>
+          <input id="email" name="email" type="email" required placeholder="tu@email.com" class="w-full px-4 py-2 mb-3 border rounded" />
+          <label for="code" class="sr-only">Código</label>
+          <input id="code" name="code" type="text" required placeholder="Código recibido" class="w-full px-4 py-2 mb-3 border rounded" />
+          <button type="submit" class="w-full bg-primary-900 text-white py-3 rounded">Darme de baja</button>
+          <div id="msg" role="status" aria-live="polite" class="mt-4 text-sm"></div>
+        </form>
+      </section>
+    )}
+  </main>
+</PublicLayout>
+
+<script>
+  const form = document.getElementById('unsubscribeForm');
+  const msg = document.getElementById('msg');
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msg.textContent = '';
+    const email = (document.getElementById('email') as HTMLInputElement).value.trim();
+    const code = (document.getElementById('code') as HTMLInputElement).value.trim();
+    if (!email || !code) {
+      msg.textContent = 'Rellena email y código.';
+      return;
+    }
+    try {
+      const res = await fetch('/api/newsletter/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code }) });
+      const j = await res.json();
+      msg.textContent = j.message || 'OK';
+      if (res.ok) form.reset();
+    } catch (err) {
+      msg.textContent = 'Error de conexión.';
+    }
+  });
+</script>

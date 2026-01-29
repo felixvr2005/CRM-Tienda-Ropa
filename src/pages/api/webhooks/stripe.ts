@@ -5,8 +5,13 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { supabaseAdmin } from '@lib/supabase';
+import { ensureEnv } from '@lib/ensureEnv';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
+
+// Verificación de entorno crítica: fallar rápido si faltan claves de Stripe
+ensureEnv(['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']);
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
 const webhookSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
@@ -22,15 +27,15 @@ export const POST: APIRoute = async ({ request }) => {
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: any) {
-      console.error('Webhook signature verification failed:', err.message);
-      return new Response(JSON.stringify({ error: `Webhook Error: ${err.message}` }), {
+      logger.error('Webhook signature verification failed:', err?.message || err);
+      return new Response(JSON.stringify({ error: `Webhook Error: ${err?.message || err}` }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
   } else {
     // En desarrollo, aceptar sin verificar firma
-    console.warn('⚠️ Webhook sin verificación de firma (modo desarrollo)');
+    logger.warn('⚠️ Webhook sin verificación de firma (modo desarrollo)');
     try {
       event = JSON.parse(body) as Stripe.Event;
     } catch (err) {
@@ -57,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
         break;
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        logger.debug(`Unhandled event type: ${event.type}`);
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -88,8 +93,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const shippingMethod = metadata.shippingMethod || 'standard';
   const items = metadata.items ? JSON.parse(metadata.items) : [];
 
+  // Idempotency guard: si ya existe un pedido con esta sesión, salir sin duplicar
+  try {
+    const { data: existingOrder } = await supabaseAdmin
+      .from('orders')
+      .select('id, order_number')
+      .eq('stripe_checkout_session_id', session.id)
+      .single();
+
+    if (existingOrder) {
+      logger.info(`Webhook already processed for session ${session.id} (order ${existingOrder.order_number})`);
+      return;
+    }
+  } catch (err) {
+    // Si la comprobación falla no bloqueamos el procesamiento — sólo registramos
+    logger.warn('Idempotency check failed, continuing processing:', err);
+  }
+
   if (items.length === 0) {
-    console.error('No items in checkout session');
+    logger.error('No items in checkout session');
     return;
   }
 

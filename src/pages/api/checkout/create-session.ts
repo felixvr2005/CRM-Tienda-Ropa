@@ -1,8 +1,13 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { supabase } from '../../../lib/supabase';
+import { ensureEnv } from '@lib/ensureEnv';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
+
+// Verificación en tiempo de ejecución — útil para CI / deploys
+ensureEnv(['STRIPE_SECRET_KEY']);
 
 const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
 
@@ -70,7 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
       // item.price ya está en euros, así que solo multiplicar por 100
       const priceInCents = Math.round(item.price * 100);
       
-      console.log(`Item: ${productData?.name}, price from client: €${item.price}, in cents: ${priceInCents}`);
+      logger.debug(`Item: ${productData?.name}, price from client: €${item.price}, in cents: ${priceInCents}`);
       
       return {
         price_data: {
