@@ -90,20 +90,27 @@ jobs:
       - name: Start preview server
         run: |
           nohup npm run preview -- --port 5173 &
-          npx wait-on http://localhost:5173 || true
+          npx wait-on http://127.0.0.1:5173 || npx wait-on http://localhost:5173 || true
 
       - name: Run Playwright E2E
-        run: npm run test:e2e
+        run: npm run test:e2e --if-present
         env:
-          PLAYWRIGHT_BASE_URL: http://localhost:5173
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report || playwright-report/**
 
       - name: Lighthouse (placeholder)
         uses: treosh/lighthouse-ci-action@v9
         with:
           urls: |
-            http://localhost:5173/
-            http://localhost:5173/productos
-            http://localhost:5173/checkout
+            http://127.0.0.1:5173/
+            http://127.0.0.1:5173/productos
+            http://127.0.0.1:5173/checkout
         if: always()
 
 

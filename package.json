@@ -13,7 +13,8 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "test:e2e": "playwright test --config=playwright.config.ts"
+    "test:e2e": "playwright test --config=playwright.config.ts",
+    "e2e:local": "npm run build && npm run preview -- --port 5173 & npx wait-on http://127.0.0.1:5173 && npx playwright test -g \"(newsletter|checkout)\" --config=playwright.config.ts"
   },
   "dependencies": {
     "@astrojs/node": "^9.0.0",
