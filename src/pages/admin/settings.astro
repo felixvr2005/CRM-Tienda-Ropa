@@ -4,7 +4,7 @@
  * Toggle de ofertas flash y otras configuraciones
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { supabase, supabaseAdmin } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -101,11 +101,15 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-// Obtener todas las configuraciones
-const { data: configs } = await supabase
+// Obtener todas las configuraciones (usar supabaseAdmin para asegurar lectura completa)
+const { data: configs, error: configsError } = await supabaseAdmin
   .from('configuracion')
   .select('*')
   .order('categoria');
+
+if (configsError) {
+  console.error('Error reading configs:', configsError);
+}
 
 // Helper para obtener valor de configuración
 function getConfig(key: string, defaultValue: string = ''): string {
