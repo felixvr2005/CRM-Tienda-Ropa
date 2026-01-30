@@ -11,7 +11,7 @@ const email = url.searchParams.get('email') || undefined;
   <main class="max-w-2xl mx-auto py-24 px-6 text-center">
     {status === 'success' ? (
       <section>
-        <h1 class="text-2xl font-medium mb-4">Has sido dado de baja ✅</h1>
+        <h1 data-testid="unsubscribe-success" class="text-2xl font-medium mb-4">Has sido dado de baja ✅</h1>
         <p class="text-primary-600 mb-6">La dirección <strong>{email}</strong> ha sido eliminada de nuestra lista de envíos.</p>
         <a href="/" class="inline-block bg-primary-900 text-white px-6 py-3 rounded-md">Volver a la tienda</a>
       </section>
@@ -25,7 +25,7 @@ const email = url.searchParams.get('email') || undefined;
           <label for="code" class="sr-only">Código</label>
           <input id="code" name="code" type="text" required placeholder="Código recibido" class="w-full px-4 py-2 mb-3 border rounded" />
           <button type="submit" class="w-full bg-primary-900 text-white py-3 rounded">Darme de baja</button>
-          <div id="msg" role="status" aria-live="polite" class="mt-4 text-sm"></div>
+          <div id="msg" data-testid="unsubscribe-msg" role="status" aria-live="polite" class="mt-4 text-sm"></div>
         </form>
       </section>
     )}

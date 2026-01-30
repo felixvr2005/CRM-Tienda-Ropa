@@ -18,6 +18,8 @@
 
 ### 📚 Documentación
 - **Para usuarios:** [INICIO-RAPIDO.md](INICIO-RAPIDO.md) (2 min)
+
+[![E2E staging](https://github.com/felixvr2005/CRM-Tienda-Ropa/actions/workflows/e2e-staging.yml/badge.svg)](https://github.com/felixvr2005/CRM-Tienda-Ropa/actions/workflows/e2e-staging.yml)
 - **Para guía completa:** [GUIA-PANEL-UNIFICADO.md](GUIA-PANEL-UNIFICADO.md)
 - **Para técnica:** [DOCUMENTACION-VARIANTS-PANEL.md](DOCUMENTACION-VARIANTS-PANEL.md)
 - **Para índice:** [INDICE-DOCUMENTACION.md](INDICE-DOCUMENTACION.md)

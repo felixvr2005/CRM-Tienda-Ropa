@@ -17,7 +17,7 @@ test('checkout form submits and redirects to Stripe (intercept)', async ({ page 
   // notify the page that we've injected localStorage so it re-reads the cart (robust against hydration races)
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('cart:updated')));
   await page.waitForSelector('#checkoutForm', { timeout: 12000 });
-  await page.fill('input[name="email"]', `e2e+${Date.now()}@example.com`);
+  await page.fill('[data-testid="checkout-email"]', `e2e+${Date.now()}@example.com`);
   await page.fill('#phone', '+34123456789');
   await page.fill('#firstName', 'E2E');
   await page.fill('#lastName', 'Tester');
@@ -30,6 +30,7 @@ test('checkout form submits and redirects to Stripe (intercept)', async ({ page 
   await page.check('#terms');
 
   // ensure the cart was picked up by the client
+  await expect(page.locator('[data-testid="cart-summary"]')).toBeVisible();
   await expect(page.locator('#subtotal')).toHaveText(/10/);
 
   await page.route('**/api/checkout/create-session', (route) => {
@@ -40,7 +41,7 @@ test('checkout form submits and redirects to Stripe (intercept)', async ({ page 
     });
   });
 
-  const submit = page.locator('button:has-text("PAGAR AHORA")');
+  const submit = page.locator('[data-testid="checkout-submit"]');
   if (await submit.isVisible()) {
 
 

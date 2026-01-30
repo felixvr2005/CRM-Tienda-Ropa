@@ -1,0 +1,5 @@
+# CODEOWNERS — require review from repo owner for changes under src/
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+/src/ @felixvr2005
+/playwright/ @felixvr2005
+/scripts/ @felixvr2005

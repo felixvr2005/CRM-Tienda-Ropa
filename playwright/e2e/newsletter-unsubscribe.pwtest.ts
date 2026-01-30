@@ -31,6 +31,6 @@ test('newsletter subscribe -> unsubscribe (via API + UI)', async ({ page, reques
 
   // follow redirect in the browser and assert UI
   await page.goto(location);
-  await page.waitForSelector('text=Has sido dado de baja', { timeout: 10000 });
-  await expect(page.locator('text=Has sido dado de baja')).toBeVisible({ timeout: 2000 });
+  await page.waitForSelector('[data-testid="unsubscribe-success"]', { timeout: 10000 });
+  await expect(page.locator('[data-testid="unsubscribe-success"]')).toBeVisible({ timeout: 2000 });
 });

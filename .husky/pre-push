@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run quick smoke before pushing: unit tests + check-console
+npm test --silent || { echo 'Unit tests failed — aborting push'; exit 1; }
+npm run check:console || { echo 'check-console failed — aborting push'; exit 1; }
