@@ -159,6 +159,8 @@ export const POST: APIRoute = async ({ request }) => {
         shippingAddress: JSON.stringify(shippingAddress),
         shippingMethod,
         couponCode: couponCode || '',
+        discountAmount: String(discountAmt || 0),
+        subtotal: String(subtotal || 0),
         items: JSON.stringify(items),
       },
       shipping_address_collection: {

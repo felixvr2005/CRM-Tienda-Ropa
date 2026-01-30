@@ -350,14 +350,14 @@ if (!formattedReturn) {
         const result = await response.json();
 
         if (response.ok) {
-          alert('✅ Devolución confirmada y correo enviado al cliente');
+          window.toast?.success('Devolución confirmada y correo enviado al cliente');
           window.location.reload();
         } else {
-          alert('❌ Error: ' + (result.error || 'Error desconocido'));
+          window.toast?.error('Error: ' + (result.error || 'Error desconocido'));
         }
       } catch (error) {
         console.error('Error:', error);
-        alert('❌ Error al confirmar la devolución');
+        window.toast?.error('Error al confirmar la devolución');
       }
     });
   </script>

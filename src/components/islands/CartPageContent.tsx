@@ -78,11 +78,16 @@ export default function CartPageContent() {
   
   // Aplicar descuento del cupón si existe
   let discountAmount = 0;
-  if (appliedCoupon && appliedCoupon.discountType === 'percentage') {
-    discountAmount = (subtotal * appliedCoupon.discountPercentage) / 100;
+  if (appliedCoupon) {
+    if (appliedCoupon.discountType === 'percentage') {
+      discountAmount = (subtotal * appliedCoupon.discountPercentage) / 100;
+    } else if (appliedCoupon.discountType === 'fixed') {
+      // Descuento fijo en euros
+      discountAmount = appliedCoupon.discountAmount || 0;
+    }
   }
   
-  const total = subtotal - discountAmount + shipping;
+  const total = Math.max(0, subtotal - discountAmount + shipping);
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
@@ -293,8 +298,13 @@ export default function CartPageContent() {
           {/* Promo Code */}
           <div className="mb-6">
             <CouponInput 
-              onCouponApplied={(code, discount) => {
-                setAppliedCoupon({ code, discountPercentage: (discount / subtotal) * 100 });
+              onCouponApplied={(code, couponData) => {
+                setAppliedCoupon({ 
+                  code, 
+                  discountType: couponData.discountType,
+                  discountPercentage: couponData.discountPercentage,
+                  discountAmount: couponData.discountAmount
+                });
                 setCouponError('');
               }}
               onCouponRemoved={() => {
@@ -310,9 +320,13 @@ export default function CartPageContent() {
               <span className="text-primary-600">Subtotal</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
-            {appliedCoupon && (
+            {appliedCoupon && discountAmount > 0 && (
               <div className="flex justify-between text-green-600 font-medium">
-                <span>Descuento ({appliedCoupon.discountPercentage}%)</span>
+                <span>
+                  Descuento {appliedCoupon.discountType === 'percentage' 
+                    ? `(${appliedCoupon.discountPercentage}%)` 
+                    : ''}
+                </span>
                 <span>-{formatPrice(discountAmount)}</span>
               </div>
             )}

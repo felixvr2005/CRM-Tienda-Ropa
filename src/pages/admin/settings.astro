@@ -76,9 +76,9 @@ if (Astro.request.method === 'POST') {
     }
 
     if (action === 'updateShipping') {
-      const freeShippingThreshold = formData.get('free_shipping_threshold') as string;
-      const standardShippingCost = formData.get('standard_shipping_cost') as string;
-      const expressShippingCost = formData.get('express_shipping_cost') as string;
+      const freeShippingThreshold = data.free_shipping_threshold as string;
+      const standardShippingCost = data.standard_shipping_cost as string;
+      const expressShippingCost = data.express_shipping_cost as string;
 
       const configs = [
         { clave: 'free_shipping_threshold', valor: freeShippingThreshold, tipo: 'number', descripcion: 'Umbral para envío gratis (€)', categoria: 'shipping' },

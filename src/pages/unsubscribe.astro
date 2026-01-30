@@ -11,7 +11,7 @@ const email = url.searchParams.get('email') || undefined;
   <main class="max-w-2xl mx-auto py-24 px-6 text-center">
     {status === 'success' ? (
       <section>
-        <h1 data-testid="unsubscribe-success" class="text-2xl font-medium mb-4">Has sido dado de baja ✅</h1>
+        <h1 data-testid="unsubscribe-success" class="text-2xl font-medium mb-4">Has sido dado de baja correctamente</h1>
         <p class="text-primary-600 mb-6">La dirección <strong>{email}</strong> ha sido eliminada de nuestra lista de envíos.</p>
         <a href="/" class="inline-block bg-primary-900 text-white px-6 py-3 rounded-md">Volver a la tienda</a>
       </section>

@@ -169,6 +169,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Crear el pedido
+  const couponCode = metadata.couponCode || null;
+  
   const { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
     .insert({
@@ -184,7 +186,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripe_payment_intent_id: session.payment_intent as string,
       subtotal: subtotal,
       shipping_cost: shippingCost,
-      discount_amount: 0,
+      discount_amount: discountAmount,
+      discount_code: couponCode,
       total_amount: totalAmount,
       shipping_address: shippingAddress,
       shipping_method: shippingMethod
@@ -218,19 +221,24 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     const variantData = variant as any;
 
-    // Crear order item
+    // Crear order item con todos los campos necesarios para la vista
     const { error: itemError } = await supabaseAdmin
       .from('order_items')
       .insert({
         order_id: order.id,
         product_id: variantData.product?.id,
         variant_id: item.variantId,
-        product_name: variantData.product?.name || 'Producto',
+        product_name: variantData.product?.name || item.name || 'Producto',
+        product_slug: item.slug || null,
+        product_image: variantData.product?.images?.[0] || item.image || null,
+        color: variantData.color || item.color || null,
+        size: variantData.size || item.size || null,
         variant_info: `${variantData.color || ''} / ${variantData.size || ''}`,
         quantity: item.quantity,
         unit_price: item.price,
-        total_price: item.price * item.quantity,
-        image_url: variantData.product?.images?.[0] || null
+        line_total: item.price * item.quantity,
+        discount_percentage: item.discount || 0,
+        image_url: variantData.product?.images?.[0] || item.image || null
       } as any);
 
     if (itemError) {

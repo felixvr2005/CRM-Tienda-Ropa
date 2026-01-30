@@ -4,8 +4,14 @@
  */
 import { useState } from 'react';
 
+export interface CouponData {
+  discountType: 'percentage' | 'fixed';
+  discountPercentage: number;
+  discountAmount: number;
+}
+
 interface CouponInputProps {
-  onCouponApplied?: (code: string, discount: number) => void;
+  onCouponApplied?: (code: string, couponData: CouponData) => void;
   onCouponRemoved?: () => void;
 }
 
@@ -44,17 +50,24 @@ export default function CouponInput({ onCouponApplied, onCouponRemoved }: Coupon
         return;
       }
 
-      // Normalizar respuesta esperada desde la API
-      const discountAmountFromApi = typeof data.discount_amount === 'number' ? data.discount_amount : 0;
-      const discountPercentageFromApi = typeof data.discount_percentage === 'number' ? data.discount_percentage : 0;
+      // Normalizar respuesta - la API ahora devuelve campos en camelCase
+      const discountPercentage = data.discountPercentage || data.discount_percentage || 0;
+      const discountAmount = data.discountAmount || data.discount_amount || 0;
+      const discountType = data.discountType || data.discount_type || 'percentage';
 
       setAppliedCode(code.toUpperCase());
-      setDiscountAmount(discountAmountFromApi);
-      setSuccess(`¡Cupón aplicado! Descuento: -${discountPercentageFromApi || 0}%`);
+      setDiscountAmount(discountType === 'fixed' ? discountAmount : discountPercentage);
+      
+      // Mostrar mensaje apropiado según el tipo de descuento
+      if (discountType === 'percentage') {
+        setSuccess(`Cupon aplicado: -${discountPercentage}% de descuento`);
+      } else {
+        setSuccess(`Cupon aplicado: -${discountAmount.toFixed(2)} EUR de descuento`);
+      }
       setCode('');
 
-      // Pasar el monto del descuento (en euros) al caller
-      onCouponApplied?.(code.toUpperCase(), discountAmountFromApi);
+      // Pasar todos los datos del cupón al componente padre
+      onCouponApplied?.(code.toUpperCase(), { discountType, discountPercentage, discountAmount });
     } catch (err) {
       console.error('Coupon validation error:', err);
       setError('Error al validar el cupón');
@@ -132,7 +145,12 @@ export default function CouponInput({ onCouponApplied, onCouponRemoved }: Coupon
       {/* Mensajes de error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <p className="text-sm text-red-700">❌ {error}</p>
+          <p className="text-sm text-red-700 flex items-center gap-1">
+            <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            {error}
+          </p>
         </div>
       )}
 

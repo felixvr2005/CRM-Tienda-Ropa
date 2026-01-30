@@ -136,7 +136,10 @@ export async function addToCart(item: Omit<CartItem, 'quantity'>, quantity: numb
       if (!response.ok) {
         const error = await response.json();
         console.error('Error reservando stock:', error);
-        alert(error.error || 'Error al reservar el producto');
+        // Usar toast si está disponible, sino fallback a alert
+        if (typeof window !== 'undefined' && (window as any).toast) {
+          (window as any).toast.error('Error', error.error || 'Error al reservar el producto');
+        }
         return;
       }
     } catch (e) {
@@ -178,7 +181,9 @@ export async function updateQuantity(variantId: string, quantity: number) {
       
       if (!response.ok) {
         const error = await response.json();
-        alert(error.error || 'Stock insuficiente');
+        if (typeof window !== 'undefined' && (window as any).toast) {
+          (window as any).toast.warning('Stock insuficiente', error.error || 'No hay suficiente stock disponible');
+        }
         return;
       }
     } catch (e) {

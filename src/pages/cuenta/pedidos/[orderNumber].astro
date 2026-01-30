@@ -83,12 +83,12 @@ const formatDate = (date: string) => {
 
 // Estados del pedido
 const orderStatusMap: Record<string, { label: string; color: string; icon: string }> = {
-  'pending': { label: 'Pendiente de pago', color: 'text-yellow-600', icon: '⏳' },
-  'processing': { label: 'Procesando', color: 'text-blue-600', icon: '📦' },
-  'shipped': { label: 'Enviado', color: 'text-purple-600', icon: '🚚' },
+  'pending': { label: 'Pendiente de pago', color: 'text-yellow-600', icon: '○' },
+  'processing': { label: 'Procesando', color: 'text-blue-600', icon: '◐' },
+  'shipped': { label: 'Enviado', color: 'text-purple-600', icon: '→' },
   'delivered': { label: 'Entregado', color: 'text-green-600', icon: '✓' },
-  'cancelled': { label: 'Cancelado', color: 'text-red-600', icon: '✕' },
-  'refunded': { label: 'Reembolsado', color: 'text-gray-600', icon: '↩' }
+  'cancelled': { label: 'Cancelado', color: 'text-red-600', icon: '×' },
+  'refunded': { label: 'Reembolsado', color: 'text-gray-600', icon: '←' }
 };
 
 const currentStatus = orderStatusMap[order.status] || { label: order.status, color: 'text-gray-600', icon: '?' };
@@ -183,38 +183,51 @@ const timeline = [
           <h2 class="text-lg font-medium mb-6">Productos ({itemsWithProducts?.length || 0})</h2>
           <div class="space-y-4">
             {itemsWithProducts?.map((item: any) => {
-              const variant = item.product_variant;
-              const product = item.product;
+              // Fallbacks para compatibilidad con datos legacy
+              const itemImage = item.product_image || item.image_url || null;
+              const itemName = item.product_name || 'Producto';
+              const itemSlug = item.product_slug || '#';
+              const itemColor = item.color || (item.variant_info?.split(' / ')[0]) || 'N/A';
+              const itemSize = item.size || (item.variant_info?.split(' / ')[1]) || 'N/A';
+              const itemTotal = item.line_total || item.total_price || (item.unit_price * item.quantity) || 0;
+              const itemDiscount = item.discount_percentage || 0;
+              
               return (
                 <div class="flex gap-4 pb-4 border-b border-primary-100 last:border-0 last:pb-0">
                   <a 
-                    href={`/productos/${item.product_slug}`}
+                    href={`/productos/${itemSlug}`}
                     class="w-24 aspect-[3/4] bg-primary-100 flex-shrink-0"
                   >
-                    {item.product_image && (
+                    {itemImage ? (
                       <img 
-                        src={item.product_image} 
-                        alt={item.product_name}
+                        src={itemImage} 
+                        alt={itemName}
                         class="w-full h-full object-cover"
                       />
+                    ) : (
+                      <div class="w-full h-full flex items-center justify-center text-primary-400">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
                     )}
                   </a>
                   <div class="flex-1">
                     <a 
-                      href={`/productos/${item.product_slug}`}
+                      href={`/productos/${itemSlug}`}
                       class="font-medium hover:underline"
                     >
-                      {item.product_name}
+                      {itemName}
                     </a>
                     <p class="text-sm text-primary-500 mt-1">
-                      Color: {item.color} | Talla: {item.size}
+                      Color: {itemColor} | Talla: {itemSize}
                     </p>
                     <p class="text-sm text-primary-500">Cantidad: {item.quantity}</p>
                     <div class="flex items-center gap-2 mt-2">
-                      <span class="font-medium">{formatPrice(item.line_total)}</span>
-                      {item.discount_percentage > 0 && (
+                      <span class="font-medium">{formatPrice(itemTotal)}</span>
+                      {itemDiscount > 0 && (
                         <span class="text-sm text-primary-400">
-                          {item.discount_percentage}% descuento
+                          {itemDiscount}% descuento
                         </span>
                       )}
                     </div>
@@ -286,8 +299,16 @@ const timeline = [
         <div class="bg-white border border-primary-200 p-6">
           <h2 class="text-lg font-medium mb-4">Método de Pago</h2>
           <div class="flex items-center gap-3">
-            <div class="w-10 h-6 bg-primary-100 rounded flex items-center justify-center text-xs font-bold">
-              {order.payment_method === 'card' ? '💳' : '🏦'}
+            <div class="w-10 h-6 bg-primary-100 rounded flex items-center justify-center">
+              {order.payment_method === 'card' ? (
+                <svg class="w-5 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              ) : (
+                <svg class="w-5 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              )}
             </div>
             <div>
               <p class="text-sm font-medium">

@@ -77,7 +77,12 @@ export default function InvoiceDownload({
         )}
       </button>
       {error && (
-        <p className="text-sm text-red-600 mt-2">❌ {error}</p>
+        <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          {error}
+        </p>
       )}
     </div>
   );

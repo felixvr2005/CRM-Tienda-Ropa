@@ -118,15 +118,15 @@ export const PUT: APIRoute = async ({ request }) => {
               });
 
               // Actualizar en la BD
-              await supabaseAdmin
-                .from('products')
+              await (supabaseAdmin
+                .from('products') as any)
                 .update({ stripe_price_id: newPrice.id })
                 .eq('id', product.id);
 
               results.synced++;
               results.details.push({
                 product: product.name,
-                oldPrice: `${stripePrice.unit_amount / 100}€`,
+                oldPrice: `${(stripePrice.unit_amount || 0) / 100}€`,
                 newPrice: `€${product.price}`,
                 status: 'updated'
               });

@@ -92,12 +92,14 @@ export const GET: APIRoute = async ({ url, request }) => {
 
     orderItems.forEach((item: any) => {
       const itemName = item.product_name || 'Producto';
-      const itemTotal = (item.price / 100) * item.quantity;
+      // Usar los campos correctos con fallbacks
+      const unitPrice = item.unit_price || item.price || 0;
+      const itemTotal = item.line_total || item.total_price || (unitPrice * item.quantity);
 
       doc.text(itemName, 50, currentY, { width: colWidths[0] - 10 });
       doc.text(item.quantity.toString(), 50 + colWidths[0], currentY);
-      doc.text(`€${(item.price / 100).toFixed(2)}`, 50 + colWidths[0] + colWidths[1], currentY);
-      doc.text(`€${itemTotal.toFixed(2)}`, 50 + colWidths[0] + colWidths[1] + colWidths[2], currentY);
+      doc.text(`${unitPrice.toFixed(2)} EUR`, 50 + colWidths[0] + colWidths[1], currentY);
+      doc.text(`${itemTotal.toFixed(2)} EUR`, 50 + colWidths[0] + colWidths[1] + colWidths[2], currentY);
 
       currentY += 20;
     });
@@ -105,20 +107,30 @@ export const GET: APIRoute = async ({ url, request }) => {
     // Línea separadora final
     doc.moveTo(50, currentY).lineTo(550, currentY).stroke();
 
-    // Totales
+    // Totales - usar datos reales del pedido
     currentY += 10;
-    const subtotal = orderItems.reduce((sum: number, item: any) => sum + (item.price / 100) * item.quantity, 0);
-    const shipping = (order as any).shipping_cost / 100;
-    const tax = subtotal * 0.21; // IVA 21%
-    const total = subtotal + shipping + tax;
+    const subtotal = (order as any).subtotal || orderItems.reduce((sum: number, item: any) => {
+      const itemTotal = item.line_total || item.total_price || ((item.unit_price || 0) * item.quantity);
+      return sum + itemTotal;
+    }, 0);
+    const discount = (order as any).discount_amount || 0;
+    const shipping = (order as any).shipping_cost || 0;
+    const total = (order as any).total_amount || (subtotal - discount + shipping);
 
     doc.fontSize(10).font('Helvetica')
-      .text(`Subtotal: €${subtotal.toFixed(2)}`, 350, currentY)
-      .text(`Envío: €${shipping.toFixed(2)}`, 350, currentY + 20)
-      .text(`IVA (21%): €${tax.toFixed(2)}`, 350, currentY + 40);
+      .text(`Subtotal: ${subtotal.toFixed(2)} EUR`, 350, currentY);
+    
+    if (discount > 0) {
+      currentY += 15;
+      doc.text(`Descuento: -${discount.toFixed(2)} EUR`, 350, currentY);
+    }
+    
+    currentY += 15;
+    doc.text(`Envio: ${shipping > 0 ? shipping.toFixed(2) + ' EUR' : 'Gratis'}`, 350, currentY);
 
+    currentY += 20;
     doc.font('Helvetica-Bold').fontSize(12)
-      .text(`TOTAL: €${total.toFixed(2)}`, 350, currentY + 60);
+      .text(`TOTAL: ${total.toFixed(2)} EUR`, 350, currentY);
 
     // Pie de página
     doc.fontSize(8).font('Helvetica').text(
