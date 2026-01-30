@@ -18,6 +18,8 @@
     "test:e2e:ci": "cross-env PLAYWRIGHT_BASE_URL=$PLAYWRIGHT_BASE_URL playwright test --config=playwright.config.ts",
     "lint:server": "eslint src/pages/api src/lib --ext .ts --max-warnings=0",
     "check:console": "node ./scripts/check-console.cjs",
+    "validate:env": "node ./scripts/validate-env.cjs",
+    "ci:staging": "node ./scripts/validate-env.cjs && npm ci && npm run build && npx playwright install --with-deps && npx playwright test --config=playwright.config.ts",
     "prepare": "husky install"
   },
   "lint-staged": {

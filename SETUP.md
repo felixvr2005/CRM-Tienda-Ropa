@@ -120,6 +120,18 @@ Output esperado:
   ➜ Network  http://your.ip.address:3000/
 ```
 
+### Desarrollo local — checks rápidos
+
+- Instalar dependencias: `npm ci`
+- Habilitar hooks de git (primera vez): `npm run prepare`
+- Validar secrets localmente (muestra faltantes pero permite seguir con --allow-missing):
+  - `npm run validate:env -- --allow-missing`
+- Ejecutar pruebas:
+  - Unit tests: `npm test`
+  - E2E locales (usa mocks/fallbacks): `npm run e2e:local`
+
+Consejo: si quieres replicar el comportamiento de CI usa `npm run ci:staging` (requiere secrets en entorno).
+
 Abrir en navegador: **http://localhost:3000**
 
 ---

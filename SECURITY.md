@@ -25,6 +25,8 @@ Pasos prioritarios (ejecutar ya):
 4) Validación automática (CI)
    - Añadir checks que fallen si faltan secrets obligatorios en entorno de CI (se incluye `scripts/validate-env.js`).
 
+CI behaviour: the repository now includes `.github/workflows/e2e-staging.yml` which will run a secrets validation step (`scripts/validate-env.js`) early and fail the job with a clear list of missing secrets if any are not provided. This prevents noisy E2E failures and makes the required secrets explicit for reviewers.
+
 5) Notificar y auditar
    - Si la clave fue expuesta públicamente, genera nuevas credenciales y revisa logs de uso.
 
