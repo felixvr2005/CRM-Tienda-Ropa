@@ -1,6 +1,6 @@
 ---
 import AccountLayout from '@layouts/AccountLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -18,13 +18,13 @@ if (authError || !user) {
   return Astro.redirect('/cuenta/login?redirect=/cuenta/favoritos');
 }
 
-const { data: customer } = await supabase
+const { data: customer } = await supabaseAdmin
   .from('customers')
   .select('id')
   .eq('auth_user_id', user.id)
   .single();
 
-const { data: wishlistItems } = await supabase
+const { data: wishlistItems } = await supabaseAdmin
   .from('wishlists')
   .select(`
     id,

@@ -47,55 +47,128 @@ const flashOffers = await getFlashOffers();
     </div>
   </section>
   
-  <!-- Categories Grid -->
+  <!-- Categories Carousel -->
   <section class="max-w-[1800px] mx-auto px-4 lg:px-8 py-16">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <a href="/categoria/camisas" class="group relative aspect-[4/5] overflow-hidden bg-primary-100">
-        <img 
-          src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&q=80"
-          alt="Camisas"
-          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-        <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
-        <div class="absolute bottom-8 left-8">
-          <h3 class="font-display text-2xl text-white mb-2">Camisas</h3>
-          <span class="text-white/90 text-sm tracking-wider uppercase border-b border-white/50 pb-1 group-hover:border-white transition-colors">
-            Ver todo
-          </span>
-        </div>
-      </a>
+    <div class="flex items-center justify-between mb-8">
+      <h2 class="font-display text-3xl">Explora por categoría</h2>
+      <Button href="/productos" variant="ghost">
+        Ver todo →
+      </Button>
+    </div>
+    
+    <!-- Carousel Container -->
+    <div class="relative group/carousel">
+      <!-- Scroll Container -->
+      <div 
+        id="categories-carousel" 
+        class="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-smooth pb-4"
+        style="scroll-behavior: smooth;"
+      >
+        {categories.map((category) => (
+          <a 
+            href={`/categoria/${category.slug}`} 
+            class="group flex-shrink-0 w-[calc(100%-2rem)] sm:w-[calc(50%-1rem)] md:w-[calc(33.333%-1rem)] lg:w-[calc(25%-1rem)] snap-start"
+          >
+            <div class="relative aspect-[4/5] overflow-hidden bg-primary-100">
+              <img 
+                src={category.image || `https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80`}
+                alt={category.name}
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                onerror="this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80'"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent group-hover:from-black/70 transition-colors" />
+              <div class="absolute bottom-6 left-6 right-6">
+                <h3 class="font-display text-xl md:text-2xl text-white mb-2">{category.name}</h3>
+                {category.description && (
+                  <p class="text-white/70 text-sm line-clamp-2 mb-3">{category.description}</p>
+                )}
+                <span class="inline-flex items-center text-white/90 text-sm tracking-wider uppercase border-b border-white/50 pb-1 group-hover:border-white transition-colors">
+                  Ver todo
+                  <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
       
-      <a href="/categoria/pantalones" class="group relative aspect-[4/5] overflow-hidden bg-primary-100">
-        <img 
-          src="https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800&q=80"
-          alt="Pantalones"
-          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-        <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
-        <div class="absolute bottom-8 left-8">
-          <h3 class="font-display text-2xl text-white mb-2">Pantalones</h3>
-          <span class="text-white/90 text-sm tracking-wider uppercase border-b border-white/50 pb-1 group-hover:border-white transition-colors">
-            Ver todo
-          </span>
-        </div>
-      </a>
+      <!-- Navigation Arrows -->
+      <button 
+        id="carousel-prev"
+        class="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-primary-900 p-3 rounded-full shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+        aria-label="Anterior"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <button 
+        id="carousel-next"
+        class="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-primary-900 p-3 rounded-full shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+        aria-label="Siguiente"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
       
-      <a href="/categoria/accesorios" class="group relative aspect-[4/5] overflow-hidden bg-primary-100">
-        <img 
-          src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80"
-          alt="Accesorios"
-          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-        <div class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
-        <div class="absolute bottom-8 left-8">
-          <h3 class="font-display text-2xl text-white mb-2">Accesorios</h3>
-          <span class="text-white/90 text-sm tracking-wider uppercase border-b border-white/50 pb-1 group-hover:border-white transition-colors">
-            Ver todo
-          </span>
-        </div>
-      </a>
+      <!-- Pagination Dots -->
+      <div id="carousel-dots" class="flex justify-center gap-2 mt-4">
+        {categories.map((_, i) => (
+          <button 
+            class="carousel-dot w-2 h-2 rounded-full bg-primary-300 hover:bg-primary-500 transition-colors"
+            data-index={i}
+            aria-label={`Ir a categoría ${i + 1}`}
+          ></button>
+        ))}
+      </div>
     </div>
   </section>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const carousel = document.getElementById('categories-carousel');
+      const prevBtn = document.getElementById('carousel-prev');
+      const nextBtn = document.getElementById('carousel-next');
+      const dots = document.querySelectorAll('.carousel-dot');
+      
+      if (!carousel || !prevBtn || !nextBtn) return;
+      
+      const scrollAmount = carousel.offsetWidth * 0.8;
+      
+      const updateDots = () => {
+        const scrollLeft = carousel.scrollLeft;
+        const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+        const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
+        const activeIndex = Math.round(progress * (dots.length - 1));
+        
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('bg-primary-900', i === activeIndex);
+          dot.classList.toggle('bg-primary-300', i !== activeIndex);
+        });
+      };
+      
+      prevBtn.addEventListener('click', () => {
+        carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      });
+      
+      nextBtn.addEventListener('click', () => {
+        carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      });
+      
+      dots.forEach((dot, i) => {
+        dot.addEventListener('click', () => {
+          const itemWidth = carousel.scrollWidth / dots.length;
+          carousel.scrollTo({ left: itemWidth * i, behavior: 'smooth' });
+        });
+      });
+      
+      carousel.addEventListener('scroll', updateDots);
+      updateDots();
+    });
+  </script>
   
   <!-- Flash Offers -->
   {flashOffers.length > 0 && (

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 interface WishlistButtonProps {
   productId: string;
@@ -7,62 +6,23 @@ interface WishlistButtonProps {
   showText?: boolean;
 }
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-
-// Crear cliente una sola vez
-let supabaseInstance: SupabaseClient | null = null;
-function getSupabase() {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      }
-    });
-  }
-  return supabaseInstance;
-}
-
 export default function WishlistButton({ productId, className = '', showText = false }: WishlistButtonProps) {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const checkWishlistStatus = useCallback(async () => {
-    const supabase = getSupabase();
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    try {
+      const response = await fetch(`/api/wishlist/status?productId=${productId}`);
+      const data = await response.json();
+      
+      setIsInWishlist(data.isInWishlist || false);
+      setIsAuthenticated(data.authenticated || false);
+    } catch (error) {
+      console.error('Error checking wishlist status:', error);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Obtener customer_id
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .single();
-
-    if (!customer) {
-      setIsLoading(false);
-      return;
-    }
-
-    setCustomerId(customer.id);
-
-    // Verificar si está en favoritos
-    const { data } = await supabase
-      .from('wishlists')
-      .select('id')
-      .eq('customer_id', customer.id)
-      .eq('product_id', productId)
-      .maybeSingle();
-
-    setIsInWishlist(!!data);
-    setIsLoading(false);
   }, [productId]);
 
   useEffect(() => {
@@ -70,54 +30,49 @@ export default function WishlistButton({ productId, className = '', showText = f
   }, [checkWishlistStatus]);
 
   const toggleWishlist = async () => {
-    const supabase = getSupabase();
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
+    if (!isAuthenticated) {
       // Redirigir al login
       window.location.href = `/cuenta/login?redirect=${encodeURIComponent(window.location.pathname)}`;
-      return;
-    }
-
-    if (!customerId) {
-      await checkWishlistStatus();
       return;
     }
 
     setIsLoading(true);
 
     try {
-      if (isInWishlist) {
-        // Eliminar de favoritos
-        const { error } = await supabase
-          .from('wishlists')
-          .delete()
-          .eq('customer_id', customerId)
-          .eq('product_id', productId);
+      const response = await fetch('/api/wishlist/toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productId }),
+      });
 
-        if (error) {
-          console.error('Error eliminando de favoritos:', error);
-        } else {
-          setIsInWishlist(false);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsInWishlist(data.isInWishlist);
+        
+        // Mostrar toast si está disponible
+        if (typeof window !== 'undefined' && (window as any).toast) {
+          if (data.isInWishlist) {
+            (window as any).toast.success('Añadido a favoritos');
+          } else {
+            (window as any).toast.info('Eliminado de favoritos');
+          }
         }
+      } else if (response.status === 401) {
+        window.location.href = `/cuenta/login?redirect=${encodeURIComponent(window.location.pathname)}`;
       } else {
-        // Añadir a favoritos
-        const { error } = await supabase
-          .from('wishlists')
-          .insert({
-            customer_id: customerId,
-            product_id: productId
-          });
-
-        if (error) {
-          console.error('Error añadiendo a favoritos:', error);
-        } else {
-          setIsInWishlist(true);
+        console.error('Error en toggle:', data.error);
+        if (typeof window !== 'undefined' && (window as any).toast) {
+          (window as any).toast.error(data.error || 'Error al actualizar favoritos');
         }
       }
     } catch (error) {
       console.error('Error al actualizar favoritos:', error);
+      if (typeof window !== 'undefined' && (window as any).toast) {
+        (window as any).toast.error('Error de conexión');
+      }
     } finally {
       setIsLoading(false);
     }
