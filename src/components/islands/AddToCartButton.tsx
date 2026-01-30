@@ -36,7 +36,7 @@ export default function AddToCartButton({
   productPrice,
   productDiscount,
   productImage,
-  variants,
+  variants = [],
   variantImages = {},
   selectedColor: externalSelectedColor,
   onColorChange,
@@ -44,11 +44,23 @@ export default function AddToCartButton({
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [localSelectedColor, setLocalSelectedColor] = useState<string | null>(null);
   
+  // Asegurar que variants es un array
+  const safeVariants = Array.isArray(variants) ? variants : [];
+  
   // Usar color externo si viene del padre, sino usar local
   const selectedColor = externalSelectedColor ?? localSelectedColor;
   const setSelectedColor = onColorChange ? (c: string) => onColorChange(c) : setLocalSelectedColor;
   const [error, setError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  
+  // Obtener tallas únicas (mover antes del useEffect para evitar problemas)
+  const sizes = useMemo(() => {
+    const sizeSet = new Set<string>();
+    safeVariants.forEach(v => {
+      if (v && v.size) sizeSet.add(v.size);
+    });
+    return Array.from(sizeSet);
+  }, [safeVariants]);
   
   // Escuchar evento sizeSelected del SizeRecommender
   useEffect(() => {
@@ -66,28 +78,21 @@ export default function AddToCartButton({
     };
   }, [sizes]);
   
-  // Obtener tallas únicas
-  const sizes = useMemo(() => {
-    const sizeSet = new Set<string>();
-    variants.forEach(v => sizeSet.add(v.size));
-    return Array.from(sizeSet);
-  }, [variants]);
-  
   const colors = useMemo(() => {
     const uniqueColors = new Map<string, string>();
-    variants.forEach(v => {
-      if (!uniqueColors.has(v.color)) {
+    safeVariants.forEach(v => {
+      if (v && v.color && !uniqueColors.has(v.color)) {
         uniqueColors.set(v.color, v.color_hex || '#000000');
       }
     });
     return Array.from(uniqueColors.entries()).map(([name, hex]) => ({ name, hex }));
-  }, [variants]);
+  }, [safeVariants]);
   
   // Obtener variante seleccionada
   const selectedVariant = useMemo(() => {
     if (!selectedSize || !selectedColor) return null;
-    return variants.find(v => v.size === selectedSize && v.color === selectedColor);
-  }, [selectedSize, selectedColor, variants]);
+    return safeVariants.find(v => v.size === selectedSize && v.color === selectedColor);
+  }, [selectedSize, selectedColor, safeVariants]);
 
   // Obtener imagen del color seleccionado
   const colorImage = useMemo(() => {
@@ -105,7 +110,7 @@ export default function AddToCartButton({
   
   // Verificar disponibilidad de combinación
   const isAvailable = (size: string, color: string) => {
-    const variant = variants.find(v => v.size === size && v.color === color);
+    const variant = safeVariants.find(v => v.size === size && v.color === color);
     return variant && variant.stock > 0;
   };
   

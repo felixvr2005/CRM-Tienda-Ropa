@@ -26,8 +26,8 @@ interface Props {
 
 export default function ProductImageGallery({
   productId,
-  variants,
-  variantImages,
+  variants = [],
+  variantImages = {},
   productName,
   defaultImages,
   selectedColor: externalSelectedColor,
@@ -37,6 +37,10 @@ export default function ProductImageGallery({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [images, setImages] = useState<string[]>(defaultImages);
   
+  // Asegurar que variants es un array
+  const safeVariants = Array.isArray(variants) ? variants : [];
+  const safeVariantImages = variantImages || {};
+  
   // Usar color externo si viene del padre, sino usar local
   const selectedColor = externalSelectedColor ?? localSelectedColor;
   const setSelectedColor = onColorChange ? (c: string) => onColorChange(c) : setLocalSelectedColor;
@@ -44,18 +48,18 @@ export default function ProductImageGallery({
   // Development-only debug (kept behind Vite's DEV flag so production logs are not emitted)
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.debug('ProductImageGallery — variants:', variants.length, 'variantImagesKeys:', Object.keys(variantImages).length);
+      console.debug('ProductImageGallery — variants:', safeVariants.length, 'variantImagesKeys:', Object.keys(safeVariantImages).length);
     }
-  }, [variants, variantImages]);
+  }, [safeVariants, safeVariantImages]);
 
   // Obtener colores únicos y disponibles
   const colors = useMemo(() => {
-    if (!variants || variants.length === 0) return [];
+    if (!safeVariants || safeVariants.length === 0) return [];
     
     const uniqueColors = new Map<string, { hex: string; stock: number }>();
     
-    variants.forEach((v) => {
-      if (v.color && v.color.trim()) {
+    safeVariants.forEach((v) => {
+      if (v && v.color && v.color.trim()) {
         if (!uniqueColors.has(v.color)) {
           uniqueColors.set(v.color, { 
             hex: v.color_hex || '#808080',
@@ -78,7 +82,7 @@ export default function ProductImageGallery({
     
     if (import.meta.env.DEV) console.debug('Colors found:', result);
     return result;
-  }, [variants]);
+  }, [safeVariants]);
 
   // Seleccionar el primer color por defecto
   useEffect(() => {
@@ -98,13 +102,13 @@ export default function ProductImageGallery({
     if (import.meta.env.DEV) console.debug('🎨 Color seleccionado:', selectedColor);
 
     // Encontrar variante del color seleccionado
-    const variant = variants.find((v) => v.color === selectedColor);
+    const variant = safeVariants.find((v) => v.color === selectedColor);
 
     if (import.meta.env.DEV) console.debug('Found variant:', variant);
 
     if (variant) {
       if (import.meta.env.DEV) console.debug(`📸 Buscando imágenes para variant.id: ${variant.id}`);
-      const variantImgs = variantImages[variant.id];
+      const variantImgs = safeVariantImages[variant.id];
       if (import.meta.env.DEV) console.debug('Imágenes encontradas:', variantImgs);
 
       if (variantImgs && Array.isArray(variantImgs) && variantImgs.length > 0) {
@@ -125,11 +129,11 @@ export default function ProductImageGallery({
       }
     } else {
       if (import.meta.env.DEV) console.debug('❌ Variante no encontrada para color:', selectedColor);
-      if (import.meta.env.DEV) console.debug('Available colors in variants:', variants.map(v => v.color));
+      if (import.meta.env.DEV) console.debug('Available colors in variants:', safeVariants.map(v => v.color));
     }
 
     setCurrentImageIndex(0);
-  }, [selectedColor, variants, variantImages, defaultImages]);
+  }, [selectedColor, safeVariants, safeVariantImages, defaultImages]);
 
   const goToPrevious = () => {
     setCurrentImageIndex((prev) =>

@@ -34,26 +34,29 @@ export default function ProductViewer({
   productPrice,
   productDiscount,
   productImage,
-  variants,
-  variantImages,
+  variants = [],
+  variantImages = {},
 }: Props) {
   // Estado compartido de color seleccionado
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
+  // Asegurar que variants es un array
+  const safeVariants = Array.isArray(variants) ? variants : [];
+
   // Auto-seleccionar primer color
   const colors = useMemo(() => {
     const uniqueColors = new Map<string, string>();
-    variants.forEach(v => {
-      if (!uniqueColors.has(v.color)) {
+    safeVariants.forEach(v => {
+      if (v && v.color && !uniqueColors.has(v.color)) {
         uniqueColors.set(v.color, v.color_hex || '#000000');
       }
     });
     return Array.from(uniqueColors.entries()).map(([name, hex]) => ({ name, hex }));
-  }, [variants]);
+  }, [safeVariants]);
 
   const firstColor = colors.length > 0 ? colors[0].name : null;
 
-  // Convertir precio de centavos a euros
+  // Convertir precio de centavos a euros - manejar valores nulos
   const priceInEuros = Number(productPrice) || 0;
   const discountedPrice = priceInEuros * (1 - (productDiscount || 0) / 100);
 
@@ -63,10 +66,10 @@ export default function ProductViewer({
       <div className="lg:sticky lg:top-24 lg:self-start">
         <ProductImageGallery 
           productId={productId}
-          variants={variants}
-          variantImages={variantImages}
+          variants={safeVariants}
+          variantImages={variantImages || {}}
           productName={productName}
-          defaultImages={[productImage]}
+          defaultImages={[productImage || '/images/products/placeholder.jpg']}
           selectedColor={selectedColor || firstColor}
           onColorChange={setSelectedColor}
         />
@@ -92,9 +95,9 @@ export default function ProductViewer({
           productSlug={productSlug}
           productPrice={productPrice}
           productDiscount={productDiscount}
-          productImage={productImage}
-          variants={variants}
-          variantImages={variantImages}
+          productImage={productImage || '/images/products/placeholder.jpg'}
+          variants={safeVariants}
+          variantImages={variantImages || {}}
           selectedColor={selectedColor}
           onColorChange={setSelectedColor}
         />
