@@ -83,7 +83,7 @@ export default function ProductImageGallery({
   // Seleccionar el primer color por defecto
   useEffect(() => {
     if (colors.length > 0 && !selectedColor) {
-      console.log('Auto-selecting first color:', colors[0].name);
+      if (import.meta.env.DEV) console.debug('Auto-selecting first color:', colors[0].name);
       setSelectedColor(colors[0].name);
     }
   }, [colors, selectedColor]);
@@ -91,21 +91,21 @@ export default function ProductImageGallery({
   // Cambiar imágenes cuando se selecciona un color
   useEffect(() => {
     if (!selectedColor) {
-      console.log('⚠️ No selectedColor');
+      if (import.meta.env.DEV) console.debug('⚠️ No selectedColor');
       return;
     }
 
-    console.log('🎨 Color seleccionado:', selectedColor);
+    if (import.meta.env.DEV) console.debug('🎨 Color seleccionado:', selectedColor);
 
     // Encontrar variante del color seleccionado
     const variant = variants.find((v) => v.color === selectedColor);
 
-    console.log('Found variant:', variant);
+    if (import.meta.env.DEV) console.debug('Found variant:', variant);
 
     if (variant) {
-      console.log(`📸 Buscando imágenes para variant.id: ${variant.id}`);
+      if (import.meta.env.DEV) console.debug(`📸 Buscando imágenes para variant.id: ${variant.id}`);
       const variantImgs = variantImages[variant.id];
-      console.log('Imágenes encontradas:', variantImgs);
+      if (import.meta.env.DEV) console.debug('Imágenes encontradas:', variantImgs);
 
       if (variantImgs && Array.isArray(variantImgs) && variantImgs.length > 0) {
         // Ordenar por sort_order, principal primero
@@ -117,15 +117,15 @@ export default function ProductImageGallery({
           })
           .map((img) => img.image_url);
         
-        console.log('✅ Imágenes ordenadas:', sortedImages);
+        if (import.meta.env.DEV) console.debug('✅ Imágenes ordenadas:', sortedImages);
         setImages(sortedImages);
       } else {
-        console.log('⚠️ Sin imágenes para esta variante, usando default');
+        if (import.meta.env.DEV) console.debug('⚠️ Sin imágenes para esta variante, usando default');
         setImages(defaultImages);
       }
     } else {
-      console.log('❌ Variante no encontrada para color:', selectedColor);
-      console.log('Available colors in variants:', variants.map(v => v.color));
+      if (import.meta.env.DEV) console.debug('❌ Variante no encontrada para color:', selectedColor);
+      if (import.meta.env.DEV) console.debug('Available colors in variants:', variants.map(v => v.color));
     }
 
     setCurrentImageIndex(0);

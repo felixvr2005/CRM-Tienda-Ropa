@@ -1,16 +1,18 @@
 ---
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { supabaseAdmin } from '@lib/supabase';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
 const { id } = Astro.params;
 
-if (process.env.NODE_ENV !== 'production') {
-  console.log('=== ADMIN DEVOLUCIONES DETAIL DEBUG ===');
-  console.log('ID recibido:', id);
-  console.log('Tipo de ID:', typeof id);
+// Protegemos la página de debug: sólo disponible en DEV o cuando se habilita explícitamente
+const allowed = import.meta.env.DEV || process.env.DEBUG_ADMIN === '1';
+if (!allowed) {
+  return new Response(null, { status: 404 });
 }
+logger.debug('=== ADMIN DEVOLUCIONES DETAIL DEBUG ===', { id, idType: typeof id });
 
 // Información de diagnóstico
 const debugInfo: any = {
@@ -31,15 +33,14 @@ let formattedReturn: any = null;
 
 try {
   // Paso 2: Query principal
-  console.log('📍 PASO 2: Obteniendo devolución...');
+  logger.debug('📍 PASO 2: Obteniendo devolución...');
   const { data: returnRequest, error: queryError } = await supabaseAdmin
     .from('return_requests')
     .select('*')
     .eq('id', id)
     .single();
 
-  console.log('Query 1 error:', queryError);
-  console.log('Query 1 data:', returnRequest);
+  logger.debug('Query 1 result', { error: queryError, data: returnRequest });
   
   if (queryError) {
     debugInfo.steps.push({ 
@@ -55,13 +56,12 @@ try {
   }
 
   if (queryError || !returnRequest) {
-    console.error('❌ PASO 2 FAILED: No se encontró la devolución');
-    console.error('Error completo:', queryError);
+    logger.error('❌ PASO 2 FAILED: No se encontró la devolución', { error: queryError });
     return Astro.redirect('/admin/devoluciones');
   }
 
   // Paso 3: Query de pedido
-  console.log('📍 PASO 3: Obteniendo pedido...');
+  logger.debug('📍 PASO 3: Obteniendo pedido...');
   let orderData: any = null;
   if (returnRequest.order_id) {
     const { data: order, error: orderError } = await supabaseAdmin
@@ -70,8 +70,7 @@ try {
       .eq('id', returnRequest.order_id)
       .single();
     
-    console.log('Order error:', orderError);
-    console.log('Order data:', order);
+    logger.debug('Order query result', { error: orderError, data: order });
     
     if (orderError) {
       debugInfo.steps.push({ 
@@ -86,7 +85,7 @@ try {
   }
 
   // Paso 4: Query de cliente
-  console.log('📍 PASO 4: Obteniendo cliente...');
+  logger.debug('📍 PASO 4: Obteniendo cliente...');
   let customerData: any = null;
   if (returnRequest.customer_id) {
     const { data: customer, error: customerError } = await supabaseAdmin
@@ -95,8 +94,7 @@ try {
       .eq('id', returnRequest.customer_id)
       .single();
     
-    console.log('Customer error:', customerError);
-    console.log('Customer data:', customer);
+    logger.debug('Customer query result', { error: customerError, data: customer });
     
     if (customerError) {
       debugInfo.steps.push({ 
@@ -111,14 +109,13 @@ try {
   }
 
   // Paso 5: Query de items
-  console.log('📍 PASO 5: Obteniendo items...');
+  logger.debug('📍 PASO 5: Obteniendo items...');
   const { data: items, error: itemsError } = await supabaseAdmin
     .from('return_request_items')
     .select('*')
     .eq('return_request_id', id);
 
-  console.log('Items error:', itemsError);
-  console.log('Items data:', items);
+  logger.debug('Items query result', { error: itemsError, data: items });
   
   if (itemsError) {
     debugInfo.steps.push({ 
@@ -152,13 +149,13 @@ try {
 
 // Validación final
 if (!formattedReturn) {
-  console.error('❌ FINAL VALIDATION FAILED: formattedReturn is null');
+  logger.error('❌ FINAL VALIDATION FAILED: formattedReturn is null');
   debugInfo.steps.push({ step: 'final', status: 'FAILED', reason: 'formattedReturn is null' });
   return Astro.redirect('/admin/devoluciones');
 }
 
-console.log('✅ TODO OK - Renderizando página');
-console.log('Debug info:', JSON.stringify(debugInfo, null, 2));
+logger.info('✅ TODO OK - Renderizando página');
+logger.debug('Debug info', debugInfo);
 
 ---
 

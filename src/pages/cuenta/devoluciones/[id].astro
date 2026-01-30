@@ -53,7 +53,7 @@ try {
 
 // Si la consulta anidada falla porque no existe la relación FK (PostgREST PGRST200), fallback con consultas separadas
 if (!returnRequest && returnRequestError && (returnRequestError.code === 'PGRST200' || /foreign key relationship/i.test(returnRequestError.message || ''))) {
-  console.log('Return detail: nested select failed, falling back to separate queries', { id, error: returnRequestError });
+  logger.debug('Return detail: nested select failed, falling back to separate queries', { id, error: returnRequestError });
 
   const { data: parent, error: parentError } = await supabaseAdmin
     .from('return_requests')
@@ -70,7 +70,7 @@ if (!returnRequest && returnRequestError && (returnRequestError.code === 'PGRST2
     returnRequest = { ...parent, return_request_items: Array.isArray(items) ? items : [], credit_notes: parent.credit_notes || [] };
     returnRequestError = parentError || itemsError;
   } else {
-    console.log('Return detail: fallback failed', { id, parentError, itemsError, originalError: returnRequestError });
+    logger.warn('Return detail: fallback failed', { id, parentError, itemsError, originalError: returnRequestError });
   }
 }
 
@@ -82,8 +82,9 @@ if (!returnRequest) {
   return Astro.redirect('/cuenta/devoluciones');
 }
 
+import { logger } from '@lib/logger';
 // Log some info to help debugging (server-side)
-console.log('Return detail hit', {
+logger.debug('Return detail hit', {
   id,
   user: user?.email,
   customerId: currentCustomer?.id,

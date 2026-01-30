@@ -60,8 +60,8 @@ const { data: orderItems } = await supabaseAdmin
 // Mapear datos usando los campos snapshot que ya están en order_items
 const itemsWithProducts = orderItems || [];
 
-console.log('Order:', order.order_number);
-console.log('Order Items:', itemsWithProducts);
+import { logger } from '@lib/logger';
+logger.debug('Order detail', { orderNumber: order.order_number, items: itemsWithProducts.length });
 
 // Funciones de formato
 const formatPrice = (price: number) => {

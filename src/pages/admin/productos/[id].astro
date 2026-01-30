@@ -424,7 +424,7 @@ const { data: categories } = await supabase
     
     // Function to be called by ImageUploader component
     window.handleImagesUpload = function(images) {
-      console.log('Images uploaded to component:', images);
+      if (import.meta.env.DEV) console.debug('Images uploaded to component:', images);
       window.uploadedImages = images.map(img => img.secure_url);
       
       // Update textarea by ADDING new images to existing ones
@@ -443,7 +443,7 @@ const { data: categories } = await supabase
           // Combine and update textarea
           const allUrls = [...currentUrls, ...newUrls];
           imagesInput.value = allUrls.join('\n');
-          console.log('Textarea updated with', newUrls.length, 'new images. Total:', allUrls.length);
+          if (import.meta.env.DEV) console.debug('Textarea updated with', newUrls.length, 'new images. Total:', allUrls.length);
         }
       }
     };
@@ -487,8 +487,8 @@ const { data: categories } = await supabase
           .filter(url => url.length > 0);
       }
       
-      console.log('Images from textarea:', images);
-      console.log('Form data:', {
+      if (import.meta.env.DEV) console.debug('Images from textarea:', images);
+      if (import.meta.env.DEV) console.debug('Form data:', {
         name: formData.get('name'),
         price: formData.get('price'),
         images: images,
@@ -527,7 +527,7 @@ const { data: categories } = await supabase
         sku: formData.get('sku') && formData.get('sku').trim() ? formData.get('sku') : null,
       };
       
-      console.log('Product object:', product);
+      if (import.meta.env.DEV) console.debug('Product object:', product);
       
       // Parse variants
       const variants = [];
@@ -549,7 +549,7 @@ const { data: categories } = await supabase
         }
       });
       
-      console.log('Variants:', variants);
+      if (import.meta.env.DEV) console.debug('Variants:', variants);
       
       try {
         const response = await fetch(`/api/admin/products/${productId}`, {
@@ -560,7 +560,7 @@ const { data: categories } = await supabase
         
         const data = await response.json();
         
-        console.log('Response:', response.status, data);
+        if (import.meta.env.DEV) console.debug('Response:', response.status, data);
         
         if (response.ok) {
           // Mostrar mensaje de éxito antes de redireccionar
@@ -578,7 +578,7 @@ const { data: categories } = await supabase
           errorDiv.classList.remove('hidden');
         }
       } catch (error) {
-        console.error('Error:', error);
+        if (import.meta.env.DEV) console.error('Error:', error);
         errorDiv.textContent = 'Error de conexión: ' + error.message;
         errorDiv.classList.remove('hidden');
       }

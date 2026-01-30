@@ -10,6 +10,7 @@ import ProductViewer from '@components/islands/ProductViewer';
 import { supabase } from '@lib/supabase';
 import { getProducts, getProductBySlug } from '@lib/supabase';
 import { formatPrice, calculateDiscountedPrice } from '@lib/utils';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
@@ -36,7 +37,7 @@ const { data: variants } = await supabase
   .select('*')
   .eq('product_id', product.id);
 
-console.log(`[Astro] Cargar variantes para producto ${product.id}:`, variants?.length);
+logger.debug(`[Astro] Cargar variantes para producto ${product.id}`, { variantsCount: variants?.length });
 
 // Cargar imágenes para cada variante
 let variantImages: any = {};
@@ -48,12 +49,12 @@ if (variants && variants.length > 0) {
       .eq('variant_id', variant.id)
       .order('sort_order', { ascending: true });
     
-    console.log(`[Astro] Variante ${variant.id} (${variant.color}): ${images?.length} imágenes`);
+    logger.debug(`[Astro] Variante ${variant.id} (${variant.color})`, { images: (images || []).length });
     variantImages[variant.id] = images || [];
   }
 }
 
-console.log('[Astro] variantImages keys:', Object.keys(variantImages).length);
+logger.debug('[Astro] variantImages keys', { keys: Object.keys(variantImages).length });
 
 // Imagen por defecto (primera imagen disponible o placeholder)
 let defaultImages = ['/images/products/placeholder.jpg'];

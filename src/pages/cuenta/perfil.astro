@@ -1,6 +1,7 @@
 ---
 import AccountLayout from '@layouts/AccountLayout.astro';
 import { supabase } from '@lib/supabase';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
@@ -45,8 +46,8 @@ if (Astro.request.method === 'POST') {
     const birthDate = data.birthDate as string;
     const newsletter = data.newsletter === 'on' || data.newsletter === true;
 
-    console.log('Actualizando perfil para user.id:', user.id);
-    console.log('Datos a actualizar:', { firstName, lastName, phone, birthDate, newsletter });
+    logger.info('Actualizando perfil', { userId: user.id });
+    logger.debug('Datos a actualizar', { firstName, lastName, phone, birthDate, newsletter });
 
     // Primero verificar si existe el registro del cliente
     const { data: existingCustomer, error: selectError } = await supabase

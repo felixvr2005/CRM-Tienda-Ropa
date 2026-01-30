@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '@layouts/AdminLayout.astro';
 import { supabaseAdmin } from '@lib/supabase';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
@@ -9,8 +10,7 @@ const { data: returnRequests, error: returnError } = await supabaseAdmin
   .select('*, orders(order_number), customers(first_name, last_name, email)')
   .order('created_at', { ascending: false });
 
-console.log('Return Error:', returnError);
-console.log('Returns:', returnRequests);
+logger.debug('ReturnRequests query', { error: returnError, count: (returnRequests || []).length });
 
 const statusCounts = {
   pending: returnRequests?.filter((r:any) => r.status === 'pending').length || 0,
