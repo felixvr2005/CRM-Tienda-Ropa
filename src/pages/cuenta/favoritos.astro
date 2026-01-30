@@ -24,33 +24,39 @@ const { data: customer } = await supabaseAdmin
   .eq('auth_user_id', user.id)
   .single();
 
-const { data: wishlistItems } = await supabaseAdmin
-  .from('wishlists')
-  .select(`
-    id,
-    created_at,
-    product:products (
+// Solo consultar favoritos si tenemos un customer válido
+let wishlistItems: any[] = [];
+if (customer?.id) {
+  const { data } = await supabaseAdmin
+    .from('wishlists')
+    .select(`
       id,
-      name,
-      slug,
-      description,
-      images,
-      category:categories!products_category_id_fkey (
-        name,
-        slug
-      ),
-      variants:product_variants (
+      created_at,
+      product:products (
         id,
-        color,
-        size,
-        price,
-        original_price,
-        stock
+        name,
+        slug,
+        description,
+        images,
+        category:categories!products_category_id_fkey (
+          name,
+          slug
+        ),
+        variants:product_variants (
+          id,
+          color,
+          size,
+          price,
+          original_price,
+          stock
+        )
       )
-    )
-  `)
-  .eq('customer_id', customer?.id)
-  .order('created_at', { ascending: false });
+    `)
+    .eq('customer_id', customer.id)
+    .order('created_at', { ascending: false });
+  
+  wishlistItems = data || [];
+}
 
 const favoriteProducts = wishlistItems?.map((item: any) => {
   const product = item.product;

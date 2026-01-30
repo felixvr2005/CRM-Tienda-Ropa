@@ -140,21 +140,21 @@ const colorHex: Record<string, string> = {
           </div>
 
           <!-- Colores -->
-          {availableFilters.colors.length > 0 && (
+          {availableFilters.colors.filter((c: string) => !c.startsWith('#')).length > 0 && (
             <div>
               <h3 class="text-xs uppercase tracking-wider text-primary-500 mb-3">Color</h3>
               <div class="flex flex-wrap gap-2" id="colorFilters">
-                {availableFilters.colors.map((color) => (
+                {availableFilters.colors.filter((c: string) => !c.startsWith('#')).map((color: string) => (
                   <button
                     data-color={color}
-                    class:list={['color-filter flex items-center gap-2 px-3 py-1.5 border text-sm transition-colors', colors.includes(color) ? 'border-primary-900 bg-primary-900 text-white' : 'border-primary-300 hover:border-primary-500']}
+                    class:list={['color-filter flex items-center gap-2 px-2 py-1.5 border rounded-full text-sm transition-colors', colors.includes(color) ? 'border-primary-900 bg-primary-50' : 'border-primary-200 hover:border-primary-400']}
                     title={color}
                   >
                     <span
-                      class="w-4 h-4 rounded-full border border-primary-300"
+                      class="w-5 h-5 rounded-full border border-primary-300 flex-shrink-0"
                       style={`background-color: ${colorHex[color] || '#ccc'}`}
                     />
-                    {color}
+                    <span class="text-primary-700">{color}</span>
                   </button>
                 ))}
               </div>

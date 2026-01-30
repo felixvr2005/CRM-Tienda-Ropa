@@ -309,12 +309,12 @@ export async function getFilteredProducts(filters: ProductFilters) {
     }
   }
 
-  // Filtro por precio
+  // Filtro por precio (convertir de euros a centavos ya que DB guarda en centavos)
   if (filters.minPrice !== undefined) {
-    query = query.gte('price', filters.minPrice);
+    query = query.gte('price', filters.minPrice * 100);
   }
   if (filters.maxPrice !== undefined) {
-    query = query.lte('price', filters.maxPrice);
+    query = query.lte('price', filters.maxPrice * 100);
   }
 
   // Filtro por descuento
@@ -421,15 +421,20 @@ export async function getAvailableFilters(categorySlug?: string) {
   let maxPrice = 0;
 
   data.forEach(product => {
+    // Convertir de centavos a euros para mostrar en UI
+    const priceInEuros = product.price / 100;
     const price = product.discount_percentage > 0 
-      ? product.price * (1 - product.discount_percentage / 100)
-      : product.price;
+      ? priceInEuros * (1 - product.discount_percentage / 100)
+      : priceInEuros;
     
     minPrice = Math.min(minPrice, price);
     maxPrice = Math.max(maxPrice, price);
 
     product.variants?.forEach((v: any) => {
-      colors.add(v.color);
+      // Solo añadir colores que no sean códigos hex
+      if (v.color && !v.color.startsWith('#')) {
+        colors.add(v.color);
+      }
       sizes.add(v.size);
     });
   });
