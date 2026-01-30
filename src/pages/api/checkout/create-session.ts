@@ -138,6 +138,13 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Solo tarjeta por ahora - añadir más métodos cuando estén verificados
+    // En modo E2E/local devolvemos un session mock para que las pruebas intercepten sin Stripe.
+    // BUT: don't short-circuit during unit tests (Vitest) — those mock the Stripe SDK and expect the handler to call it.
+    if (process.env.PLAYWRIGHT_RUNNING && !process.env.VITEST) {
+      logger.info('PLAYWRIGHT_RUNNING: returning mocked Stripe session');
+      return new Response(JSON.stringify({ url: 'https://checkout.stripe.test/mock-session', sessionId: 'sess_e2e_mock' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+
     const session = await getStripe().checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,

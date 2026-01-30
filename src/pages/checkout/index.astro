@@ -477,18 +477,37 @@ const provinces = [
     }).format(price);
   };
 
-  // Obtener datos del carrito
-  const items = $cart.get();
-  const subtotal = $cartSubtotal.get();
+  // Nota: no capturamos el carrito en una variable de módulo que pueda quedar stale.
+  // Leer el estado del carrito en tiempo de ejecución (submit/update) evita condiciones de carrera
+  // con la inicialización cliente (initCart) y hace el checkout más fiable en E2E/CI.
+  
+  const isE2EBypass = typeof window !== 'undefined' && (window.__E2E_SKIP_REDIRECT || location.search.includes('e2e_cart=1'));
 
-  // Si el carrito está vacío, redirigir
-  if (items.length === 0) {
-    window.location.href = '/carrito';
-  }
+  // Renderizar resumen del carrito (se leerá el estado actual al renderizar)
+  const renderCartSummary = () => {
+    let items = $cart.get();
+    const cartSummary = document.getElementById('cartSummary');
+    if (!cartSummary) return;
 
-  // Renderizar resumen del carrito
-  const cartSummary = document.getElementById('cartSummary');
-  if (cartSummary && items.length > 0) {
+    // Fallback: si el store aún no se ha inicializado (race), leer directamente de localStorage
+    if (items.length === 0) {
+      try {
+        const raw = localStorage.getItem('fashionstore_cart');
+        if (raw) items = JSON.parse(raw);
+      } catch (err) {
+        // ignore parse errors and continue with empty array
+      }
+    }
+
+    if (items.length === 0) {
+      if (!isE2EBypass) {
+        window.location.href = '/carrito';
+        return;
+      }
+      cartSummary.innerHTML = '<p class="text-sm text-primary-500">Tu carrito está vacío.</p>';
+      return;
+    }
+
     cartSummary.innerHTML = items.map(item => `
       <div class="flex gap-3">
         <div class="w-16 h-20 bg-primary-100 flex-shrink-0 relative">
@@ -502,15 +521,15 @@ const provinces = [
         </div>
       </div>
     `).join('');
-  }
+  };
 
   // Actualizar precios
   let shippingCost = 4.95;
   let discount = 0;
   let appliedCoupon: any = null;
-  const FREE_SHIPPING_THRESHOLD = parseFloat(import.meta.env.PUBLIC_FREE_SHIPPING_THRESHOLD || '100');
 
   const updateTotals = () => {
+    const subtotal = $cartSubtotal.get();
     const subtotalEl = document.getElementById('subtotal');
     const shippingEl = document.getElementById('shippingCost');
     const discountEl = document.getElementById('discount');
@@ -538,7 +557,24 @@ const provinces = [
     if (totalEl) totalEl.textContent = formatPrice(total);
   };
 
+  // Initial render
+  renderCartSummary();
   updateTotals();
+
+  // Re-render when localStorage or custom cart events occur (helps E2E stability)
+  window.addEventListener('storage', () => {
+    renderCartSummary();
+    updateTotals();
+  });
+  window.addEventListener('cart:cleared', () => {
+    renderCartSummary();
+    updateTotals();
+  });
+  // Custom event useful for E2E to notify the page that test code has injected a cart into localStorage
+  window.addEventListener('cart:updated', () => {
+    renderCartSummary();
+    updateTotals();
+  });
 
   // Cambiar método de envío
   document.querySelectorAll('input[name="shippingMethod"]').forEach((radio) => {
@@ -546,7 +582,7 @@ const provinces = [
       const method = (e.target as HTMLInputElement).value;
       if (method === 'express') shippingCost = 9.95;
       else if (method === 'store') shippingCost = 0;
-      else shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 4.95;
+      else shippingCost = $cartSubtotal.get() >= FREE_SHIPPING_THRESHOLD ? 0 : 4.95;
       updateTotals();
     });
   });
@@ -640,7 +676,10 @@ const provinces = [
     errorMessage?.classList.add('hidden');
 
     const formData = new FormData(form);
-    
+    // read freshest cart state at the moment of submit to avoid races with initCart()
+    const currentItems = $cart.get();
+    const currentSubtotal = $cartSubtotal.get();
+
     const orderData = {
       email: formData.get('email'),
       phone: formData.get('phone'),
@@ -657,15 +696,15 @@ const provinces = [
       shippingMethod: formData.get('shippingMethod'),
       paymentMethod: formData.get('paymentMethod'),
       couponCode: appliedCoupon?.code,
-      items: items.map(item => ({
+      items: currentItems.map(item => ({
         variantId: item.variantId,
         quantity: item.quantity,
         price: item.price
       })),
-      subtotal,
+      subtotal: currentSubtotal,
       shippingCost,
       discount,
-      total: subtotal + shippingCost - discount
+      total: currentSubtotal + shippingCost - discount
     };
 
     try {

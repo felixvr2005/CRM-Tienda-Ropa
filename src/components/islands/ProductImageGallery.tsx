@@ -41,12 +41,11 @@ export default function ProductImageGallery({
   const selectedColor = externalSelectedColor ?? localSelectedColor;
   const setSelectedColor = onColorChange ? (c: string) => onColorChange(c) : setLocalSelectedColor;
 
-  // Debug: Verificar datos al montar
+  // Development-only debug (kept behind Vite's DEV flag so production logs are not emitted)
   useEffect(() => {
-    console.log('🔍 ProductImageGallery Debug:');
-    console.log('Variants:', variants);
-    console.log('VariantImages object:', variantImages);
-    console.log('Number of variants:', variants.length);
+    if (import.meta.env.DEV) {
+      console.debug('ProductImageGallery — variants:', variants.length, 'variantImagesKeys:', Object.keys(variantImages).length);
+    }
   }, [variants, variantImages]);
 
   // Obtener colores únicos y disponibles
@@ -77,7 +76,7 @@ export default function ProductImageGallery({
       stock: data.stock
     }));
     
-    console.log('Colors found:', result);
+    if (import.meta.env.DEV) console.debug('Colors found:', result);
     return result;
   }, [variants]);
 

@@ -101,16 +101,6 @@ const totalSpent = (allOrders || []).reduce((sum, order) => {
   return sum + (order.total_amount || order.subtotal || 0);
 }, 0);
 
-// Logs de depuración para inspeccionar en servidor si sigue saliendo 0
-console.log('Account debug:', {
-  userEmail: user.email,
-  customerId: customer?.id || null,
-  ordersFoundTotal: allOrders.length,
-  ordersById: ordersById.length,
-  ordersByEmail: ordersByEmail.length,
-  recentOrders: orders.length
-});
-
 // Mostrar debug en la página si se pasa ?debug=1 (temporal)
 const showDebug = new URL(Astro.request.url).searchParams.get('debug') === '1';
 const debugData = {
@@ -121,6 +111,12 @@ const debugData = {
   ordersByEmail: ordersByEmail.length,
   recentOrders: orders.length
 };
+
+// Server-side debug via structured logger (no noisy console.log in production)
+if (showDebug || process.env.DEBUG) {
+  const { logger } = await import('@lib/logger');
+  logger.debug('Account debug', debugData);
+}
 
 const orderStatusMap: Record<string, string> = {
   pending: 'Pendiente',
