@@ -241,7 +241,7 @@ function generateEmailHTML({
           <!-- Header -->
           <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
             <td style="padding: 40px 20px; text-align: center;">
-              <h1 style="margin: 0; color: white; font-size: 28px;">✓ Devolución Aprobada</h1>
+              <h1 style="margin: 0; color: white; font-size: 28px;">Devolución Aprobada</h1>
             </td>
           </tr>
 
@@ -271,7 +271,7 @@ function generateEmailHTML({
                 <tr>
                   <td align="center">
                     <a href="${labelUrl}" style="display: inline-block; background: #28a745; color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
-                      📥 Descargar Etiqueta de Envío
+                      Descargar Etiqueta de Envío
                     </a>
                   </td>
                 </tr>
@@ -285,7 +285,7 @@ function generateEmailHTML({
               ` : ''}
 
               <!-- Steps -->
-              <h3 style="margin: 35px 0 15px 0; color: #333; font-size: 16px;">📋 Próximos Pasos</h3>
+              <h3 style="margin: 35px 0 15px 0; color: #333; font-size: 16px;">Próximos Pasos</h3>
               <ol style="margin: 0; padding-left: 20px; color: #666; font-size: 14px;">
                 <li style="margin-bottom: 8px;">Descarga e imprime la etiqueta de envío</li>
                 <li style="margin-bottom: 8px;">Prepara el artículo devuelto en su empaque original</li>

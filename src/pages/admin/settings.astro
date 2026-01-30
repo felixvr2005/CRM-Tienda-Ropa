@@ -4,7 +4,7 @@
  * Toggle de ofertas flash y otras configuraciones
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -33,7 +33,7 @@ if (Astro.request.method === 'POST') {
       const ofertasActivas = data.ofertas_activas === 'on' || data.ofertas_activas === true;
       
       // Actualizar o insertar configuración
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('configuracion')
         .upsert({
           clave: 'ofertas_activas',
@@ -66,7 +66,7 @@ if (Astro.request.method === 'POST') {
       ];
 
       for (const config of configs) {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('configuracion')
           .upsert(config, { onConflict: 'clave' });
         if (error) throw error;
@@ -87,7 +87,7 @@ if (Astro.request.method === 'POST') {
       ];
 
       for (const config of configs) {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('configuracion')
           .upsert(config, { onConflict: 'clave' });
         if (error) throw error;
@@ -402,7 +402,7 @@ const ofertasActivas = getConfig('ofertas_activas', 'false') === 'true';
         if (response.ok) {
           syncResult.innerHTML = `
             <div class="space-y-2">
-              <p class="font-medium text-green-800">✅ ${data.message}</p>
+              <p class="font-medium text-green-800">[OK] ${data.message}</p>
               <p class="text-sm text-green-700">Sincronizados: ${data.results.synced}/${data.results.total}</p>
               ${data.results.errors.length > 0 ? `
                 <details class="mt-2">
@@ -434,14 +434,14 @@ const ofertasActivas = getConfig('ofertas_activas', 'false') === 'true';
           syncResult.className = 'mt-4 p-4 rounded border bg-green-50 border-green-200';
         } else {
           syncResult.innerHTML = `
-            <p class="font-medium text-red-800">❌ Error: ${data.error}</p>
+            <p class="font-medium text-red-800">[Error] ${data.error}</p>
           `;
           syncResult.className = 'mt-4 p-4 rounded border bg-red-50 border-red-200';
         }
 
         if (syncResult) syncResult.classList.remove('hidden');
       } catch (error: any) {
-        syncResult.innerHTML = `<p class="font-medium text-red-800">❌ Error: ${error.message}</p>`;
+        syncResult.innerHTML = `<p class="font-medium text-red-800">[Error] ${error.message}</p>`;
         syncResult.className = 'mt-4 p-4 rounded border bg-red-50 border-red-200';
         if (syncResult) syncResult.classList.remove('hidden');
       } finally {

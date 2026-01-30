@@ -374,7 +374,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>📊 Resumen Administrativo</h1>
+            <h1>Resumen Administrativo</h1>
             <p>{{report_period}} - {{date_range}}</p>
         </div>
         
@@ -409,32 +409,32 @@
             <!-- ALERTAS RELEVANTES -->
             {{#has_alerts}}
             <div class="section">
-                <div class="section-title">🚨 Alertas y Excepciones</div>
+                <div class="section-title">Alertas y Excepciones</div>
                 <div class="alerts">
                     {{#payment_errors}}
                     <div class="alert alert-error">
-                        <span class="alert-icon">❌</span>
+                        <span class="alert-icon">[!]</span>
                         <strong>Error de Pago:</strong> {{error_description}} (Pedido #{{affected_order}})
                     </div>
                     {{/payment_errors}}
                     
                     {{#incomplete_orders}}
                     <div class="alert alert-warning">
-                        <span class="alert-icon">⚠️</span>
+                        <span class="alert-icon">[!]</span>
                         <strong>Pedido Incompleto:</strong> {{order_issue}} (Pedido #{{order_id}})
                     </div>
                     {{/incomplete_orders}}
                     
                     {{#low_stock}}
                     <div class="alert alert-warning">
-                        <span class="alert-icon">📦</span>
+                        <span class="alert-icon">[i]</span>
                         <strong>Stock Bajo:</strong> {{product_name}} - Disponible: {{stock_quantity}} unidades
                     </div>
                     {{/low_stock}}
                     
                     {{#system_alerts}}
                     <div class="alert alert-info">
-                        <span class="alert-icon">ℹ️</span>
+                        <span class="alert-icon">[i]</span>
                         <strong>Información del Sistema:</strong> {{system_message}}
                     </div>
                     {{/system_alerts}}
@@ -444,7 +444,7 @@
             
             <!-- PEDIDOS RECIBIDOS HOY -->
             <div class="section">
-                <div class="section-title">📋 Pedidos del Período</div>
+                <div class="section-title">Pedidos del Período</div>
                 <table class="orders-table">
                     <thead>
                         <tr>
@@ -471,7 +471,7 @@
             
             <!-- RESUMEN FINANCIERO -->
             <div class="section">
-                <div class="section-title">💰 Resumen Financiero</div>
+                <div class="section-title">Resumen Financiero</div>
                 <div class="financial-summary">
                     <div class="financial-row">
                         <span class="financial-label">Ingresos Brutos:</span>
@@ -502,7 +502,7 @@
             
             <!-- ENVÍOS -->
             <div class="section">
-                <div class="section-title">📦 Estado de Envíos</div>
+                <div class="section-title">Estado de Envíos</div>
                 <table class="shipments-table">
                     <thead>
                         <tr>
@@ -527,7 +527,7 @@
             
             <!-- PRODUCTOS MÁS VENDIDOS -->
             <div class="section">
-                <div class="section-title">🏆 Productos Más Vendidos</div>
+                <div class="section-title">Productos Más Vendidos</div>
                 <ul class="item-list">
                     {{#top_products}}
                     <li>
@@ -540,7 +540,7 @@
             
             <!-- ESTADÍSTICAS CLAVE -->
             <div class="section">
-                <div class="section-title">📈 Estadísticas Clave</div>
+                <div class="section-title">Estadísticas Clave</div>
                 <div class="financial-summary">
                     <div class="financial-row">
                         <span class="financial-label">Ticket Promedio:</span>

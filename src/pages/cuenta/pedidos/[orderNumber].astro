@@ -81,14 +81,15 @@ const formatDate = (date: string) => {
   });
 };
 
-// Estados del pedido
+// Estados del pedido - texto profesional
 const orderStatusMap: Record<string, { label: string; color: string; icon: string }> = {
-  'pending': { label: 'Pendiente de pago', color: 'text-yellow-600', icon: '○' },
-  'processing': { label: 'Procesando', color: 'text-blue-600', icon: '◐' },
-  'shipped': { label: 'Enviado', color: 'text-purple-600', icon: '→' },
-  'delivered': { label: 'Entregado', color: 'text-green-600', icon: '✓' },
-  'cancelled': { label: 'Cancelado', color: 'text-red-600', icon: '×' },
-  'refunded': { label: 'Reembolsado', color: 'text-gray-600', icon: '←' }
+  'pending': { label: 'Pendiente de pago', color: 'text-yellow-600', icon: 'clock' },
+  'confirmed': { label: 'Confirmado', color: 'text-blue-600', icon: 'check' },
+  'processing': { label: 'Procesando', color: 'text-blue-600', icon: 'box' },
+  'shipped': { label: 'Enviado', color: 'text-purple-600', icon: 'truck' },
+  'delivered': { label: 'Entregado', color: 'text-green-600', icon: 'check-circle' },
+  'cancelled': { label: 'Cancelado', color: 'text-red-600', icon: 'x-circle' },
+  'refunded': { label: 'Reembolsado', color: 'text-gray-600', icon: 'refresh' }
 };
 
 const currentStatus = orderStatusMap[order.status] || { label: order.status, color: 'text-gray-600', icon: '?' };
@@ -146,7 +147,7 @@ const timeline = [
                     <div class={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${
                       isPast ? 'bg-primary-900 text-white' : 'bg-primary-200 text-primary-400'
                     } ${isCurrent ? 'ring-4 ring-primary-100' : ''}`}>
-                      {isPast ? '✓' : index + 1}
+                      {isPast ? <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg> : index + 1}
                     </div>
                     <div class="flex-1 pt-1">
                       <p class={`font-medium ${isPast ? 'text-primary-900' : 'text-primary-400'}`}>

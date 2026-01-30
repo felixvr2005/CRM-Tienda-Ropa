@@ -293,7 +293,12 @@ export function startCartExpirationTimer() {
   // Programar limpieza automática (libera stock al expirar)
   cartExpirationTimer = setTimeout(async () => {
     await clearCart(true); // Liberar stock
-    alert('Tu carrito ha expirado después de 15 minutos. Los productos han sido devueltos al stock.');
+    // Usar toast si está disponible, sino fallback a alert
+    if (typeof window !== 'undefined' && (window as any).toast) {
+      (window as any).toast.warning('Carrito expirado', 'Tu carrito ha expirado después de 15 minutos. Los productos han sido devueltos al stock.');
+    } else {
+      alert('Tu carrito ha expirado después de 15 minutos. Los productos han sido devueltos al stock.');
+    }
   }, msUntilExpiry);
 }
 

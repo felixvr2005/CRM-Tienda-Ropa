@@ -37,13 +37,13 @@ const defaultAdminEmail = adminUser.email;
     <div class="admin-reports-container">
         <!-- Header -->
         <div class="reports-header">
-            <h1>📊 Panel de Reportes y Análisis</h1>
+            <h1>Panel de Reportes y Análisis</h1>
             <p>Genera y descarga reportes de ventas, pedidos y envíos en diferentes períodos</p>
         </div>
 
         <!-- Sección de Generación de Reportes -->
         <section class="reports-section">
-            <div class="section-title">📋 Generar y Enviar Reporte</div>
+            <div class="section-title">Generar y Enviar Reporte</div>
 
             <div class="report-form">
                 <div class="form-group">
@@ -75,7 +75,7 @@ const defaultAdminEmail = adminUser.email;
                         Enviar Reporte
                     </button>
                     <button class="btn btn-secondary" id="preview-report">
-                        👁️ Vista Previa
+                        Vista Previa
                     </button>
                 </div>
             </div>
@@ -83,7 +83,7 @@ const defaultAdminEmail = adminUser.email;
 
         <!-- Sección de Descarga de Datos -->
         <section class="reports-section">
-            <div class="section-title">💾 Descargar Datos</div>
+            <div class="section-title">Descargar Datos</div>
 
             <div class="export-form">
                 <div class="form-group">
@@ -127,13 +127,13 @@ const defaultAdminEmail = adminUser.email;
 
         <!-- Sección de Vista Previa -->
         <section class="reports-section" id="preview-section" style="display: none;">
-            <div class="section-title">👁️ Vista Previa del Reporte</div>
+            <div class="section-title">Vista Previa del Reporte</div>
             <div id="preview-content" class="preview-content"></div>
         </section>
 
         <!-- Sección de Historial -->
         <section class="reports-section">
-            <div class="section-title">📜 Reportes Recientes</div>
+            <div class="section-title">Reportes Recientes</div>
             <div class="recent-reports">
                 <p class="text-center">Aquí aparecerán los reportes que hayas generado recientemente</p>
             </div>
@@ -415,7 +415,7 @@ const defaultAdminEmail = adminUser.email;
                 return;
             }
 
-            sendReportBtn.textContent = '⏳ Enviando...';
+            sendReportBtn.textContent = 'Enviando...';
             sendReportBtn.disabled = true;
 
             try {
@@ -436,14 +436,14 @@ const defaultAdminEmail = adminUser.email;
 
                 if (response.ok) {
                     alert(
-                        `✓ Reporte enviado exitosamente a ${adminEmail}`
+                        `Reporte enviado exitosamente a ${adminEmail}`
                     );
                 } else {
-                    alert(`✗ Error: ${data.error || 'No se pudo enviar el reporte'}`);
+                    alert(`Error: ${data.error || 'No se pudo enviar el reporte'}`);
                 }
             } catch (error) {
                 alert(
-                    `✗ Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}`
+                    `Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}`
                 );
             } finally {
                 sendReportBtn.textContent = 'Enviar Reporte';
@@ -464,7 +464,7 @@ const defaultAdminEmail = adminUser.email;
             const startDate = (document.getElementById('start-date') as HTMLInputElement)?.value;
             const endDate = (document.getElementById('end-date') as HTMLInputElement)?.value;
 
-            previewReportBtn.textContent = '⏳ Cargando...';
+            previewReportBtn.textContent = 'Cargando...';
             previewReportBtn.disabled = true;
 
             try {
@@ -482,14 +482,14 @@ const defaultAdminEmail = adminUser.email;
                     previewSection.style.display = 'block';
                     previewSection.scrollIntoView({ behavior: 'smooth' });
                 } else {
-                    alert(`✗ Error: ${data.error || 'No se pudo cargar la vista previa'}`);
+                    alert(`Error: ${data.error || 'No se pudo cargar la vista previa'}`);
                 }
             } catch (error) {
                 alert(
-                    `✗ Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}`
+                    `Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}`
                 );
             } finally {
-                previewReportBtn.textContent = '👁️ Vista Previa';
+                previewReportBtn.textContent = 'Vista Previa';
                 previewReportBtn.disabled = false;
             }
         });

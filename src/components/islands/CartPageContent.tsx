@@ -58,7 +58,7 @@ export default function CartPageContent() {
       if (response.ok && data.valid) {
         setAppliedCoupon(data);
         setCouponError('');
-        alert(`✅ Cupón aplicado: ${data.discountPercentage}% de descuento`);
+        alert(`Cupón aplicado: ${data.discountPercentage}% de descuento`);
       } else {
         setCouponError(data.error || 'Código inválido');
         setAppliedCoupon(null);

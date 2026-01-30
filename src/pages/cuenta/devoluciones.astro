@@ -141,15 +141,15 @@ const formatDate = (date: string) => {
   });
 };
 
-// Estados de devolución
+// Estados de devolución - texto profesional
 const statusMap: Record<string, { label: string; color: string; icon: string }> = {
-  'pending': { label: 'Pendiente', color: 'text-yellow-600', icon: '⏳' },
-  'label_sent': { label: 'Etiqueta Enviada', color: 'text-blue-600', icon: '📧' },
-  'approved': { label: 'Aprobada', color: 'text-blue-600', icon: '✓' },
-  'shipped': { label: 'Enviada', color: 'text-purple-600', icon: '🚚' },
-  'received': { label: 'Recibida', color: 'text-indigo-600', icon: '📥' },
-  'completed': { label: 'Completada', color: 'text-green-600', icon: '✓' },
-  'rejected': { label: 'Rechazada', color: 'text-red-600', icon: '✕' }
+  'pending': { label: 'Pendiente', color: 'text-yellow-600', icon: 'clock' },
+  'label_sent': { label: 'Etiqueta Enviada', color: 'text-blue-600', icon: 'mail' },
+  'approved': { label: 'Aprobada', color: 'text-blue-600', icon: 'check' },
+  'shipped': { label: 'Enviada', color: 'text-purple-600', icon: 'truck' },
+  'received': { label: 'Recibida', color: 'text-indigo-600', icon: 'inbox' },
+  'completed': { label: 'Completada', color: 'text-green-600', icon: 'check' },
+  'rejected': { label: 'Rechazada', color: 'text-red-600', icon: 'x' }
 };
 ---
 
@@ -262,7 +262,7 @@ const statusMap: Record<string, { label: string; color: string; icon: string }> 
               {creditNote && (
                 <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm">
                   <p class="text-green-700">
-                    <strong>✓ Abono procesado:</strong> Se abonaron {formatPrice(creditNote.refund_amount / 100)} a tu método de pago
+                    <strong>Abono procesado:</strong> Se abonaron {formatPrice(creditNote.refund_amount / 100)} a tu método de pago
                   </p>
                 </div>
               )}

@@ -82,7 +82,7 @@ export default function CreditNoteDownload({
         )}
       </button>
       {error && (
-        <p className="text-sm text-red-600 mt-2">❌ {error}</p>
+        <p className="text-sm text-red-600 mt-2">Error: {error}</p>
       )}
     </div>
   );

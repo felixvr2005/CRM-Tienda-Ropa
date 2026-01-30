@@ -2,7 +2,7 @@
  * AddToCartButton Component (React Island)
  * Botón para añadir productos al carrito con selector de talla y color
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { addToCart } from '@stores/cart';
 import type { ProductVariant } from '@lib/database.types';
 import { formatPrice, calculateDiscountedPrice } from '@lib/utils';
@@ -49,6 +49,22 @@ export default function AddToCartButton({
   const setSelectedColor = onColorChange ? (c: string) => onColorChange(c) : setLocalSelectedColor;
   const [error, setError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  
+  // Escuchar evento sizeSelected del SizeRecommender
+  useEffect(() => {
+    const handleSizeSelected = (event: CustomEvent<{ size: string }>) => {
+      const { size } = event.detail;
+      if (sizes.includes(size)) {
+        setSelectedSize(size);
+        setError(null);
+      }
+    };
+    
+    window.addEventListener('sizeSelected', handleSizeSelected as EventListener);
+    return () => {
+      window.removeEventListener('sizeSelected', handleSizeSelected as EventListener);
+    };
+  }, [sizes]);
   
   // Obtener tallas únicas
   const sizes = useMemo(() => {
@@ -201,7 +217,7 @@ export default function AddToCartButton({
       {/* Stock indicator */}
       {selectedVariant && currentStock > 0 && currentStock <= 5 && (
         <p className="text-sm text-amber-600">
-          ⚠️ Solo quedan {currentStock} unidades
+          Solo quedan {currentStock} unidades
         </p>
       )}
       

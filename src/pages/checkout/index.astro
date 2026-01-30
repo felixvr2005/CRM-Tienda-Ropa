@@ -347,7 +347,9 @@ const provinces = [
                     <span class="text-xs bg-primary-100 px-2 py-0.5 rounded">Amex</span>
                   </div>
                 </div>
-                <span class="text-2xl">💳</span>
+                <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
               </label>
 
               <label class="flex items-center gap-4 p-4 border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors">
@@ -361,7 +363,7 @@ const provinces = [
                   <p class="font-medium">PayPal</p>
                   <p class="text-sm text-primary-500">Paga de forma segura con PayPal</p>
                 </div>
-                <span class="text-2xl">🅿️</span>
+                <span class="text-xl font-bold text-blue-600">PP</span>
               </label>
             </div>
           </section>
@@ -406,8 +408,11 @@ const provinces = [
             PAGAR AHORA
           </button>
 
-          <p class="text-xs text-primary-500 text-center">
-            🔒 Pago 100% seguro. Tus datos están protegidos.
+          <p class="text-xs text-primary-500 text-center flex items-center justify-center gap-1">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+            </svg>
+            Pago 100% seguro. Tus datos están protegidos.
           </p>
         </form>
       </div>
@@ -591,55 +596,80 @@ const provinces = [
     });
   });
 
-  // Aplicar cupón
+  // Aplicar cupón - LLAMADA REAL A LA API
   document.getElementById('applyCoupon')?.addEventListener('click', async () => {
     const couponInput = document.getElementById('couponCode') as HTMLInputElement;
     const couponMessage = document.getElementById('couponMessage');
+    const applyBtn = document.getElementById('applyCoupon') as HTMLButtonElement;
     const code = couponInput.value.trim().toUpperCase();
 
     if (!code) return;
 
-    // Simular verificación de cupón
-    // En producción, esto sería una llamada al servidor
-    const validCoupons: Record<string, { type: string; value: number; minPurchase: number }> = {
-      'WELCOME10': { type: 'percentage', value: 10, minPurchase: 0 },
-      'SAVE20': { type: 'percentage', value: 20, minPurchase: 50 },
-      'ENVIOGRATIS': { type: 'shipping', value: 0, minPurchase: 0 }
-    };
+    // Deshabilitar botón mientras procesa
+    applyBtn.disabled = true;
+    applyBtn.textContent = '...';
 
-    const coupon = validCoupons[code];
+    try {
+      // Llamar a la API real para validar el cupón
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
 
-    if (couponMessage) {
-      if (!coupon) {
-        couponMessage.textContent = 'Cupón no válido';
-        couponMessage.className = 'text-xs mt-2 text-red-600';
-        couponMessage.classList.remove('hidden');
+      const data = await response.json();
+
+      if (!response.ok || !data.valid) {
+        if (couponMessage) {
+          couponMessage.textContent = data.error || 'Cupón no válido';
+          couponMessage.className = 'text-xs mt-2 text-red-600';
+          couponMessage.classList.remove('hidden');
+        }
+        applyBtn.disabled = false;
+        applyBtn.textContent = 'Aplicar';
         return;
       }
 
-      if (subtotal < coupon.minPurchase) {
-        couponMessage.textContent = `Mínimo de compra: ${formatPrice(coupon.minPurchase)}`;
-        couponMessage.className = 'text-xs mt-2 text-red-600';
+      // Cupón válido - calcular descuento
+      const subtotal = $cartSubtotal.get();
+      appliedCoupon = {
+        code: data.code,
+        discountType: data.discountType,
+        discountPercentage: data.discountPercentage,
+        discountAmount: data.discountAmount
+      };
+
+      // Calcular descuento según tipo
+      if (data.discountType === 'percentage') {
+        discount = subtotal * (data.discountPercentage / 100);
+        if (couponMessage) {
+          couponMessage.textContent = `${data.discountPercentage}% de descuento aplicado`;
+        }
+      } else if (data.discountType === 'fixed') {
+        discount = data.discountAmount;
+        if (couponMessage) {
+          couponMessage.textContent = `${formatPrice(data.discountAmount)} de descuento aplicado`;
+        }
+      }
+
+      if (couponMessage) {
+        couponMessage.className = 'text-xs mt-2 text-green-600';
         couponMessage.classList.remove('hidden');
-        return;
       }
-
-      // Aplicar cupón
-      appliedCoupon = { code, ...coupon };
-      
-      if (coupon.type === 'percentage') {
-        discount = subtotal * (coupon.value / 100);
-        couponMessage.textContent = `¡${coupon.value}% de descuento aplicado!`;
-      } else if (coupon.type === 'shipping') {
-        shippingCost = 0;
-        couponMessage.textContent = '¡Envío gratis aplicado!';
-      }
-
-      couponMessage.className = 'text-xs mt-2 text-green-600';
-      couponMessage.classList.remove('hidden');
       couponInput.disabled = true;
+      applyBtn.disabled = true;
+      applyBtn.textContent = 'Aplicado';
 
       updateTotals();
+    } catch (error) {
+      console.error('Error validando cupón:', error);
+      if (couponMessage) {
+        couponMessage.textContent = 'Error al validar el cupón';
+        couponMessage.className = 'text-xs mt-2 text-red-600';
+        couponMessage.classList.remove('hidden');
+      }
+      applyBtn.disabled = false;
+      applyBtn.textContent = 'Aplicar';
     }
   });
 

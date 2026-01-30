@@ -226,7 +226,14 @@ if (!formattedReturn) {
                 formattedReturn?.status === 'label_sent' ? 'bg-purple-100 text-purple-800' :
                 'bg-gray-100 text-gray-800'
               }`}>
-                {formattedReturn?.status?.toUpperCase() || 'N/A'}
+                {formattedReturn?.status === 'pending' ? 'PENDIENTE' :
+                 formattedReturn?.status === 'approved' ? 'APROBADA' :
+                 formattedReturn?.status === 'label_sent' ? 'ETIQUETA ENVIADA' :
+                 formattedReturn?.status === 'shipped' ? 'ENVIADO' :
+                 formattedReturn?.status === 'received' ? 'RECIBIDO' :
+                 formattedReturn?.status === 'refunded' ? 'REEMBOLSADO' :
+                 formattedReturn?.status === 'rejected' ? 'RECHAZADO' :
+                 formattedReturn?.status?.toUpperCase() || 'N/A'}
               </span>
             </div>
 
@@ -284,13 +291,96 @@ if (!formattedReturn) {
                 />
               </div>
 
-              <button 
-                type="submit"
-                class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold"
-              >
-                Confirmar y Enviar Correo
-              </button>
+              <div class="flex gap-2">
+                <button 
+                  type="submit"
+                  class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                >
+                  Aprobar y Enviar Etiqueta
+                </button>
+                <button 
+                  type="button"
+                  id="reject-btn"
+                  class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                >
+                  Rechazar
+                </button>
+              </div>
             </form>
+          </div>
+        )}
+
+        {/* Acciones para cambiar estado */}
+        {(formattedReturn?.status === 'label_sent' || formattedReturn?.status === 'approved') && (
+          <div class="bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">Actualizar Estado</h2>
+            <p class="text-sm text-gray-600 mb-4">
+              El cliente ha recibido la etiqueta. Actualiza el estado cuando el paquete sea enviado.
+            </p>
+            <button 
+              id="mark-shipped-btn"
+              class="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+            >
+              Marcar como Enviado por Cliente
+            </button>
+          </div>
+        )}
+
+        {formattedReturn?.status === 'shipped' && (
+          <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">Paquete en Tránsito</h2>
+            <p class="text-sm text-gray-600 mb-4">
+              El cliente ha enviado el paquete. Confirma la recepción cuando llegue al almacén.
+            </p>
+            <button 
+              id="mark-received-btn"
+              class="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors font-semibold"
+            >
+              Confirmar Recepción
+            </button>
+          </div>
+        )}
+
+        {formattedReturn?.status === 'received' && (
+          <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">Procesar Reembolso</h2>
+            <p class="text-sm text-gray-600 mb-4">
+              El paquete ha sido recibido. Procesa el reembolso al cliente.
+            </p>
+            <div class="bg-green-50 p-4 rounded-lg mb-4">
+              <p class="text-sm text-green-800">
+                <strong>Monto a reembolsar:</strong> €{formattedReturn?.refund_amount?.toFixed(2) || '0.00'}
+              </p>
+            </div>
+            <button 
+              id="process-refund-btn"
+              class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+            >
+              Procesar Reembolso via Stripe
+            </button>
+          </div>
+        )}
+
+        {formattedReturn?.status === 'refunded' && (
+          <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">✅ Devolución Completada</h2>
+            <p class="text-sm text-gray-600">
+              Esta devolución ha sido procesada exitosamente y el reembolso ha sido emitido.
+            </p>
+            {formattedReturn?.stripe_refund_id && (
+              <p class="text-xs text-gray-500 mt-2">
+                Stripe Refund ID: {formattedReturn.stripe_refund_id}
+              </p>
+            )}
+          </div>
+        )}
+
+        {formattedReturn?.status === 'rejected' && (
+          <div class="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">❌ Devolución Rechazada</h2>
+            <p class="text-sm text-gray-600">
+              Esta solicitud de devolución fue rechazada.
+            </p>
           </div>
         )}
 
@@ -326,18 +416,41 @@ if (!formattedReturn) {
   </div>
 
   <script>
+    const returnId = window.location.pathname.split('/').pop();
+
+    // Función auxiliar para actualizar estado
+    async function updateReturnStatus(status: string, successMsg: string) {
+      try {
+        const response = await fetch(`/api/admin/returns/${returnId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          window.toast?.success(successMsg);
+          window.location.reload();
+        } else {
+          window.toast?.error('Error: ' + (result.error || 'Error desconocido'));
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        window.toast?.error('Error al actualizar el estado');
+      }
+    }
+
+    // Confirmar devolución (aprobar y enviar etiqueta)
     document.getElementById('confirm-return-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const formData = new FormData(e.currentTarget as HTMLFormElement);
-      const returnId = window.location.pathname.split('/').pop();
       
       try {
         const response = await fetch('/api/admin/confirm-return', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             returnId,
             status: 'label_sent',
@@ -350,7 +463,7 @@ if (!formattedReturn) {
         const result = await response.json();
 
         if (response.ok) {
-          window.toast?.success('Devolución confirmada y correo enviado al cliente');
+          window.toast?.success('✅ Devolución aprobada y correo enviado al cliente');
           window.location.reload();
         } else {
           window.toast?.error('Error: ' + (result.error || 'Error desconocido'));
@@ -358,6 +471,46 @@ if (!formattedReturn) {
       } catch (error) {
         console.error('Error:', error);
         window.toast?.error('Error al confirmar la devolución');
+      }
+    });
+
+    // Rechazar devolución
+    document.getElementById('reject-btn')?.addEventListener('click', async () => {
+      if (!confirm('¿Estás seguro de rechazar esta devolución?')) return;
+      await updateReturnStatus('rejected', '❌ Devolución rechazada');
+    });
+
+    // Marcar como enviado
+    document.getElementById('mark-shipped-btn')?.addEventListener('click', async () => {
+      await updateReturnStatus('shipped', '🚚 Estado actualizado: Enviado por cliente');
+    });
+
+    // Marcar como recibido
+    document.getElementById('mark-received-btn')?.addEventListener('click', async () => {
+      await updateReturnStatus('received', '📥 Estado actualizado: Recibido en almacén');
+    });
+
+    // Procesar reembolso
+    document.getElementById('process-refund-btn')?.addEventListener('click', async () => {
+      if (!confirm('¿Procesar el reembolso via Stripe? Esta acción no se puede deshacer.')) return;
+      
+      try {
+        const response = await fetch(`/api/admin/returns/${returnId}/refund`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          window.toast?.success(`💰 Reembolso procesado: €${result.refundAmount?.toFixed(2) || '0.00'}`);
+          window.location.reload();
+        } else {
+          window.toast?.error('Error: ' + (result.error || 'Error desconocido'));
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        window.toast?.error('Error al procesar el reembolso');
       }
     });
   </script>

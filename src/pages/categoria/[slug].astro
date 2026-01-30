@@ -1,24 +1,47 @@
 ---
 /**
- * Category Page - SSG
+ * Category Page - SSR
  * Productos filtrados por categoría
  */
 import PublicLayout from '@layouts/PublicLayout.astro';
 import ProductCard from '@components/product/ProductCard.astro';
-import { getCategories, getProductsByCategory } from '@lib/supabase';
+import { supabase } from '@lib/supabase';
 
-export const prerender = true;
+export const prerender = false;
 
-export async function getStaticPaths() {
-  const categories = await getCategories();
-  return categories.map((category) => ({
-    params: { slug: category.slug },
-    props: { category },
-  }));
+const { slug } = Astro.params;
+
+// Obtener la categoría por slug
+const { data: category, error: categoryError } = await supabase
+  .from('categories')
+  .select('*')
+  .eq('slug', slug)
+  .eq('is_active', true)
+  .single();
+
+// Si no existe la categoría, redirigir a productos
+if (!category || categoryError) {
+  return Astro.redirect('/productos');
 }
 
-const { category } = Astro.props;
-const products = await getProductsByCategory(category.slug);
+// Obtener productos de esta categoría
+const { data: products } = await supabase
+  .from('products')
+  .select(`
+    *,
+    category:categories(id, name, slug),
+    variants:product_variants(*)
+  `)
+  .eq('category_id', category.id)
+  .eq('is_active', true)
+  .order('created_at', { ascending: false });
+
+// Normalizar precios (vienen en céntimos)
+const normalizedProducts = (products || []).map(product => ({
+  ...product,
+  price: product.price / 100,
+  compare_at_price: product.compare_at_price ? product.compare_at_price / 100 : null
+}));
 ---
 
 <PublicLayout title={category.name}>
@@ -41,9 +64,9 @@ const products = await getProductsByCategory(category.slug);
     </div>
     
     <!-- Products Grid -->
-    {products.length > 0 ? (
+    {normalizedProducts.length > 0 ? (
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
-        {products.map((product) => (
+        {normalizedProducts.map((product) => (
           <ProductCard product={product} showQuickAdd />
         ))}
       </div>

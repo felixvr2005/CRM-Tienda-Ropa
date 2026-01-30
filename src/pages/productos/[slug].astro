@@ -7,6 +7,7 @@ import PublicLayout from '@layouts/PublicLayout.astro';
 import ProductGallery from '@components/product/ProductGallery.astro';
 import ProductCard from '@components/product/ProductCard.astro';
 import ProductViewer from '@components/islands/ProductViewer';
+import WishlistButton from '@components/islands/WishlistButton';
 import { supabase } from '@lib/supabase';
 import { getProducts, getProductBySlug } from '@lib/supabase';
 import { formatPrice, calculateDiscountedPrice } from '@lib/utils';
@@ -69,20 +70,29 @@ if (variants && variants.length > 0) {
 <PublicLayout title={product.name}>
   <div class="max-w-[1800px] mx-auto px-4 lg:px-8 py-8">
     <!-- Breadcrumb -->
-    <nav class="text-sm text-primary-500 mb-8">
-      <a href="/" class="hover:text-primary-900">Inicio</a>
-      <span class="mx-2">/</span>
-      <a href="/productos" class="hover:text-primary-900">Colección</a>
-      {product.category && (
-        <>
-          <span class="mx-2">/</span>
-          <a href={`/categoria/${product.category.slug}`} class="hover:text-primary-900">
-            {product.category.name}
-          </a>
-        </>
-      )}
-      <span class="mx-2">/</span>
-      <span class="text-primary-900">{product.name}</span>
+    <nav class="text-sm text-primary-500 mb-8 flex items-center justify-between">
+      <div>
+        <a href="/" class="hover:text-primary-900">Inicio</a>
+        <span class="mx-2">/</span>
+        <a href="/productos" class="hover:text-primary-900">Colección</a>
+        {product.category && (
+          <>
+            <span class="mx-2">/</span>
+            <a href={`/categoria/${product.category.slug}`} class="hover:text-primary-900">
+              {product.category.name}
+            </a>
+          </>
+        )}
+        <span class="mx-2">/</span>
+        <span class="text-primary-900">{product.name}</span>
+      </div>
+      <!-- Wishlist Button -->
+      <WishlistButton 
+        client:idle 
+        productId={product.id} 
+        showText={true}
+        className="flex items-center text-primary-600 hover:text-red-500 transition-colors"
+      />
     </nav>
     
     <!-- Product Layout -->

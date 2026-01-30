@@ -312,10 +312,16 @@ if (user) {
 
   // Google login
   document.getElementById('googleLogin')?.addEventListener('click', async () => {
+    // Preservar el redirect original para después del OAuth
+    const originalRedirect = new URLSearchParams(window.location.search).get('redirect');
+    const callbackUrl = originalRedirect 
+      ? `${window.location.origin}/cuenta/callback?redirect=${encodeURIComponent(originalRedirect)}`
+      : `${window.location.origin}/cuenta/callback`;
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/cuenta/callback`
+        redirectTo: callbackUrl
       }
     });
     

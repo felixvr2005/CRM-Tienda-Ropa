@@ -102,7 +102,7 @@ export default function VariantsPanel({ productId, productName, productSlug, var
         )
       );
 
-      showMessage(variantId, 'success', 'Color actualizado ✓');
+      showMessage(variantId, 'success', 'Color actualizado');
     } catch (error) {
       showMessage(variantId, 'error', 'Error al guardar color');
       console.error(error);
@@ -207,7 +207,7 @@ export default function VariantsPanel({ productId, productName, productSlug, var
               )
             );
 
-            showMessage(variantId, 'success', 'Imagen agregada ✓');
+            showMessage(variantId, 'success', 'Imagen agregada');
           } catch (error) {
             showMessage(variantId, 'error', `Error al guardar: ${error instanceof Error ? error.message : 'desconocido'}`);
             console.error('Save error:', error);
@@ -253,7 +253,7 @@ export default function VariantsPanel({ productId, productName, productSlug, var
         )
       );
 
-      showMessage(variantId, 'success', 'Imagen eliminada ✓');
+      showMessage(variantId, 'success', 'Imagen eliminada');
     } catch (error) {
       showMessage(variantId, 'error', 'Error al eliminar imagen');
       console.error('Delete error:', error);
@@ -296,7 +296,7 @@ export default function VariantsPanel({ productId, productName, productSlug, var
         )
       );
 
-      showMessage(variantId, 'success', 'Imagen principal actualizada ✓');
+      showMessage(variantId, 'success', 'Imagen principal actualizada');
     } catch (error) {
       showMessage(variantId, 'error', 'Error al actualizar imagen');
       console.error('Set primary error:', error);

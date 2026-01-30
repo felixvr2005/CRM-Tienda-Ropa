@@ -5,6 +5,7 @@
  */
 import type { Product } from '@lib/database.types';
 import { formatPrice, calculateDiscountedPrice, getTotalStock } from '@lib/utils';
+import WishlistButton from '@components/islands/WishlistButton';
 
 interface Props {
   product: Product;
@@ -20,6 +21,15 @@ const isLowStock = stock > 0 && stock <= 5;
 ---
 
 <article class="group relative">
+  <!-- Wishlist Button -->
+  <div class="absolute top-3 right-3 z-10">
+    <WishlistButton 
+      client:idle 
+      productId={product.id} 
+      className="p-2 bg-white/80 rounded-full hover:bg-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+    />
+  </div>
+  
   <!-- Image Container -->
   <a href={`/productos/${product.slug}`} class="block aspect-[3/4] overflow-hidden bg-primary-100">
     <img 

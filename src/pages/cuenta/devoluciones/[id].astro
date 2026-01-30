@@ -4,6 +4,7 @@
  */
 import AccountLayout from '@layouts/AccountLayout.astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
@@ -161,16 +162,16 @@ const formatDate = (date: string) => {
   });
 };
 
-// Mapeo de estados
+// Mapeo de estados - texto profesional
 const statusMap: Record<string, { label: string; color: string; icon: string }> = {
-  'pending': { label: 'Pendiente', color: 'text-yellow-600', icon: '⏳' },
-  'label_sent': { label: 'Etiqueta Enviada', color: 'text-blue-600', icon: '📧' },
-  'approved': { label: 'Aprobada', color: 'text-blue-600', icon: '✓' },
-  'shipped': { label: 'Enviada', color: 'text-purple-600', icon: '🚚' },
-  'received': { label: 'Recibida', color: 'text-indigo-600', icon: '📥' },
-  'refunded': { label: 'Reembolsada', color: 'text-green-600', icon: '✓' },
-  'completed': { label: 'Completada', color: 'text-green-600', icon: '✓' },
-  'rejected': { label: 'Rechazada', color: 'text-red-600', icon: '✕' }
+  'pending': { label: 'Pendiente', color: 'text-yellow-600', icon: 'clock' },
+  'label_sent': { label: 'Etiqueta Enviada', color: 'text-blue-600', icon: 'mail' },
+  'approved': { label: 'Aprobada', color: 'text-blue-600', icon: 'check' },
+  'shipped': { label: 'Enviada', color: 'text-purple-600', icon: 'truck' },
+  'received': { label: 'Recibida', color: 'text-indigo-600', icon: 'inbox' },
+  'refunded': { label: 'Reembolsada', color: 'text-green-600', icon: 'check' },
+  'completed': { label: 'Completada', color: 'text-green-600', icon: 'check' },
+  'rejected': { label: 'Rechazada', color: 'text-red-600', icon: 'x' }
 };
 
 const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.status, color: 'text-gray-600', icon: '?' };
