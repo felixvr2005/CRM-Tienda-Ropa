@@ -1,0 +1,40 @@
+name: Deploy to Coolify (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Branch to deploy'
+        required: true
+        default: 'chore/qa-e2e-unsubscribe'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trigger Coolify deploy
+        if: ${{ secrets.COOLIFY_API_TOKEN && secrets.COOLIFY_APP_ID }}
+        env:
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_APP_ID: ${{ secrets.COOLIFY_APP_ID }}
+          COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL || 'https://api.coolify.io' }}
+          BRANCH: ${{ github.event.inputs.target }}
+        run: |
+          echo "Triggering Coolify deploy for $BRANCH"
+          curl -sS -X POST "$COOLIFY_BASE_URL/v1/apps/$COOLIFY_APP_ID/deploy" \
+            -H "Authorization: Bearer $COOLIFY_API_TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d "{ \"branch\": \"$BRANCH\" }" \
+            | jq '.'
+
+      - name: Manual instructions (no token)
+        if: !secrets.COOLIFY_API_TOKEN
+        run: |
+          echo "COOLIFY_API_TOKEN or COOLIFY_APP_ID not found. To deploy manually:" 
+          echo "1) Create app in Coolify pointing to this repo and branch."
+          echo "2) Set build command: npm ci && npm run build" 
+          echo "3) Set start command: node ./dist/server/entry.mjs" 
+          echo "4) Set environment variables from DEPLOYMENT-STAGING.md"
