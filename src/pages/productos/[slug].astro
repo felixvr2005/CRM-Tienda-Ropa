@@ -8,7 +8,7 @@ import ProductGallery from '@components/product/ProductGallery.astro';
 import ProductCard from '@components/product/ProductCard.astro';
 import ProductViewer from '@components/islands/ProductViewer';
 import WishlistButton from '@components/islands/WishlistButton';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 import { getProducts, getProductBySlug } from '@lib/supabase';
 import { formatPrice, calculateDiscountedPrice } from '@lib/utils';
 import { logger } from '@lib/logger';
@@ -33,7 +33,7 @@ const relatedProducts = allProducts
   .slice(0, 4);
 
 // Cargar variantes con imágenes
-const { data: variants } = await supabase
+const { data: variants } = await supabaseAdmin
   .from('product_variants')
   .select('*')
   .eq('product_id', product.id);
@@ -41,10 +41,10 @@ const { data: variants } = await supabase
 logger.debug(`[Astro] Cargar variantes para producto ${product.id}`, { variantsCount: variants?.length });
 
 // Cargar imágenes para cada variante
-let variantImages: any = {};
+let variantImages: Record<string, any[]> = {};
 if (variants && variants.length > 0) {
   for (const variant of variants) {
-    const { data: images } = await supabase
+    const { data: images } = await supabaseAdmin
       .from('variant_images')
       .select('*')
       .eq('variant_id', variant.id)
