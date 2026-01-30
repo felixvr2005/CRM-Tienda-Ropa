@@ -7,7 +7,8 @@ export default defineConfig({
   expect: { timeout: 5000 },
   use: {
     headless: true,
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    // Local preview uses port 5173 by default (Astro). CI overrides this with PLAYWRIGHT_BASE_URL.
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
     viewport: { width: 1280, height: 720 },
     actionTimeout: 5000,
   },
