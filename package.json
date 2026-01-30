@@ -61,7 +61,7 @@
     "@playwright/test": "^1.45.0",
     "husky": "^8.0.0",
     "lint-staged": "^14.0.0",
-    "cross-env": "^7.0.3"
+    "cross-env": "^10.1.0"
   },
   "vitest": {
     "exclude": ["**/tests/e2e/**", "**/e2e/**", "**/playwright/**"]
