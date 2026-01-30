@@ -141,15 +141,15 @@ const formatDate = (date: string) => {
   });
 };
 
-// Estados de devolución - texto profesional
-const statusMap: Record<string, { label: string; color: string; icon: string }> = {
-  'pending': { label: 'Pendiente', color: 'text-yellow-600', icon: 'clock' },
-  'label_sent': { label: 'Etiqueta Enviada', color: 'text-blue-600', icon: 'mail' },
-  'approved': { label: 'Aprobada', color: 'text-blue-600', icon: 'check' },
-  'shipped': { label: 'Enviada', color: 'text-purple-600', icon: 'truck' },
-  'received': { label: 'Recibida', color: 'text-indigo-600', icon: 'inbox' },
-  'completed': { label: 'Completada', color: 'text-green-600', icon: 'check' },
-  'rejected': { label: 'Rechazada', color: 'text-red-600', icon: 'x' }
+// Estados de devolución - texto profesional (usar iconos SVG en lugar de texto)
+const statusMap: Record<string, { label: string; color: string; bgColor: string }> = {
+  'pending': { label: 'Pendiente', color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
+  'label_sent': { label: 'Etiqueta Enviada', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  'approved': { label: 'Aprobada', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  'shipped': { label: 'Enviada', color: 'text-purple-600', bgColor: 'bg-purple-100' },
+  'received': { label: 'Recibida', color: 'text-indigo-600', bgColor: 'bg-indigo-100' },
+  'completed': { label: 'Completada', color: 'text-green-600', bgColor: 'bg-green-100' },
+  'rejected': { label: 'Rechazada', color: 'text-red-600', bgColor: 'bg-red-100' }
 };
 ---
 
@@ -209,8 +209,9 @@ const statusMap: Record<string, { label: string; color: string; icon: string }> 
                 </div>
                 
                 <div class="flex items-center gap-3">
-                  <span class={`text-lg ${status.color}`}>{status.icon}</span>
-                  <span class={`font-medium ${status.color}`}>{status.label}</span>
+                  <span class={`px-3 py-1 rounded-full text-sm font-medium ${status.bgColor} ${status.color}`}>
+                    {status.label}
+                  </span>
                 </div>
               </div>
 

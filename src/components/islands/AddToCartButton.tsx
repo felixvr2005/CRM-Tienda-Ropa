@@ -187,9 +187,6 @@ export default function AddToCartButton({
       <div>
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-primary-500 uppercase tracking-wider">Talla</span>
-          <button className="text-xs text-primary-500 underline hover:text-primary-900">
-            Guía de tallas
-          </button>
         </div>
         <div className="grid grid-cols-4 gap-2">
           {sizes.map((size) => {

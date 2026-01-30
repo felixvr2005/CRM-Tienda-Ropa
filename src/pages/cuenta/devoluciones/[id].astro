@@ -163,18 +163,18 @@ const formatDate = (date: string) => {
 };
 
 // Mapeo de estados - texto profesional
-const statusMap: Record<string, { label: string; color: string; icon: string }> = {
-  'pending': { label: 'Pendiente', color: 'text-yellow-600', icon: 'clock' },
-  'label_sent': { label: 'Etiqueta Enviada', color: 'text-blue-600', icon: 'mail' },
-  'approved': { label: 'Aprobada', color: 'text-blue-600', icon: 'check' },
-  'shipped': { label: 'Enviada', color: 'text-purple-600', icon: 'truck' },
-  'received': { label: 'Recibida', color: 'text-indigo-600', icon: 'inbox' },
-  'refunded': { label: 'Reembolsada', color: 'text-green-600', icon: 'check' },
-  'completed': { label: 'Completada', color: 'text-green-600', icon: 'check' },
-  'rejected': { label: 'Rechazada', color: 'text-red-600', icon: 'x' }
+const statusMap: Record<string, { label: string; color: string; bgColor: string }> = {
+  'pending': { label: 'Pendiente', color: 'text-yellow-800', bgColor: 'bg-yellow-100' },
+  'label_sent': { label: 'Etiqueta Enviada', color: 'text-blue-800', bgColor: 'bg-blue-100' },
+  'approved': { label: 'Aprobada', color: 'text-blue-800', bgColor: 'bg-blue-100' },
+  'shipped': { label: 'Enviada', color: 'text-purple-800', bgColor: 'bg-purple-100' },
+  'received': { label: 'Recibida', color: 'text-indigo-800', bgColor: 'bg-indigo-100' },
+  'refunded': { label: 'Reembolsada', color: 'text-green-800', bgColor: 'bg-green-100' },
+  'completed': { label: 'Completada', color: 'text-green-800', bgColor: 'bg-green-100' },
+  'rejected': { label: 'Rechazada', color: 'text-red-800', bgColor: 'bg-red-100' }
 };
 
-const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.status, color: 'text-gray-600', icon: '?' };
+const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.status, color: 'text-gray-600', bgColor: 'bg-gray-100' };
 ---
 
 <AccountLayout title={`Devolución #${returnRequest.id.slice(0,8)}`}>
@@ -211,11 +211,9 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
             <p class="text-primary-500">{formatDate(returnRequest.created_at)}</p>
           </div>
           <div class="flex items-center gap-3">
-            <span class={`text-3xl ${currentStatus.color}`}>{currentStatus.icon}</span>
-            <div>
-              <p class="text-sm text-primary-500">Estado</p>
-              <p class={`text-lg font-bold ${currentStatus.color}`}>{currentStatus.label}</p>
-            </div>
+            <span class={`px-4 py-2 rounded-full text-sm font-semibold ${currentStatus.bgColor} ${currentStatus.color}`}>
+              {currentStatus.label}
+            </span>
           </div>
         </div>
       </div>
@@ -320,7 +318,7 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
             </div>
             <div>
               <p class="text-sm text-primary-500 mb-1">Total del Pedido</p>
-              <p class="font-bold text-primary-900">{formatPrice(safeReturnRequest.orders.total_amount)}</p>
+              <p class="font-bold text-primary-900">{formatPrice(safeReturnRequest.orders.total_amount || 0)}</p>
             </div>
           </div>
         </div>
