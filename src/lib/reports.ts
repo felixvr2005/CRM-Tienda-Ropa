@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import { supabase } from './supabase';
 import type { AdminEmailData } from './email';
 
@@ -161,7 +162,7 @@ const fetchOrdersData = async (from: string, to: string): Promise<OrderData[]> =
         if (error) throw error;
         return data || [];
     } catch (error) {
-        console.error('Error fetching orders:', error);
+        logger.error('Error fetching orders:', error);
         return [];
     }
 };
@@ -188,7 +189,7 @@ const fetchShipmentsData = async (from: string, to: string): Promise<ShipmentDat
         if (error) throw error;
         return data || [];
     } catch (error) {
-        console.error('Error fetching shipments:', error);
+        logger.error('Error fetching shipments:', error);
         return [];
     }
 };
@@ -241,7 +242,7 @@ const fetchAlerts = async (from: string, to: string) => {
             });
         }
     } catch (error) {
-        console.error('Error fetching alerts:', error);
+        logger.error('Error fetching alerts:', error);
     }
 
     return alerts;

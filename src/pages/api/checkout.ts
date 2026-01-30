@@ -12,7 +12,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     // Verificar que las claves de Stripe estén configuradas
     if (!import.meta.env.STRIPE_SECRET_KEY || import.meta.env.STRIPE_SECRET_KEY === 'sk_test_...') {
-      console.error('⚠️ STRIPE_SECRET_KEY no configurada en .env.local');
+      logger.error('STRIPE_SECRET_KEY no configurada en .env.local');
       return new Response(
         JSON.stringify({ 
           error: 'Las claves de Stripe no están configuradas. Por favor configura STRIPE_SECRET_KEY y PUBLIC_STRIPE_PUBLISHABLE_KEY en .env.local',
@@ -23,7 +23,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (!import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY || import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY === 'pk_test_...') {
-      console.error('⚠️ PUBLIC_STRIPE_PUBLISHABLE_KEY no configurada en .env.local');
+      logger.error('PUBLIC_STRIPE_PUBLISHABLE_KEY no configurada en .env.local');
       return new Response(
         JSON.stringify({ 
           error: 'Las claves de Stripe no están configuradas. Por favor configura STRIPE_SECRET_KEY y PUBLIC_STRIPE_PUBLISHABLE_KEY en .env.local'
@@ -34,8 +34,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const { items, couponCode } = await request.json() as { items: CartItem[], couponCode?: string };
     
-    console.log('Checkout items recibidos:', JSON.stringify(items, null, 2));
-    
+    logger.debug('Checkout items recibidos', { items });    
     if (!items || items.length === 0) {
       return new Response(
         JSON.stringify({ error: 'El carrito está vacío' }),
@@ -87,13 +86,13 @@ export const POST: APIRoute = async ({ request }) => {
       const totalBeforeDiscount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
       discountAmount = (totalBeforeDiscount * coupon.discount_percentage) / 100;
 
-      console.log(`Cupón validado: ${couponCode}, descuento: ${coupon.discount_percentage}%`);
+      logger.info('Cupón validado', { couponCode, discountPct: coupon.discount_percentage });
     }
 
     
     // item.price ya tiene el descuento aplicado (en euros)
     const lineItems = items.map(item => {
-      console.log(`Item: ${item.name}, precio: ${item.price}€, cantidad: ${item.quantity}`);
+      logger.debug('Checkout item', { name: item.name, price: item.price, quantity: item.quantity });
       return {
         name: item.name,
         description: `Talla: ${item.size} | Color: ${item.color}`,
@@ -103,7 +102,7 @@ export const POST: APIRoute = async ({ request }) => {
       };
     });
     
-    console.log('Line items para Stripe:', JSON.stringify(lineItems, null, 2));
+    logger.debug('Line items para Stripe (sanitized)', JSON.stringify(lineItems, null, 2));
     
     // Preparar items simplificados para metadata (Stripe tiene límite de 500 caracteres por valor)
     const itemsForMetadata = items.map(item => ({
@@ -121,7 +120,7 @@ export const POST: APIRoute = async ({ request }) => {
       discountAmount: discountAmount.toString()
     };
     
-    console.log('Metadata para Stripe:', metadata);
+    logger.debug('Metadata para Stripe (trimmed)', metadata);
     
     const session = await createCheckoutSession(
       lineItems,
@@ -131,20 +130,16 @@ export const POST: APIRoute = async ({ request }) => {
       metadata
     );
     
-    console.log('Stripe session creada:', session.id, session.url);
+    logger.info('Stripe session creada', { sessionId: session.id, url: session.url });
     
     return new Response(
       JSON.stringify({ url: session.url }),
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('Checkout error completo:', error);
-    console.error('Error message:', error.message);
-    console.error('Error type:', error.type);
-    console.error('Error code:', error.code);
-    console.error('Error param:', error.param);
-    if (error.raw) {
-      console.error('Error raw:', error.raw);
+    logger.error('Checkout error completo', { message: error?.message, type: error?.type, code: error?.code, param: error?.param });
+    if (error?.raw) {
+      logger.debug('Stripe raw error', { raw: error.raw });
     }
     return new Response(
       JSON.stringify({ 

@@ -6,9 +6,11 @@ export const prerender = false;
 
 const { id } = Astro.params;
 
-console.log('=== ADMIN DEVOLUCIONES DETAIL DEBUG ===');
-console.log('ID recibido:', id);
-console.log('Tipo de ID:', typeof id);
+if (process.env.NODE_ENV !== 'production') {
+  console.log('=== ADMIN DEVOLUCIONES DETAIL DEBUG ===');
+  console.log('ID recibido:', id);
+  console.log('Tipo de ID:', typeof id);
+}
 
 // Información de diagnóstico
 const debugInfo: any = {

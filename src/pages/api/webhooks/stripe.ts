@@ -54,11 +54,11 @@ export const POST: APIRoute = async ({ request }) => {
         break;
 
       case 'payment_intent.succeeded':
-        console.log('Payment succeeded:', event.data.object.id);
+        logger.info('PaymentIntent succeeded', { id: event.data.object.id });
         break;
 
       case 'payment_intent.payment_failed':
-        console.log('Payment failed:', event.data.object.id);
+        logger.warn('PaymentIntent failed', { id: event.data.object.id });
         break;
 
       default:
@@ -71,7 +71,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
   } catch (error: any) {
-    console.error('Error processing webhook:', error);
+    logger.error('Error processing webhook', { error: error?.message || String(error) });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -83,7 +83,7 @@ export const POST: APIRoute = async ({ request }) => {
  * Procesa un checkout completado
  */
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  console.log('Processing checkout.session.completed:', session.id);
+  logger.info('Processing checkout.session.completed', { sessionId: session.id });
 
   // Obtener metadata del checkout
   const metadata = session.metadata || {};
@@ -163,7 +163,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       if (newCustomer && newCustomer.id) {
         customerId = newCustomer.id;
       } else if (newCustomerError) {
-        console.error('Error creating customer for guest checkout:', newCustomerError);
+        logger.error('Error creating customer for guest checkout:', newCustomerError);
       }
     }
   }
@@ -193,11 +193,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     .single() as any;
 
   if (orderError) {
-    console.error('Error creating order:', orderError);
+    logger.error('Error creating order', { error: orderError });
     throw new Error(`Failed to create order: ${orderError.message}`);
   }
 
-  console.log('Order created:', order.id, order.order_number);
+  logger.info('Order created', { id: order.id, orderNumber: order.order_number });
 
   // Crear los items del pedido y descontar stock
   for (const item of items) {
@@ -212,7 +212,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       .single() as any;
 
     if (!variant) {
-      console.error(`Variant not found: ${item.variantId}`);
+      logger.error('Variant not found', { variantId: item.variantId });
       continue;
     }
 
@@ -234,7 +234,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       } as any);
 
     if (itemError) {
-      console.error('Error creating order item:', itemError);
+      logger.error('Error creating order item', { error: itemError });
     }
 
     // Descontar stock usando función atómica
@@ -244,7 +244,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
     if (stockError) {
-      console.error('Error decreasing stock:', stockError);
+      logger.error('Error decreasing stock', { error: stockError });
       // Fallback: actualización directa (menos seguro)
       await (supabaseAdmin as any)
         .from('product_variants')
@@ -252,10 +252,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         .eq('id', item.variantId);
     }
 
-    console.log(`Stock updated for variant ${item.variantId}: -${item.quantity}`);
+    logger.info('Stock updated for variant', { variantId: item.variantId, decrement: item.quantity });
   }
 
-  console.log('Checkout completed successfully:', orderNumber);
+  logger.info('Checkout completed successfully', { orderNumber });
 }
 
 /**

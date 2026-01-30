@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
 import { sendAdminNotificationEmail } from '@lib/email';
+import { logger } from '@lib/logger';
 import Stripe from 'stripe';
 
 export const prerender = false;
@@ -60,7 +61,7 @@ export const PUT: APIRoute = async ({ request }) => {
       .single();
 
     if (beforeError) {
-      console.error('Error fetching order before update:', beforeError);
+      logger.error('Error fetching order before update', { error: beforeError });
     }
 
     // Actualizar el pedido
@@ -75,7 +76,7 @@ export const PUT: APIRoute = async ({ request }) => {
       .single();
 
     if (updateError || !order) {
-      console.error('Error updating order:', updateError);
+      logger.error('Error updating order', { error: updateError });
       return new Response(
         JSON.stringify({ error: 'No se pudo actualizar el pedido' }),
         { status: 404, headers: { 'Content-Type': 'application/json' } }
@@ -89,8 +90,8 @@ export const PUT: APIRoute = async ({ request }) => {
       
       if (statusChanged) {
         try {
-          console.log(`[${new Date().toISOString()}] Enviando email de cambio de estado para pedido ${order.order_number}`);
-          console.log(`   Estado anterior: ${orderBefore?.status || 'unknown'} → Estado nuevo: ${status}`);
+          logger.info('Enviando email de cambio de estado', { orderNumber: order.order_number, at: new Date().toISOString() });
+          logger.debug('Estado anterior → nuevo', { from: orderBefore?.status || 'unknown', to: status });
           
           const emailResult = await sendAdminNotificationEmail(order.customer_email, {
             order_number: order.order_number,
@@ -103,19 +104,19 @@ export const PUT: APIRoute = async ({ request }) => {
           });
           
           if (emailResult.success) {
-            console.log(`Email enviado exitosamente a ${order.customer_email}`);
+            logger.info('Email enviado exitosamente', { to: order.customer_email });
           } else {
-            console.error(`Error al enviar email:`, emailResult.error);
+            logger.error('Error al enviar email', { error: emailResult.error });
           }
         } catch (emailError) {
-          console.error('❌ Error en try/catch al enviar email:', emailError);
+          logger.error('Error en try/catch al enviar email', { error: String(emailError) });
           // No bloquear la operación si falla el email
         }
       } else {
-        console.log(`Estado no cambió, email no enviado`);
+        logger.debug('Estado no cambió, email no enviado', { orderNumber: order.order_number });
       }
     } else {
-      console.warn(`No hay email de cliente para el pedido ${order.order_number}`);
+      logger.warn(`No hay email de cliente para el pedido ${order.order_number}`);
     }
 
     // Si el estado es "refunded", restaurar stock y procesar reembolso
@@ -133,7 +134,7 @@ export const PUT: APIRoute = async ({ request }) => {
               p_quantity: item.quantity
             });
           } catch (error) {
-            console.error('Error restoring stock:', error);
+            logger.error('Error restoring stock:', error);
           }
         }
       }
@@ -141,12 +142,12 @@ export const PUT: APIRoute = async ({ request }) => {
       // Procesar reembolso en Stripe si pagó con Stripe
       if (order.payment_method === 'stripe' && order.stripe_payment_intent_id) {
         try {
-          console.log(`Procesando reembolso en Stripe para el Payment Intent: ${order.stripe_payment_intent_id}`);
+          logger.info('Procesando reembolso en Stripe', { paymentIntent: order.stripe_payment_intent_id });
           const refund = await stripe.refunds.create({
             payment_intent: order.stripe_payment_intent_id,
             amount: Math.round(order.total_amount * 100) // Convertir a centavos
           });
-          console.log(`Reembolso procesado exitosamente: ${refund.id}`);
+          logger.info('Reembolso procesado exitosamente', { refundId: refund.id });
           
           // Actualizar la BD con info del reembolso
           await supabaseAdmin
@@ -157,13 +158,13 @@ export const PUT: APIRoute = async ({ request }) => {
             })
             .eq('id', orderId);
         } catch (error: any) {
-          console.error('Error procesando reembolso en Stripe:', error.message);
+          logger.error('Error procesando reembolso en Stripe', { error: String(error) });
           // No bloquear si falla el reembolso
         }
       }
     }
 
-    console.log(`[Admin] Order ${order.order_number} status updated to: ${status}`);
+    logger.info('Order status updated', { orderNumber: order.order_number, status });
 
     return new Response(
       JSON.stringify({
@@ -175,7 +176,7 @@ export const PUT: APIRoute = async ({ request }) => {
     );
 
   } catch (error: any) {
-    console.error('[Orders API] Error:', error);
+    logger.error('[Orders API] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

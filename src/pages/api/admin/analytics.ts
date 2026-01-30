@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
 
@@ -22,7 +23,7 @@ export const GET: APIRoute = async ({ request }) => {
 
     // Identificador de build para depuración en producción
     const BUILD_TAG = process.env.GITHUB_SHA || process.env.COMMIT_SHA || process.env.BUILD_ID || process.env.npm_package_version || ('local-' + new Date().toISOString());
-    if (debugMode) console.log('Analytics debug: BUILD_TAG', BUILD_TAG);
+    if (debugMode) logger.debug('Analytics debug: BUILD_TAG', { BUILD_TAG });
 
     // Verificar autenticación (admin)
     // Soportar token en header `Authorization: Bearer ...` o en cookie `sb-access-token` (fetch con credentials)
@@ -51,7 +52,7 @@ export const GET: APIRoute = async ({ request }) => {
     if (accessToken) {
       const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(accessToken as string);
       if (userError || !userData?.user) {
-        console.error('Analytics auth: token invalid or getUser failed', { userError });
+        logger.error('Analytics auth: token invalid or getUser failed', { userError });
         if (!debugMode) return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
       } else {
         authUser = userData.user;
@@ -63,18 +64,18 @@ export const GET: APIRoute = async ({ request }) => {
           .single();
 
         if (adminError || !adminData) {
-          console.error('Analytics auth: user is not admin or admin lookup failed', { adminError, authUserId: authUser?.id });
+          logger.error('Analytics auth: user is not admin or admin lookup failed', { adminError, authUserId: authUser?.id });
           if (!debugMode) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
         } else {
           adminUser = adminData;
-          console.log('Analytics request by admin', { authUserId: authUser.id, adminUserId: adminUser.id });
+          logger.info('Analytics request by admin', { authUserId: authUser.id, adminUserId: adminUser.id });
         }
       }
     } else if (debugMode) {
-      console.warn('Analytics debug mode WITHOUT auth - returning debug data');
+      logger.warn('Analytics debug mode WITHOUT auth - returning debug data');
     }
 
-    if (debugMode) console.log('Analytics debug: startDate', startDate.toISOString());
+    if (debugMode) logger.info('Analytics debug: startDate', startDate.toISOString());
 
     // Obtener todas las órdenes en el rango (sin nested order_items para evitar errores de columnas)
     const { data: orders, error: ordersError } = await supabaseAdmin
@@ -105,7 +106,7 @@ export const GET: APIRoute = async ({ request }) => {
 
     if (itemsInRangeError) {
       // no queremos romper la API por un fallo en items, pero lo logueamos
-      console.error('Analytics: failed to fetch order_items', itemsInRangeError);
+      logger.error('Analytics: failed to fetch order_items', itemsInRangeError);
     }
 
     // Procesar datos para analytics usando orders + itemsInRange
@@ -239,7 +240,7 @@ export const GET: APIRoute = async ({ request }) => {
         if (debugMode) overallStats.debug_items_error = itemsError?.message || null;
       }
     } catch (err: any) {
-      console.error('Error computing topSeller:', err);
+      logger.error('Error computing topSeller:', err);
       if (debugMode) overallStats.debug_top_error = err.message || String(err);
     }
 
@@ -249,7 +250,7 @@ export const GET: APIRoute = async ({ request }) => {
     );
 
   } catch (error: any) {
-    console.error('Error en analytics:', error);
+    logger.error('Error en analytics:', error);
 
     // En modo debug devolver más información (stack, build tag)
     if (debugMode) {

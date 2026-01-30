@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
 import Stripe from 'stripe';
@@ -40,7 +41,7 @@ export const POST: APIRoute = async ({ params }) => {
         });
         stripeRefundId = refund.id;
       } catch (stripeError) {
-        console.error('Stripe error:', stripeError);
+        logger.error('Stripe error:', stripeError);
       }
     }
 
@@ -67,7 +68,7 @@ export const POST: APIRoute = async ({ params }) => {
         .eq('id', creditNotes[0].id);
     }
 
-    console.log(`💰 Reembolso procesado: €${refundAmount/100} para ${returnRequest.order?.customer?.email}`);
+    logger.info(`💰 Reembolso procesado: €${refundAmount/100} para ${returnRequest.order?.customer?.email}`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -76,7 +77,7 @@ export const POST: APIRoute = async ({ params }) => {
       stripeRefundId
     }), { status: 200 });
   } catch (error) {
-    console.error('Refund error:', error);
+    logger.error('Refund error:', error);
     return new Response(JSON.stringify({ error: 'Error processing refund' }), { status: 500 });
   }
 };

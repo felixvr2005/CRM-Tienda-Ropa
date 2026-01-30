@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabase } from '@lib/supabase';
 
@@ -50,7 +51,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Error en GET /api/admin/product-types/sizes:', error);
+    logger.error('Error en GET /api/admin/product-types/sizes:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'

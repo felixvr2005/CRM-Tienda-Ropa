@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 import { supabaseAdmin } from '@lib/supabase';
@@ -144,7 +145,7 @@ export const PUT: APIRoute = async ({ request }) => {
       }
     }
 
-    console.log('Sync results:', results);
+    logger.info('Sync results:', results);
 
     return new Response(
       JSON.stringify({
@@ -156,7 +157,7 @@ export const PUT: APIRoute = async ({ request }) => {
     );
 
   } catch (error: any) {
-    console.error('Error en sync-stripe-prices:', error);
+    logger.error('Error en sync-stripe-prices:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Error al sincronizar precios' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

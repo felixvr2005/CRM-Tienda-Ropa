@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
 import PDFDocument from 'pdfkit';
@@ -190,7 +191,7 @@ export const POST: APIRoute = async ({ request }) => {
             created_at: new Date()
           });
         } catch (err: any) {
-          console.error('Error storing credit note:', err);
+          logger.error('Error storing credit note:', err);
         }
 
         resolve(
@@ -205,7 +206,7 @@ export const POST: APIRoute = async ({ request }) => {
       });
     });
   } catch (error) {
-    console.error('Credit note generation error:', error);
+    logger.error('Credit note generation error:', error);
     return new Response(
       JSON.stringify({ error: 'Error generando abono' }),
       { status: 500 }

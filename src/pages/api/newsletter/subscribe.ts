@@ -81,10 +81,10 @@ async function sendNewsletterWelcomeEmail(email: string, discountCode: string) {
       subject: '¡Bienvenido! Tu código de descuento especial - Fashion Store',
       html: htmlContent
     });
-    logger.info('Email enviado a:', email);
+    logger.info('Newsletter welcome email sent', { to: email });
     return true;
   } catch (error) {
-    console.error('❌ Error enviando email:', error);
+    logger.error('Error sending newsletter welcome email', { error: String(error) });
     return false;
   }
 }
@@ -125,7 +125,7 @@ export async function POST({ request }: any) {
       });
 
     if (error) {
-      console.error('Error guardando suscripción:', error);
+      logger.error('Error saving newsletter subscription', { error });
       return new Response(
         JSON.stringify({ message: 'Error al suscribirse' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -144,7 +144,7 @@ export async function POST({ request }: any) {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error en newsletter/subscribe:', error);
+    logger.error('Error in newsletter/subscribe', { error: String(error) });
     return new Response(
       JSON.stringify({ message: 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

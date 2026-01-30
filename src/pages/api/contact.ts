@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../lib/supabase';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
@@ -46,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
 
     if (insertError) {
-      console.error('Error inserting contact message:', insertError);
+      logger.error('Error inserting contact message:', insertError);
       return new Response(
         JSON.stringify({ error: 'Error al guardar el mensaje' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -56,7 +57,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Aquí se podría enviar un email de confirmación
     // await sendConfirmationEmail(email, name);
 
-    console.log('[Contact] Message received from:', email, '- Subject:', subject);
+    logger.info('[Contact] Message received', { email, subject });
 
     return new Response(
       JSON.stringify({
@@ -68,7 +69,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
 
   } catch (error: any) {
-    console.error('[Contact API] Error:', error);
+    logger.error('[Contact API] Error:', error);
     return new Response(
       JSON.stringify({ error: 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -89,7 +90,7 @@ export const GET: APIRoute = async ({ request }) => {
       { status: 403, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('[Contact API GET] Error:', error);
+    logger.error('[Contact API GET] Error:', error);
     return new Response(
       JSON.stringify({ error: 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

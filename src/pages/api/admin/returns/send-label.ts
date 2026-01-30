@@ -20,8 +20,8 @@ export const POST: APIRoute = async ({ request }) => {
       .eq('id', returnRequestId);
 
     // Log email (Implement real email service)
-    console.log(`📧 Email enviado a: ${customerEmail}`);
-    console.log(`Código: ${labelCode}`);
+    logger.info('Return label email sent', { to: customerEmail });
+    logger.debug('Label code', { labelCode });
 
     return new Response(JSON.stringify({
       success: true,

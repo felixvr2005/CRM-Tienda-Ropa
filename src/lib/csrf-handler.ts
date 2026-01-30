@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 /**
  * CSRF Handler
  * Intercepta todos los formularios POST directo y los convierte a fetch
@@ -20,7 +21,7 @@ export function initCSRFHandler() {
         data[key] = value;
       }
       
-      console.log('CSRF Handler - Intercepted POST form:', { action: form.action, data });
+      logger.info('CSRF Handler - Intercepted POST form:', { action: form.action, data });
       
       try {
         // Enviar como JSON fetch en lugar de form POST
@@ -43,11 +44,11 @@ export function initCSRFHandler() {
           }
         } else {
           const error = await response.text();
-          console.error('Form submission error:', error);
+          logger.error('Form submission error:', error);
           alert('Error al procesar el formulario: ' + error);
         }
       } catch (error) {
-        console.error('CSRF Handler Error:', error);
+        logger.error('CSRF Handler Error:', error);
         alert('Error al procesar el formulario');
       }
     }

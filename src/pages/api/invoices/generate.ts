@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
 import PDFDocument from 'pdfkit';
@@ -144,7 +145,7 @@ export const GET: APIRoute = async ({ url, request }) => {
       });
     });
   } catch (error) {
-    console.error('Invoice generation error:', error);
+    logger.error('Invoice generation error:', error);
     return new Response(
       JSON.stringify({ error: 'Error generando factura' }),
       { status: 500 }

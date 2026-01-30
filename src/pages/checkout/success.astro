@@ -25,7 +25,7 @@ let orderError = '';
 
 if (sessionId) {
   try {
-    console.log('Processing checkout success for session:', sessionId);
+    logger.info('Processing checkout success', { sessionId });
     
     // Verificar si ya existe un pedido con esta sesión
     const { data: existingOrder } = await supabaseAdmin
@@ -35,7 +35,7 @@ if (sessionId) {
       .single();
 
     if (existingOrder) {
-      console.log('Order already exists:', existingOrder.order_number);
+      logger.info('Order already exists for session', { orderNumber: existingOrder.order_number });
       order = existingOrder;
     } else {
       // Obtener la sesión de Stripe con detalles expandidos
@@ -43,17 +43,16 @@ if (sessionId) {
         expand: ['line_items']
       });
       
-      console.log('Stripe session status:', session.payment_status);
-      console.log('Stripe session metadata:', session.metadata);
-      console.log('Stripe session customer_email:', session.customer_email);
-      console.log('Stripe session shipping_details:', session.shipping_details);
+      logger.debug('Stripe session retrieved', { payment_status: session.payment_status, customer_email: session.customer_email });
+      logger.silly?.('Stripe session metadata (debug)', session.metadata);
+      logger.silly?.('Stripe shipping details (debug)', session.shipping_details);
       
       if (session.payment_status === 'paid') {
         // Obtener metadata
         const metadata = session.metadata || {};
         const items = metadata.items ? JSON.parse(metadata.items) : [];
         
-        console.log('Items from metadata:', items);
+        logger.debug('Items from metadata (parsed)', { itemsCount: items.length });
 
         // Datos del cliente desde Stripe (capturados en el checkout)
         const email = session.customer_email || session.customer_details?.email || metadata.email || 'felixvr2005@gmail.com';
@@ -87,7 +86,7 @@ if (sessionId) {
             }
           }
           const orderNumber = nextNumber.toString().padStart(6, '0');
-          console.log('Generated order number:', orderNumber);
+          logger.info('Generated order number', { orderNumber });
 
           // Calcular totales
           const subtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
@@ -126,7 +125,7 @@ if (sessionId) {
             shipping_address: shippingAddress
           };
           
-          console.log('Creating order:', orderData);
+          logger.info('Creating order (inserting into DB)', { orderDataSummary: { order_number: orderData.order_number, subtotal: orderData.subtotal, total: orderData.total_amount } });
           
           const { data: newOrder, error: createError } = await supabaseAdmin
             .from('orders')
@@ -135,16 +134,16 @@ if (sessionId) {
             .single();
 
           if (createError) {
-            console.error('Error creating order:', createError);
+            logger.error('Error creating order', { error: createError });
             orderError = `Error al crear el pedido: ${createError.message}`;
           } else {
             order = newOrder;
-            console.log('Order created successfully:', (order as any).order_number);
+            logger.info('Order created successfully', { orderNumber: (order as any).order_number });
 
             // ✉️ Enviar email de confirmación al cliente
             if (email) {
               try {
-                console.log(`📧 Preparando email de confirmación para: ${email}`);
+                logger.info('Preparando email de confirmación', { to: email });
                 
                 // Construir datos del email
                 const emailData: CustomerEmailData = {
@@ -187,17 +186,17 @@ if (sessionId) {
                 
                 // Enviar email
                 const emailResult = await sendCustomerEmail(email, emailData);
-                console.log(`✅ Email enviado: ${emailResult.messageId}`);
+                logger.info('Email enviado al cliente', { messageId: emailResult.messageId });
                 
               } catch (emailError) {
-                console.error('❌ Error enviando email:', emailError);
+                logger.error('Error enviando email de confirmación', { error: String(emailError) });
                 // No detener el flujo si falla el email
               }
             }
 
             // Crear items del pedido y descontar stock
             for (const item of items) {
-              console.log('Processing item:', item);
+              logger.debug('Processing item for order creation', { variantId: item.variantId, quantity: item.quantity });
               
               const { data: variant, error: variantError } = await supabaseAdmin
                 .from('product_variants')
@@ -209,7 +208,7 @@ if (sessionId) {
                 .single();
 
               if (variantError) {
-                console.error('Error fetching variant:', variantError);
+                logger.error('Error fetching variant for order item', { error: variantError });
                 continue;
               }
 
@@ -230,33 +229,33 @@ if (sessionId) {
                   total_price: item.price * item.quantity
                 };
                 
-                console.log('Creating order item:', orderItemData);
+                logger.debug('Creating order item', { productId: orderItemData.product_id, quantity: orderItemData.quantity });
                 
                 const { error: itemError } = await supabaseAdmin
                   .from('order_items')
                   .insert(orderItemData as any);
                   
                 if (itemError) {
-                  console.error('Error creating order item:', itemError);
+                  logger.error('Error creating order item', { error: itemError });
                 }
 
                 // El stock ya fue descontado cuando se añadió al carrito (reserva temporal)
                 // No es necesario descontarlo de nuevo aquí
-                console.log(`Stock para variant ${item.variantId} ya estaba reservado (cantidad: ${item.quantity})`);
+                logger.info('Stock previamente reservado para variant', { variantId: item.variantId, quantity: item.quantity });
               }
             }
           }
         } else {
-          console.error('No items found in metadata');
+          logger.warn('No items found in metadata for session', { sessionId });
           orderError = 'No se encontraron productos en la sesión de pago';
         }
       } else {
-        console.log('Payment not completed yet:', session.payment_status);
+        logger.debug('Payment not completed yet', { status: session.payment_status });
         orderError = 'El pago aún no ha sido confirmado';
       }
     }
   } catch (err: any) {
-    console.error('Error processing checkout:', err);
+    logger.error('Error processing checkout', { error: String(err) });
     orderError = err.message;
   }
 }

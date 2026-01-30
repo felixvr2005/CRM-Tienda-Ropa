@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import { supabaseAdmin } from '@lib/supabase';
 export const prerender = false;
 
@@ -20,7 +21,7 @@ export async function GET({ request }: any) {
       .maybeSingle();
 
     if (findError) {
-      console.error('Error buscando suscriptor:', findError);
+      logger.error('Error finding newsletter subscriber', { error: findError });
       return new Response(JSON.stringify({ message: 'Error interno' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -36,7 +37,7 @@ export async function GET({ request }: any) {
       .eq('email', email);
 
     if (updateError) {
-      console.error('Error actualizando suscripción:', updateError);
+      logger.error('Error updating newsletter subscription', { error: updateError });
       return new Response(JSON.stringify({ message: 'No se pudo dar de baja' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -44,7 +45,7 @@ export async function GET({ request }: any) {
     const redirectTo = `${process.env.PUBLIC_APP_URL || ''}/unsubscribe?status=success&email=${encodeURIComponent(email)}`;
     return Response.redirect(redirectTo, 302);
   } catch (err: any) {
-    console.error('Error en newsletter/unsubscribe GET:', err);
+    logger.error('Error in newsletter/unsubscribe GET', { error: String(err) });
     return new Response(JSON.stringify({ message: 'Error interno' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
@@ -74,13 +75,13 @@ export async function POST({ request }: any) {
       .eq('email', email);
 
     if (error) {
-      console.error('Error al actualizar suscripción:', error);
+      logger.error('Error updating newsletter subscription (POST)', { error });
       return new Response(JSON.stringify({ message: 'Error interno' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({ message: 'Dado de baja correctamente' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err: any) {
-    console.error('Error en newsletter/unsubscribe POST:', err);
+    logger.error('Error en newsletter/unsubscribe POST:', err);
     return new Response(JSON.stringify({ message: 'Error interno' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }

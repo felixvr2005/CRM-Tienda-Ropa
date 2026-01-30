@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 /**
  * API Admin: Single Product CRUD
  */
@@ -35,7 +36,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
     const { id } = params;
     const { product, variants } = await request.json();
     
-    console.log('PUT /api/admin/products/[id]', { id, product, variantsCount: variants?.length || 0 });
+    logger.info('PUT /api/admin/products/[id]', { id, product, variantsCount: variants?.length || 0 });
     
     // Validar que al menos name sea proporcionado
     if (!product.name || product.name.trim().length === 0) {
@@ -104,7 +105,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
     // Asegurar que updated_at se actualice
     updateData.updated_at = new Date().toISOString();
     
-    console.log('Updating product:', id, 'with data:', updateData);
+    logger.info('Updating product:', id, 'with data:', updateData);
     
     // Update product
     const { error: productError, data: updatedProduct } = await supabase
@@ -115,7 +116,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
       .single();
     
     if (productError) {
-      console.error('Product update error:', productError);
+      logger.error('Product update error:', productError);
       throw productError;
     }
     
@@ -165,7 +166,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Update product error:', error);
+    logger.error('Update product error:', error);
     return new Response(
       JSON.stringify({ error: 'Error al actualizar el producto', details: String(error) }),
       { status: 500 }
@@ -197,7 +198,7 @@ export const DELETE: APIRoute = async ({ params }) => {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Delete product error:', error);
+    logger.error('Delete product error:', error);
     return new Response(
       JSON.stringify({ error: 'Error al eliminar el producto' }),
       { status: 500 }

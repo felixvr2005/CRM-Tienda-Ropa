@@ -4,6 +4,7 @@
  */
 import type { APIRoute } from 'astro';
 import { supabase } from '@lib/supabase';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
@@ -46,14 +47,14 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    console.log(`Stock liberado: variant ${variantId}, cantidad ${quantity}, nuevo stock: ${newStock}`);
+    logger.info('Stock liberado', { variantId, quantity, newStock });
 
     return new Response(
       JSON.stringify({ success: true, newStock }),
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('Error liberando stock:', error);
+    logger.error('Error liberando stock:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500 }

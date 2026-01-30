@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 /**
  * Cloudinary Configuration
  * Servicio para gestión de imágenes de productos
@@ -202,7 +203,7 @@ export async function deleteImage(publicId: string): Promise<boolean> {
     const result = await response.json();
     return result.result === 'ok';
   } catch (error) {
-    console.error('Error eliminando imagen de Cloudinary:', error);
+    logger.error('Error eliminando imagen de Cloudinary:', error);
     return false;
   }
 }

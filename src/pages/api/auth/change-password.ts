@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import { supabase } from '@lib/supabase';
 
 export async function POST({ request }: any) {
@@ -41,7 +42,7 @@ export async function POST({ request }: any) {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error en change-password:', error);
+    logger.error('Error en change-password:', error);
     return new Response(
       JSON.stringify({ message: 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

@@ -26,7 +26,7 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error generando firma:', error);
+    logger.error('Error generando firma', { error: String(error) });
     return new Response(
       JSON.stringify({ error: 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -61,7 +61,7 @@ export const DELETE: APIRoute = async ({ request }) => {
       );
     }
   } catch (error) {
-    console.error('Error eliminando imagen:', error);
+    logger.error('Error eliminando imagen', { error: String(error) });
     return new Response(
       JSON.stringify({ error: 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

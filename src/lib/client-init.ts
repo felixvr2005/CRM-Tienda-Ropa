@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 // Client init: listen to Supabase auth changes and sync cart accordingly
 import { supabase } from './supabase';
 import { mergeCartOnLogin, clearCart, initCart } from '@stores/cart';
@@ -12,7 +13,7 @@ if (typeof window !== 'undefined') {
   try {
     initCart();
   } catch (err) {
-    console.warn('initCart failed:', err);
+    logger.warn('initCart failed:', err);
   }
 
   // Subscribe to Supabase auth state changes
@@ -26,7 +27,7 @@ if (typeof window !== 'undefined') {
         try {
           await mergeCartOnLogin(user.id);
         } catch (err) {
-          console.warn('mergeCartOnLogin failed:', err);
+          logger.warn('mergeCartOnLogin failed:', err);
         }
 
         try {
@@ -41,7 +42,7 @@ if (typeof window !== 'undefined') {
         try {
           await clearCart(false);
         } catch (err) {
-          console.warn('clearCart failed:', err);
+          logger.warn('clearCart failed:', err);
         }
 
         try {
@@ -55,6 +56,6 @@ if (typeof window !== 'undefined') {
       }
     });
   } catch (err) {
-    console.warn('auth state listener not attached:', err);
+    logger.warn('auth state listener not attached:', err);
   }
 }

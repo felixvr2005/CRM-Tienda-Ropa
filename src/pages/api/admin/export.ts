@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { exportReportData } from '../../../lib/reports';
 
@@ -70,7 +71,7 @@ export const GET: APIRoute = async ({ url }) => {
 
         throw new Error('Formato no soportado');
     } catch (error) {
-        console.error('Error al descargar reporte:', error);
+        logger.error('Error al descargar reporte:', error);
         return new Response(
             JSON.stringify({
                 error: 'Error al procesar la descarga',

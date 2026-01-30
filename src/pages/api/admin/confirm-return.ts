@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
+import { logger } from '@lib/logger';
 import nodemailer from 'nodemailer';
 
 // Crear transporte de correo con Gmail
@@ -7,7 +8,7 @@ const createTransporter = () => {
   const gmailUser = process.env.GMAIL_USER;
   const gmailPassword = process.env.GMAIL_APP_PASSWORD;
 
-  console.log('[Confirm Return] Configurando transporte con Gmail:', gmailUser);
+  logger.debug('Confirm Return - configuring gmail transporter', { user: gmailUser });
 
   if (!gmailUser || !gmailPassword) {
     throw new Error('GMAIL_USER o GMAIL_APP_PASSWORD no configurados');
@@ -29,7 +30,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const { returnId, status, trackingNumber, labelUrl, notes } = await request.json();
 
-    console.log('[Confirm Return API] Iniciando con datos:', { returnId, status, trackingNumber });
+    logger.info('Confirm Return API starting', { returnId, status, trackingNumber });
 
     if (!returnId) {
       return new Response(
@@ -39,7 +40,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // 1. Obtener datos de la devolución
-    console.log('[Confirm Return API] Obteniendo devolución...');
+    logger.debug('Fetching return request', { returnId });
     const { data: returnRequest, error: fetchError } = await supabaseAdmin
       .from('return_requests')
       .select('*')
@@ -47,17 +48,17 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
 
     if (fetchError || !returnRequest) {
-      console.error('Error fetching return:', fetchError);
+      logger.error('Return request not found or fetch error', { error: fetchError });
       return new Response(
         JSON.stringify({ error: 'Return request not found', details: fetchError?.message }),
         { status: 404 }
       );
     }
 
-    console.log('[Confirm Return API] Devolución obtenida:', returnRequest.id);
+    logger.info('Return request fetched', { id: returnRequest.id });
 
     // 2. Obtener datos de cliente
-    console.log('[Confirm Return API] Obteniendo cliente...');
+    logger.debug('Fetching customer for return', { customerId: returnRequest.customer_id });
     const { data: customer, error: customerError } = await supabaseAdmin
       .from('customers')
       .select('email, first_name, last_name')
@@ -65,13 +66,13 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
 
     if (customerError) {
-      console.error('Error fetching customer:', customerError);
+      logger.error('Error fetching customer for return', { error: customerError });
     }
 
-    console.log('[Confirm Return API] Cliente obtenido:', customer?.email);
+    logger.info('Customer fetched for return', { email: customer?.email });
 
     // 3. Obtener datos de pedido
-    console.log('[Confirm Return API] Obteniendo pedido...');
+    logger.debug('Fetching order for return', { orderId: returnRequest.order_id });
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .select('order_number')
@@ -79,13 +80,13 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
 
     if (orderError) {
-      console.error('Error fetching order:', orderError);
+      logger.error('Error fetching order for return', { error: orderError });
     }
 
-    console.log('[Confirm Return API] Pedido obtenido:', order?.order_number);
+    logger.info('Order fetched for return', { orderNumber: order?.order_number });
 
     // 4. Actualizar estado
-    console.log('[Confirm Return API] Actualizando estado...');
+    logger.info('[Confirm Return API] Actualizando estado...');
     const updateData: any = {
       status: status || 'label_sent',
       updated_at: new Date().toISOString(),
@@ -101,21 +102,21 @@ export const POST: APIRoute = async ({ request }) => {
       .eq('id', returnId);
 
     if (updateError) {
-      console.error('Error updating return:', updateError);
+      logger.error('Error updating return:', updateError);
       return new Response(
         JSON.stringify({ error: 'Failed to update return status', details: updateError.message }),
         { status: 500 }
       );
     }
 
-    console.log('[Confirm Return API] Estado actualizado correctamente');
+    logger.info('[Confirm Return API] Estado actualizado correctamente');
 
     // 5. Enviar correo
     const customerEmail = customer?.email;
     const customerName = `${customer?.first_name} ${customer?.last_name}`.trim();
     const orderNumber = order?.order_number || 'N/A';
 
-    console.log('[Confirm Return API] Preparando envío de correo a:', customerEmail);
+    logger.info('[Confirm Return API] Preparando envío de correo a:', customerEmail);
 
     if (customerEmail && labelUrl) {
       try {
@@ -128,9 +129,9 @@ export const POST: APIRoute = async ({ request }) => {
           labelUrl,
           trackingNumber,
         });
-        console.log('[Confirm Return API] Email enviado correctamente');
+        logger.info('[Confirm Return API] Email enviado correctamente');
       } catch (emailError) {
-        console.error('[Confirm Return API] Error al enviar email:', emailError);
+        logger.error('[Confirm Return API] Error al enviar email:', emailError);
         // Continuar aunque falle el email
       }
     }
@@ -144,7 +145,7 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[Confirm Return API] Exception:', error);
+    logger.error('[Confirm Return API] Exception:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error', details: (error as Error).message }),
       { status: 500 }
@@ -171,7 +172,7 @@ async function sendReturnEmail({
   trackingNumber?: string;
 }): Promise<void> {
   try {
-    console.log('[Email Sender] Iniciando envío a:', email);
+    logger.info('[Email Sender] Iniciando envío a:', email);
 
     const transporter = createTransporter();
 
@@ -193,7 +194,7 @@ async function sendReturnEmail({
       html: htmlContent,
     };
 
-    console.log('[Email Sender] Opciones de correo:', { 
+    logger.info('[Email Sender] Opciones de correo:', { 
       from: mailOptions.from, 
       to: mailOptions.to, 
       subject: mailOptions.subject 
@@ -201,9 +202,9 @@ async function sendReturnEmail({
 
     const result = await transporter.sendMail(mailOptions);
 
-    console.log('[Email Sender] ✅ Email enviado exitosamente:', result.messageId);
+    logger.info('[Email Sender] ✅ Email enviado exitosamente:', result.messageId);
   } catch (error) {
-    console.error('[Email Sender] ❌ Error al enviar email:', error);
+    logger.error('[Email Sender] ❌ Error al enviar email:', error);
     throw error;
   }
 }

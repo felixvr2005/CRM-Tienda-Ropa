@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
@@ -44,7 +45,7 @@ export async function POST({ request }: any) {
       .eq('order_id', order.id);
 
     if (itemsError) {
-      console.error('Error obteniendo items:', itemsError);
+      logger.error('Error obteniendo items:', itemsError);
       return new Response(
         JSON.stringify({ message: 'Error al procesar la cancelación' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -107,11 +108,11 @@ export async function POST({ request }: any) {
         const refundData = await response.json();
         
         if (!response.ok) {
-          console.error('Error en Stripe refund:', refundData);
+          logger.error('Error en Stripe refund:', refundData);
           // Continuar aunque falle Stripe
         }
       } catch (stripeError) {
-        console.error('Error procesando reembolso Stripe:', stripeError);
+        logger.error('Error procesando reembolso Stripe:', stripeError);
         // No bloquear si falla Stripe, el reembolso se puede procesar manualmente
       }
     }
@@ -124,7 +125,7 @@ export async function POST({ request }: any) {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error en cancel order:', error);
+    logger.error('Error en cancel order:', error);
     return new Response(
       JSON.stringify({ message: 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

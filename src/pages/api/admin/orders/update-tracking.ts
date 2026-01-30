@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
 import { sendAdminNotificationEmail } from '@lib/email';
@@ -62,7 +63,7 @@ export const PUT: APIRoute = async ({ request }) => {
           trackingUrl: trackingUrl
         });
       } catch (emailError) {
-        console.error('Error sending tracking email:', emailError);
+        logger.error('Error sending tracking email:', emailError);
         // No fallar si el email falla
       }
     }
@@ -76,7 +77,7 @@ export const PUT: APIRoute = async ({ request }) => {
     );
 
   } catch (error: any) {
-    console.error('Error updating tracking:', error);
+    logger.error('Error updating tracking:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Error al actualizar seguimiento' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

@@ -179,7 +179,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
   } catch (error: any) {
-    console.error('Stripe error:', error);
+    logger.error('Stripe error creating session', { error: String(error) });
     return new Response(JSON.stringify({ 
       error: error.message || 'Error al crear la sesión de pago' 
     }), {

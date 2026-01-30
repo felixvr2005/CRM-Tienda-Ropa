@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -127,10 +128,10 @@ const createEmailTransport = () => {
     const gmailPassword = process.env.GMAIL_APP_PASSWORD || '';
     
     if (!gmailUser || !gmailPassword) {
-        console.error('Variables de email no configuradas (GMAIL_USER / GMAIL_APP_PASSWORD faltantes).');
+        logger.warn('Variables de email no configuradas (GMAIL_USER / GMAIL_APP_PASSWORD faltantes).');
     }
     
-    console.log('Usando email:', gmailUser);
+    logger.info('Usando email (transporter)', { user: gmailUser });
     
     return nodemailer.createTransport({
         service: 'gmail',
@@ -214,10 +215,10 @@ export const sendCustomerEmail = async (
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log(`Email enviado al cliente: ${customerEmail}`, info.response);
+        logger.info('Email enviado al cliente', { to: customerEmail, response: info.response });
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('Error al enviar email a cliente:', error);
+        logger.error('Error al enviar email a cliente', { error: String(error) });
         throw error;
     }
 };
@@ -240,10 +241,10 @@ export const sendAdminEmail = async (
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log(`Email enviado al admin: ${adminEmail}`, info.response);
+        logger.info(`Email enviado al admin: ${adminEmail}`, info.response);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('Error al enviar email a admin:', error);
+        logger.error('Error al enviar email a admin:', error);
         throw error;
     }
 };
@@ -285,7 +286,7 @@ export const sendBulkCustomerEmails = async (
 
         return results;
     } catch (error) {
-        console.error('Error al enviar emails masivos:', error);
+        logger.error('Error al enviar emails masivos:', error);
         throw error;
     }
 };
@@ -419,10 +420,10 @@ export const sendAdminNotificationEmail = async (
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log(`Email de notificación enviado a: ${customerEmail}`);
+        logger.info(`Email de notificación enviado a: ${customerEmail}`);
         return { success: true, messageId: info.messageId };
     } catch (error) {
-        console.error('Error al enviar email de notificación:', error);
+        logger.error('Error al enviar email de notificación:', error);
         // No lanzar error para no bloquear la operación
         return { success: false, error: (error as Error).message };
     }
@@ -433,10 +434,10 @@ export const verifyEmailConnection = async () => {
     try {
         const transporter = createEmailTransport();
         await transporter.verify();
-        console.log('✓ Conexión de email verificada correctamente');
+        logger.info('Conexión de email verificada correctamente');
         return true;
     } catch (error) {
-        console.error('✗ Error verificando conexión de email:', error);
+        logger.error('Error verificando conexión de email', { error: String(error) });
         return false;
     }
 };

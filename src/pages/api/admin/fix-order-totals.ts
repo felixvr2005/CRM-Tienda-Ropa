@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
@@ -18,7 +19,7 @@ export const POST: APIRoute = async ({ request }) => {
       .is('total_amount', null);
 
     if (fetchError) {
-      console.error('Error fetching orders:', fetchError);
+      logger.error('Error fetching orders with null total', { error: fetchError });
       return new Response(JSON.stringify({ 
         error: 'Error al obtener órdenes',
         details: fetchError.message
@@ -38,7 +39,7 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    console.log(`📊 Encontradas ${ordersWithNull.length} órdenes para reparar`);
+    logger.info('Orders with null total found', { count: ordersWithNull.length });
 
     // Actualizar cada orden
     let updated = 0;
@@ -48,7 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
       const discountAmount = order.discount_amount || 0;
       const totalAmount = subtotal + shippingCost - discountAmount;
 
-      console.log(`🔄 Actualizando ${order.order_number}: ${totalAmount}€`);
+      logger.info('Updating order total', { orderNumber: order.order_number, totalAmount });
 
       const { error: updateError } = await supabaseAdmin
         .from('orders')
@@ -58,11 +59,11 @@ export const POST: APIRoute = async ({ request }) => {
       if (!updateError) {
         updated++;
       } else {
-        console.error(`❌ Error en ${order.order_number}:`, updateError);
+        logger.error('Error updating order total', { orderNumber: order.order_number, error: updateError });
       }
     }
 
-    console.log(`✅ ${updated}/${ordersWithNull.length} órdenes actualizadas`);
+    logger.info('Orders totals fixed', { updated, total: ordersWithNull.length });
 
     return new Response(JSON.stringify({ 
       message: `${updated} órdenes actualizadas correctamente`,
@@ -74,7 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
   } catch (error: any) {
-    console.error('❌ Error:', error);
+    logger.error('Error fixing order totals', { error: String(error) });
     return new Response(JSON.stringify({ 
       error: error.message || 'Error desconocido'
     }), {

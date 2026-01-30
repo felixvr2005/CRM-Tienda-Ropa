@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 /**
  * API - Actualizar variante (color, etc)
  */
@@ -29,7 +30,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       .eq('id', variantId);
 
     if (error) {
-      console.error('Error al actualizar variante:', error);
+      logger.error('Error al actualizar variante:', error);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
       });
@@ -40,7 +41,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       { status: 200 }
     );
   } catch (err) {
-    console.error('Error en PATCH /api/admin/variants:', err);
+    logger.error('Error en PATCH /api/admin/variants:', err);
     return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
       status: 500,
     });

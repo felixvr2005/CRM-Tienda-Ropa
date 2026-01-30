@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
@@ -68,7 +69,7 @@ export async function POST({ request }: any) {
       .single();
 
     if (createError) {
-      console.error('Error creando solicitud de devolución:', createError);
+      logger.error('Error creando solicitud de devolución:', createError);
       return new Response(
         JSON.stringify({ message: 'Error al solicitar la devolución' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -86,7 +87,7 @@ export async function POST({ request }: any) {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error en request-return:', error);
+    logger.error('Error en request-return:', error);
     return new Response(
       JSON.stringify({ message: 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

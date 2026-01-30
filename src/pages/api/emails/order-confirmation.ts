@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { sendCustomerEmail } from '../../../lib/email';
 import type { CustomerEmailData } from '../../../lib/email';
@@ -40,7 +41,7 @@ export const POST: APIRoute = async ({ request }) => {
             { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
     } catch (error) {
-        console.error('Error al enviar correo:', error);
+        logger.error('Error al enviar correo:', error);
         return new Response(
             JSON.stringify({
                 error: 'Error al enviar el correo',

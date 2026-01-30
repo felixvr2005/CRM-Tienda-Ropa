@@ -4,6 +4,7 @@
 export const prerender = false;
 
 import { supabaseAdmin } from '@lib/supabase';
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 
 export const DELETE: APIRoute = async ({ params, cookies }) => {
@@ -26,7 +27,7 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
       });
     }
 
-    console.log('Eliminando imagen:', imageId);
+    logger.info('Deleting variant image', { imageId });
 
     // Obtener imagen para conocer la URL
     const { data: image, error: getError } = await supabaseAdmin
@@ -36,7 +37,7 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
       .single();
 
     if (getError) {
-      console.error('Error al obtener imagen:', getError);
+      logger.error('Error fetching variant image', { error: getError });
     }
 
     // Eliminar de BD
@@ -46,7 +47,7 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
       .eq('id', imageId);
 
     if (error) {
-      console.error('Error al eliminar imagen:', error);
+      logger.error('Error deleting variant image', { error });
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -60,7 +61,7 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
         await supabaseAdmin.storage
           .from('product-images')
           .remove([fileName])
-          .catch(console.error);
+          .catch((err: any) => logger.warn('Error removing file from storage', { error: String(err) }));
       }
     }
 
@@ -69,7 +70,7 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    console.error('Error en DELETE /api/admin/variant-images:', err);
+    logger.error('Error en DELETE /api/admin/variant-images:', err);
     return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -115,7 +116,7 @@ export const PATCH: APIRoute = async ({ params, request, cookies }) => {
       .eq('id', imageId);
 
     if (error) {
-      console.error('Error al actualizar imagen:', error);
+      logger.error('Error updating variant image', { error });
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
       });
@@ -126,7 +127,7 @@ export const PATCH: APIRoute = async ({ params, request, cookies }) => {
       { status: 200 }
     );
   } catch (err) {
-    console.error('Error en PATCH /api/admin/variant-images:', err);
+    logger.error('Unhandled error in PATCH /api/admin/variant-images', { error: String(err) });
     return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
       status: 500,
     });

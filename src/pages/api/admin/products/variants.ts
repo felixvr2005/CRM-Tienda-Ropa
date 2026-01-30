@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
 
@@ -52,7 +53,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Error en POST /api/admin/products/variants:', error);
+    logger.error('Error en POST /api/admin/products/variants:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'
@@ -110,7 +111,7 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Error en DELETE /api/admin/products/variants:', error);
+    logger.error('Error en DELETE /api/admin/products/variants:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'

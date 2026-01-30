@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 /**
  * Supabase Client Singleton
  * Configuración para cliente público y servidor
@@ -28,7 +29,7 @@ function getClient(): SupabaseClient<Database> {
     const key = getSupabaseAnonKey();
     
     if (!url || !key) {
-      console.warn('⚠️ Supabase not configured');
+      logger.warn('⚠️ Supabase not configured');
     }
     
     _supabase = createClient<Database>(
@@ -106,7 +107,7 @@ export async function getProducts(limit?: number) {
 
   const { data, error } = await query;
   if (error) {
-    console.error('Error fetching products:', error);
+    logger.error('Error fetching products:', error);
     return [];
   }
   
@@ -350,7 +351,7 @@ export async function getFilteredProducts(filters: ProductFilters) {
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching filtered products:', error);
+    logger.error('Error fetching filtered products:', error);
     return [];
   }
 
@@ -569,7 +570,7 @@ export async function isUserAdmin(authUserId: string): Promise<boolean> {
   }
   
   if (error) {
-    console.log('Error checking admin:', error.message);
+    logger.error('Error checking admin', { error: error?.message });
   }
   
   return false;
@@ -587,9 +588,9 @@ export async function adminSignIn(email: string, password: string) {
   if (error) return { user: null, error: error.message };
 
   // Debug: ver qué contiene app_metadata
-  console.log('User data:', JSON.stringify(data.user, null, 2));
-  console.log('App metadata:', data.user?.app_metadata);
-  console.log('Role:', data.user?.app_metadata?.role);
+  logger.debug('Admin sign-in user data', { userId: data.user?.id });
+  logger.silly?.('Full app metadata (debug)', data.user?.app_metadata);
+  logger.debug('Detected role', { role: data.user?.app_metadata?.role });
 
   // Verificar si es admin - múltiples formas
   const roleFromAppMeta = data.user?.app_metadata?.role;
@@ -599,7 +600,7 @@ export async function adminSignIn(email: string, password: string) {
                   roleFromUserMeta === 'admin' ||
                   email === 'admin@gmail.com'; // Bypass temporal para debug
   
-  console.log('Is admin?', isAdmin, 'roleFromAppMeta:', roleFromAppMeta, 'roleFromUserMeta:', roleFromUserMeta);
+  logger.debug('Is admin check', { isAdmin, roleFromAppMeta, roleFromUserMeta });
 
   if (!isAdmin) {
     await client.auth.signOut();
@@ -611,7 +612,7 @@ export async function adminSignIn(email: string, password: string) {
     await client.from('admin_users').update({ last_login: new Date().toISOString() })
       .eq('auth_user_id', data.user.id);
   } catch (e) {
-    console.log('Error updating last_login:', e);
+    logger.warn('Error updating last_login', { error: String(e) });
   }
 
   return { user: data.user, error: null };
@@ -820,7 +821,7 @@ export async function createOrder(orderData: {
     .insert(orderItems);
 
   if (itemsError) {
-    console.error('Error creating order items:', itemsError);
+    logger.error('Error creating order items:', itemsError);
   }
 
   return { order, error: null };

@@ -4,22 +4,22 @@
 export const prerender = false;
 
 import { supabaseAdmin } from '@lib/supabase';
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 
 export const POST: APIRoute = async ({ request }) => {
-  console.log('=== POST /api/admin/variant-images START ===');
+  logger.info('POST /api/admin/variant-images start');
   
   try {
-    console.log('Request method:', request.method);
-    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+    logger.debug('Request info', { method: request.method, headers: Object.fromEntries(request.headers.entries()) });
     
     let body: any;
     try {
       body = await request.json();
-      console.log('✓ Body parsed:', JSON.stringify(body, null, 2));
+      logger.silly?.('Body parsed (debug)', JSON.stringify(body, null, 2));
     } catch (parseErr) {
-      console.error('❌ JSON Parse error:', parseErr);
-      console.log('Request body is empty or invalid');
+      logger.error('JSON parse error in variant-images', { error: String(parseErr) });
+      logger.warn('Request body is empty or invalid');
       return new Response(
         JSON.stringify({ error: 'Body vacío o JSON inválido' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -29,7 +29,7 @@ export const POST: APIRoute = async ({ request }) => {
     const { variant_id, images } = body;
 
     if (!variant_id) {
-      console.error('ERROR: No variant_id');
+      logger.error('ERROR: No variant_id');
       return new Response(JSON.stringify({ error: 'variant_id requerido' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -37,14 +37,14 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (!images || images.length === 0) {
-      console.error('ERROR: No images');
+      logger.error('ERROR: No images');
       return new Response(JSON.stringify({ error: 'images requeridas' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`✓ Insertando ${images.length} imagen(es) para variante ${variant_id}`);
+    logger.info('Insertando imágenes para variante', { variant_id, count: images.length });
     
     const imagesToInsert = images.map((img: any) => ({
       variant_id,
@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request }) => {
       sort_order: parseInt(img.sort_order) || 0,
     }));
 
-    console.log('Datos a insertar:', JSON.stringify(imagesToInsert[0], null, 2));
+    logger.debug('Datos a insertar (ejemplo)', imagesToInsert[0]);
 
     const { data, error } = await supabaseAdmin
       .from('variant_images')
@@ -62,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
       .select();
 
     if (error) {
-      console.error('❌ DB ERROR:', error);
+      logger.error('DB error inserting variant images', { error });
       return new Response(
         JSON.stringify({ 
           error: `Error de BD: ${error.message}`,
@@ -75,7 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    console.log(`✅ Insertadas ${data?.length || 0} imágenes`);
+    logger.info('Variant images inserted', { inserted: data?.length || 0 });
 
     return new Response(
       JSON.stringify({ 
@@ -89,7 +89,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
 
   } catch (err) {
-    console.error('❌ CATCH ERROR:', err);
+    logger.error('Unhandled exception in /api/admin/variant-images', { error: String(err) });
     const msg = err instanceof Error ? err.message : String(err);
     return new Response(
       JSON.stringify({ error: msg }),

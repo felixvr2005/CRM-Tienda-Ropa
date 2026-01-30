@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { sendAdminEmail } from '../../../lib/email';
 import { generateAdminEmailData, exportReportData } from '../../../lib/reports';
@@ -47,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
             { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
     } catch (error) {
-        console.error('Error al enviar reporte:', error);
+        logger.error('Error al enviar reporte:', error);
         return new Response(
             JSON.stringify({
                 error: 'Error al procesar el reporte',
@@ -83,7 +84,7 @@ export const GET: APIRoute = async ({ url }) => {
             headers: { 'Content-Type': 'application/json' },
         });
     } catch (error) {
-        console.error('Error al obtener preview del reporte:', error);
+        logger.error('Error al obtener preview del reporte:', error);
         return new Response(
             JSON.stringify({
                 error: 'Error al procesar el reporte',

@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 /**
  * API Admin: Products CRUD
  */
@@ -119,9 +120,9 @@ export const POST: APIRoute = async ({ request }) => {
       productData.stripe_product_id = stripeProductId;
       productData.stripe_price_id = stripePriceId;
       
-      console.log(`Producto "${productData.name}" creado en Stripe: ${stripeProductId}`);
+      logger.info('Producto creado en Stripe', { name: productData.name, stripeProductId });
     } catch (stripeError) {
-      console.warn('Error al crear producto en Stripe (continuando sin Stripe):', stripeError);
+      logger.warn('Error al crear producto en Stripe (continuando sin Stripe):', stripeError);
       // Continuamos sin Stripe - el producto se crea igual en la base de datos
     }
     
@@ -133,7 +134,7 @@ export const POST: APIRoute = async ({ request }) => {
       .single();
     
     if (productError || !newProduct) {
-      console.error('Product creation error:', productError);
+      logger.error('Product creation error', { error: productError });
       throw productError || new Error('No se pudo crear el producto');
     }
     
@@ -151,7 +152,7 @@ export const POST: APIRoute = async ({ request }) => {
         .insert(variantsWithProductId);
       
       if (variantsError) {
-        console.error('Variants creation error:', variantsError);
+        logger.error('Variants creation error:', variantsError);
         throw variantsError;
       }
     }
@@ -168,7 +169,7 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Create product error:', error);
+    logger.error('Create product error:', error);
     return new Response(
       JSON.stringify({ error: 'Error al crear el producto', details: String(error) }),
       { status: 500 }

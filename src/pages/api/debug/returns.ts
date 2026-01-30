@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import { supabaseAdmin, supabase } from '@lib/supabase';
 
 export const prerender = false;
@@ -86,7 +87,7 @@ export async function GET({ request }: any) {
         .order('created_at', { ascending: false });
 
       if (errorByOrders) {
-        console.error('Error fetching returns by order IDs:', errorByOrders);
+        logger.error('Error fetching returns by order IDs:', errorByOrders);
         returnRequests = byOrders || [];
         returnError = returnError || errorByOrders;
       } else {
@@ -102,7 +103,7 @@ export async function GET({ request }: any) {
           .order('created_at', { ascending: false });
 
         if (errorByCustomer) {
-          console.error('Error fetching returns by customer:', errorByCustomer);
+          logger.error('Error fetching returns by customer:', errorByCustomer);
           returnError = returnError || errorByCustomer;
         } else {
           returnRequests = Array.from(new Map([...(returnRequests || []), ...(byCustomer || [])].map(r => [r.id, r])).values());
@@ -111,7 +112,7 @@ export async function GET({ request }: any) {
     } else {
       const { data, error } = await returnsQuery.eq('customer_id', customer?.id);
       if (error) {
-        console.error('Error fetching returns:', error);
+        logger.error('Error fetching returns:', error);
         returnError = error;
         returnRequests = data || [];
       } else {
@@ -124,7 +125,7 @@ export async function GET({ request }: any) {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (err: any) {
-    console.error('Error in /api/debug/returns:', err);
+    logger.error('Error in /api/debug/returns:', err);
     const message = err?.message || String(err);
     const deployHint = message.includes('catch is not a function')
       ? 'Old deployment detected or incompatible runtime. Trigger a redeploy to pick up latest commits.'

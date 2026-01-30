@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabase } from '@lib/supabase';
 
@@ -26,7 +27,7 @@ export const GET: APIRoute = async ({ url }) => {
       .limit(10);
 
     if (error) {
-      console.error('Search error:', error);
+      logger.error('Search error:', error);
       return new Response(
         JSON.stringify({ error: 'Error en búsqueda' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -48,7 +49,7 @@ export const GET: APIRoute = async ({ url }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Search API error:', error);
+    logger.error('Search API error:', error);
     return new Response(
       JSON.stringify({ error: 'Error interno' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

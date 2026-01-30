@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 
@@ -87,7 +88,7 @@ export const PUT: APIRoute = async ({ request }) => {
       );
     }
 
-    console.log('[Settings] Configuration updated successfully');
+    logger.info('[Settings] Configuration updated successfully');
 
     return new Response(
       JSON.stringify({
@@ -98,7 +99,7 @@ export const PUT: APIRoute = async ({ request }) => {
     );
 
   } catch (error: any) {
-    console.error('[Settings API] Error:', error);
+    logger.error('[Settings API] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Error interno del servidor' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

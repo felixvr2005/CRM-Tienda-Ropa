@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 /**
  * API - Upload de imágenes a Cloudinary
  * POST: Generar firma para upload seguro desde cliente
@@ -29,7 +30,7 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error generando firma:', error);
+    logger.error('Error generando firma:', error);
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Error al generar firma'

@@ -1,3 +1,4 @@
+import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
 import { supabase } from '@lib/supabase';
 
@@ -61,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Código de descuento inválido', valid: false }), { status: 404, headers: { 'Content-Type': 'application/json' } });
 
   } catch (error: any) {
-    console.error('Error en validate coupon:', error);
+    logger.error('Error en validate coupon:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Error al validar cupón' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
