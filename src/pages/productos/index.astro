@@ -147,15 +147,11 @@ const colorHex: Record<string, string> = {
                 {availableFilters.colors.filter((c: string) => !c.startsWith('#')).map((color: string) => (
                   <button
                     data-color={color}
-                    class:list={['color-filter flex items-center gap-2 px-2 py-1.5 border rounded-full text-sm transition-colors', colors.includes(color) ? 'border-primary-900 bg-primary-50' : 'border-primary-200 hover:border-primary-400']}
+                    class:list={['color-filter w-8 h-8 rounded-full border-2 transition-all', colors.includes(color) ? 'border-primary-900 ring-2 ring-primary-900 ring-offset-1' : 'border-primary-200 hover:border-primary-400']}
                     title={color}
-                  >
-                    <span
-                      class="w-5 h-5 rounded-full border border-primary-300 flex-shrink-0"
-                      style={`background-color: ${colorHex[color] || '#ccc'}`}
-                    />
-                    <span class="text-primary-700">{color}</span>
-                  </button>
+                    style={`background-color: ${colorHex[color] || '#ccc'}`}
+                    aria-label={color}
+                  />
                 ))}
               </div>
             </div>

@@ -127,8 +127,6 @@ if (!category) {
 </AdminLayout>
 
 <script>
-  import { supabase } from '@lib/supabase';
-
   const form = document.getElementById('categoryForm') as HTMLFormElement;
   const errorDiv = document.getElementById('errorMessage') as HTMLDivElement;
   const successDiv = document.getElementById('successMessage') as HTMLDivElement;
@@ -150,17 +148,25 @@ if (!category) {
       is_active: formData.has('is_active'),
     };
 
-    const { error } = await supabase
-      .from('categories')
-      .update(categoryData)
-      .eq('id', categoryId);
+    try {
+      const response = await fetch(`/api/admin/categories/${categoryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(categoryData),
+      });
 
-    if (error) {
-      errorDiv.textContent = error.message;
+      const result = await response.json();
+
+      if (response.ok) {
+        successDiv.textContent = 'Categoría actualizada correctamente';
+        successDiv.classList.remove('hidden');
+      } else {
+        errorDiv.textContent = result.error || 'Error al actualizar';
+        errorDiv.classList.remove('hidden');
+      }
+    } catch (err: any) {
+      errorDiv.textContent = err.message || 'Error de conexión';
       errorDiv.classList.remove('hidden');
-    } else {
-      successDiv.textContent = 'Categoría actualizada correctamente';
-      successDiv.classList.remove('hidden');
     }
   });
 </script>
