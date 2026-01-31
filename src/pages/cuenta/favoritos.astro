@@ -218,3 +218,84 @@ const formatPrice = (price: number) => {
   </div>
 </AccountLayout>
 
+<script>
+  // Eliminar de favoritos
+  document.querySelectorAll('.remove-wishlist-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const button = e.currentTarget as HTMLElement;
+      const wishlistId = button.dataset.wishlistId;
+      const productCard = button.closest('.relative');
+      
+      if (!wishlistId) return;
+      
+      // Deshabilitar botón mientras procesa
+      button.style.pointerEvents = 'none';
+      button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+      
+      try {
+        const response = await fetch('/api/wishlist/remove', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wishlistId })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Animar y remover la tarjeta
+          if (productCard) {
+            productCard.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-300');
+            setTimeout(() => {
+              productCard.remove();
+              // Actualizar contador
+              const counter = document.querySelector('h1 span');
+              if (counter) {
+                const current = parseInt(counter.textContent?.match(/\d+/)?.[0] || '0');
+                if (current > 1) {
+                  counter.textContent = `(${current - 1})`;
+                } else {
+                  // Recargar página si no quedan favoritos
+                  window.location.reload();
+                }
+              }
+            }, 300);
+          }
+          
+          if ((window as any).toast) {
+            (window as any).toast.success('Eliminado de favoritos');
+          }
+        } else {
+          throw new Error(data.error || 'Error al eliminar');
+        }
+      } catch (error: any) {
+        console.error('Error:', error);
+        if ((window as any).toast) {
+          (window as any).toast.error('Error al eliminar de favoritos');
+        }
+        // Restaurar botón
+        button.style.pointerEvents = 'auto';
+        button.innerHTML = '<svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+      }
+    });
+  });
+  
+  // Vaciar todos los favoritos
+  document.getElementById('clearWishlistBtn')?.addEventListener('click', async () => {
+    if (!confirm('¿Estás seguro de vaciar toda tu lista de favoritos?')) return;
+    
+    try {
+      const response = await fetch('/api/wishlist/clear', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  });
+</script>
