@@ -267,15 +267,16 @@ const formatPrice = (price: number) => {
       
       if (availableVariant) {
         try {
-          // Añadir al carrito
+          // Añadir al carrito - precio ya está en centavos desde la BD
+          const priceInEuros = availableVariant.price / 100;
           addToCart({
             id: availableVariant.id,
             productId: product.id,
             variantId: availableVariant.id,
             name: product.name,
             slug: product.slug,
-            price: availableVariant.price / 100, // Convertir de centavos
-            originalPrice: product.originalPrice || availableVariant.price / 100,
+            price: priceInEuros,
+            originalPrice: product.originalPrice ? product.originalPrice / 100 : priceInEuros,
             discount: 0,
             image: product.image,
             size: availableVariant.size,
