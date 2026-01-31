@@ -157,10 +157,10 @@ const formatPrice = (price: number) => {
       </div>
     ) : (
       <>
-        <div class="flex gap-4">
+        <div class="flex gap-4 flex-wrap">
           <button
             id="addAllToCartBtn"
-            class="px-4 py-2 border border-primary-900 text-primary-900 hover:bg-primary-900 hover:text-white transition-colors text-sm rounded"
+            class="px-4 py-2 border border-primary-900 text-primary-900 hover:bg-primary-900 hover:text-white transition-colors text-sm rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Añadir Todo al Carrito
           </button>
@@ -172,9 +172,31 @@ const formatPrice = (price: number) => {
           </button>
         </div>
 
+        <!-- Datos de productos para el script -->
+        <script id="favoriteProductsData" type="application/json" set:html={JSON.stringify(
+          favoriteProducts.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            price: p.price,
+            originalPrice: p.originalPrice,
+            image: p.images?.[0] || '',
+            wishlistId: p.wishlistId,
+            variants: p.variants?.map((v: any) => ({
+              id: v.id,
+              size: v.size,
+              color: v.color,
+              stock: v.stock,
+              price: v.price
+            })) || []
+          }))
+        )} />
+
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {favoriteProducts.map((product: any) => (
-            <div class="relative group">
+          {favoriteProducts.map((product: any) => {
+            const hasStock = product.variants?.some((v: any) => v.stock > 0);
+            return (
+            <div class="relative group" data-product-id={product.id}>
               <button
                 class="remove-wishlist-btn absolute top-2 right-2 z-10 w-8 h-8 bg-white/90 hover:bg-red-500 rounded-full flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
                 data-wishlist-id={product.wishlistId}
@@ -209,9 +231,12 @@ const formatPrice = (price: number) => {
                     </span>
                   )}
                 </div>
+                {!hasStock && (
+                  <span class="text-xs text-red-500 mt-1 block">Sin stock</span>
+                )}
               </a>
             </div>
-          ))}
+          )})}
         </div>
       </>
     )}
@@ -219,6 +244,85 @@ const formatPrice = (price: number) => {
 </AccountLayout>
 
 <script>
+  import { addToCart } from '@stores/cart';
+  
+  // Obtener datos de productos
+  const productsDataEl = document.getElementById('favoriteProductsData');
+  const favoriteProducts = productsDataEl ? JSON.parse(productsDataEl.textContent || '[]') : [];
+  
+  // Añadir Todo al Carrito
+  document.getElementById('addAllToCartBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('addAllToCartBtn') as HTMLButtonElement;
+    if (!btn) return;
+    
+    btn.disabled = true;
+    btn.textContent = 'Añadiendo...';
+    
+    let addedCount = 0;
+    const wishlistIdsToRemove: string[] = [];
+    
+    for (const product of favoriteProducts) {
+      // Buscar primera variante con stock
+      const availableVariant = product.variants?.find((v: any) => v.stock > 0);
+      
+      if (availableVariant) {
+        try {
+          // Añadir al carrito
+          addToCart({
+            id: availableVariant.id,
+            productId: product.id,
+            variantId: availableVariant.id,
+            name: product.name,
+            slug: product.slug,
+            price: availableVariant.price / 100, // Convertir de centavos
+            originalPrice: product.originalPrice || availableVariant.price / 100,
+            discount: 0,
+            image: product.image,
+            size: availableVariant.size,
+            color: availableVariant.color,
+            maxStock: availableVariant.stock,
+          });
+          
+          addedCount++;
+          wishlistIdsToRemove.push(product.wishlistId);
+        } catch (e) {
+          console.error('Error añadiendo producto:', e);
+        }
+      }
+    }
+    
+    // Eliminar de favoritos los productos añadidos
+    if (wishlistIdsToRemove.length > 0) {
+      for (const wishlistId of wishlistIdsToRemove) {
+        try {
+          await fetch('/api/wishlist/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wishlistId })
+          });
+        } catch (e) {
+          console.error('Error eliminando favorito:', e);
+        }
+      }
+    }
+    
+    if ((window as any).toast) {
+      if (addedCount > 0) {
+        (window as any).toast.success(`${addedCount} producto(s) añadido(s) al carrito`);
+      } else {
+        (window as any).toast.warning('No hay productos con stock disponible');
+      }
+    }
+    
+    // Recargar página para actualizar lista
+    if (addedCount > 0) {
+      setTimeout(() => window.location.reload(), 1000);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Añadir Todo al Carrito';
+    }
+  });
+
   // Eliminar de favoritos
   document.querySelectorAll('.remove-wishlist-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
