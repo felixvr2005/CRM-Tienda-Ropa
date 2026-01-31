@@ -26,7 +26,13 @@ const { data: customer } = await supabaseAdmin
 
 // Solo consultar favoritos si tenemos un customer válido
 let wishlistItems: any[] = [];
-let debugInfo = { customerId: customer?.id, wishlistCount: 0, rawItems: [] as any[] };
+let debugInfo = { 
+  customerId: customer?.id, 
+  wishlistCount: 0, 
+  productIds: [] as string[],
+  productsFound: 0,
+  rawItems: [] as any[] 
+};
 
 if (customer?.id) {
   // Primero obtener los wishlists
@@ -41,41 +47,46 @@ if (customer?.id) {
   
   if (wishlists && wishlists.length > 0) {
     // Obtener los IDs de productos
-    const productIds = wishlists.map(w => w.product_id);
+    const productIds = wishlists.map(w => w.product_id).filter(Boolean);
+    debugInfo.productIds = productIds;
     
-    // Obtener productos con sus variantes
-    const { data: products } = await supabaseAdmin
-      .from('products')
-      .select(`
-        id,
-        name,
-        slug,
-        description,
-        images,
-        category:categories!products_category_id_fkey (
-          name,
-          slug
-        ),
-        variants:product_variants (
+    if (productIds.length > 0) {
+      // Obtener productos con sus variantes
+      const { data: products, error: productsError } = await supabaseAdmin
+        .from('products')
+        .select(`
           id,
-          color,
-          size,
-          price,
-          original_price,
-          stock
-        )
-      `)
-      .in('id', productIds);
-    
-    // Mapear wishlists con productos
-    wishlistItems = wishlists.map(wishlist => {
-      const product = products?.find(p => p.id === wishlist.product_id);
-      return {
-        id: wishlist.id,
-        created_at: wishlist.created_at,
-        product
-      };
-    }).filter(item => item.product); // Filtrar items sin producto
+          name,
+          slug,
+          description,
+          images,
+          category:categories!products_category_id_fkey (
+            name,
+            slug
+          ),
+          variants:product_variants (
+            id,
+            color,
+            size,
+            price,
+            original_price,
+            stock
+          )
+        `)
+        .in('id', productIds);
+      
+      debugInfo.productsFound = products?.length || 0;
+      
+      // Mapear wishlists con productos
+      wishlistItems = wishlists.map(wishlist => {
+        const product = products?.find(p => p.id === wishlist.product_id);
+        return {
+          id: wishlist.id,
+          created_at: wishlist.created_at,
+          product
+        };
+      }).filter(item => item.product); // Filtrar items sin producto
+    }
   }
 }
 
@@ -128,10 +139,13 @@ const formatPrice = (price: number) => {
         </svg>
         <h2 class="text-xl font-medium mb-2">Tu lista de favoritos está vacía</h2>
         <p class="text-primary-500 mb-6">Guarda tus productos favoritos para encontrarlos fácilmente</p>
-        <!-- Debug info -->
-        <p class="text-xs text-gray-400 mb-4">
-          Debug: Customer ID: {debugInfo.customerId || 'N/A'} | Wishlists: {debugInfo.wishlistCount}
-        </p>
+        <!-- Debug info detallado -->
+        <div class="text-xs text-gray-400 mb-4 text-left bg-gray-50 p-4 rounded max-w-md mx-auto">
+          <p>Customer ID: {debugInfo.customerId || 'N/A'}</p>
+          <p>Wishlists encontrados: {debugInfo.wishlistCount}</p>
+          <p>Product IDs: {debugInfo.productIds?.join(', ') || 'ninguno'}</p>
+          <p>Productos encontrados: {debugInfo.productsFound}</p>
+        </div>
         <a href="/productos" class="inline-block bg-primary-900 text-white px-8 py-3 rounded hover:bg-primary-800 transition-colors">
           Explorar Productos
         </a>
