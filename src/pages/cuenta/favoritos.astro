@@ -31,7 +31,7 @@ let debugInfo = {
   wishlistCount: 0, 
   productIds: [] as string[],
   productsFound: 0,
-  rawItems: [] as any[] 
+  error: ''
 };
 
 if (customer?.id) {
@@ -42,8 +42,11 @@ if (customer?.id) {
     .eq('customer_id', customer.id)
     .order('created_at', { ascending: false });
   
+  if (wishlistError) {
+    debugInfo.error = `Wishlist error: ${wishlistError.message}`;
+  }
+  
   debugInfo.wishlistCount = wishlists?.length || 0;
-  debugInfo.rawItems = wishlists || [];
   
   if (wishlists && wishlists.length > 0) {
     // Obtener los IDs de productos
@@ -51,41 +54,42 @@ if (customer?.id) {
     debugInfo.productIds = productIds;
     
     if (productIds.length > 0) {
-      // Obtener productos con sus variantes
+      // Obtener productos - query simplificada primero
       const { data: products, error: productsError } = await supabaseAdmin
         .from('products')
-        .select(`
-          id,
-          name,
-          slug,
-          description,
-          images,
-          category:categories!products_category_id_fkey (
-            name,
-            slug
-          ),
-          variants:product_variants (
-            id,
-            color,
-            size,
-            price,
-            original_price,
-            stock
-          )
-        `)
+        .select('*')
         .in('id', productIds);
+      
+      if (productsError) {
+        debugInfo.error += ` Products error: ${productsError.message}`;
+      }
       
       debugInfo.productsFound = products?.length || 0;
       
-      // Mapear wishlists con productos
-      wishlistItems = wishlists.map(wishlist => {
-        const product = products?.find(p => p.id === wishlist.product_id);
-        return {
-          id: wishlist.id,
-          created_at: wishlist.created_at,
-          product
-        };
-      }).filter(item => item.product); // Filtrar items sin producto
+      if (products && products.length > 0) {
+        // Obtener variantes por separado
+        const { data: allVariants } = await supabaseAdmin
+          .from('product_variants')
+          .select('*')
+          .in('product_id', productIds);
+        
+        // Mapear wishlists con productos y variantes
+        wishlistItems = wishlists.map(wishlist => {
+          const product = products.find(p => p.id === wishlist.product_id);
+          if (!product) return null;
+          
+          const variants = allVariants?.filter(v => v.product_id === product.id) || [];
+          
+          return {
+            id: wishlist.id,
+            created_at: wishlist.created_at,
+            product: {
+              ...product,
+              variants
+            }
+          };
+        }).filter(Boolean);
+      }
     }
   }
 }
@@ -145,6 +149,7 @@ const formatPrice = (price: number) => {
           <p>Wishlists encontrados: {debugInfo.wishlistCount}</p>
           <p>Product IDs: {debugInfo.productIds?.join(', ') || 'ninguno'}</p>
           <p>Productos encontrados: {debugInfo.productsFound}</p>
+          {debugInfo.error && <p class="text-red-500">Error: {debugInfo.error}</p>}
         </div>
         <a href="/productos" class="inline-block bg-primary-900 text-white px-8 py-3 rounded hover:bg-primary-800 transition-colors">
           Explorar Productos
