@@ -34,7 +34,7 @@
     "@astrojs/react": "^4.2.0",
     "@astrojs/tailwind": "^6.0.0",
     "@nanostores/react": "^0.8.4",
-    "@stripe/stripe-js": "^5.5.0",
+    "@stripe/stripe-js": "^8.7.0",
     "@supabase/supabase-js": "^2.49.1",
     "@types/nodemailer": "^7.0.5",
     "astro": "^5.1.5",
