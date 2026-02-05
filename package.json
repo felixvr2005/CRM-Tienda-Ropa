@@ -30,7 +30,7 @@
     ]
   },
   "dependencies": {
-    "@astrojs/node": "^9.0.0",
+    "@astrojs/node": "^9.5.2",
     "@astrojs/react": "^4.2.0",
     "@astrojs/tailwind": "^6.0.0",
     "@nanostores/react": "^0.8.4",
