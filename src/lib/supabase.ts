@@ -642,7 +642,7 @@ async function isUserAdminFromDB(authUserId: string): Promise<boolean> {
 // ============================================
 
 export async function getServerCart(customerId?: string, sessionId?: string) {
-  const client = getClient();
+  const client = getAdminClient();
   
   let query = client
     .from('cart_items')
@@ -671,7 +671,7 @@ export async function addToServerCart(item: {
   variantId: string;
   quantity: number;
 }) {
-  const client = getClient();
+  const client = getAdminClient();
   
   const insertData: any = {
     product_id: item.productId,
@@ -696,7 +696,7 @@ export async function addToServerCart(item: {
 }
 
 export async function updateServerCartItem(itemId: string, quantity: number) {
-  const client = getClient();
+  const client = getAdminClient();
   
   if (quantity <= 0) {
     return removeFromServerCart(itemId);
@@ -711,7 +711,7 @@ export async function updateServerCartItem(itemId: string, quantity: number) {
 }
 
 export async function removeFromServerCart(itemId: string) {
-  const client = getClient();
+  const client = getAdminClient();
   
   const { error } = await client
     .from('cart_items')
@@ -722,7 +722,7 @@ export async function removeFromServerCart(itemId: string) {
 }
 
 export async function clearServerCart(customerId?: string, sessionId?: string) {
-  const client = getClient();
+  const client = getAdminClient();
   
   let query = client.from('cart_items').delete();
 
@@ -737,7 +737,7 @@ export async function clearServerCart(customerId?: string, sessionId?: string) {
 }
 
 export async function mergeGuestCart(sessionId: string, customerId: string) {
-  const client = getClient();
+  const client = getAdminClient();
   
   // Usar la función de base de datos
   const { error } = await client.rpc('merge_guest_cart', {

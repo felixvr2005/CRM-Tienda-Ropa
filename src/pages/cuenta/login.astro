@@ -257,25 +257,18 @@ if (user) {
         
         console.log('Cookies guardadas, intentando crear/obtener perfil...');
 
-        // Intentar obtener/crear perfil del cliente (no bloquear redirección si falla)
+        // Intentar obtener/crear perfil del cliente usando API server-side
         try {
-          const { data: customer } = await supabase
-            .from('customers')
-            .select('id')
-            .eq('auth_user_id', data.user.id)
-            .single();
-
-          if (!customer) {
-            // Si no existe el perfil de cliente, crearlo
-            await supabase
-              .from('customers')
-              .insert({
-                auth_user_id: data.user.id,
-                email: data.user.email,
-                first_name: data.user.user_metadata?.first_name || 'Cliente',
-                last_name: data.user.user_metadata?.last_name || '',
-              });
-          }
+          await fetch('/api/auth/ensure-customer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: data.user.id,
+              email: data.user.email,
+              firstName: data.user.user_metadata?.first_name || 'Cliente',
+              lastName: data.user.user_metadata?.last_name || '',
+            })
+          });
         } catch (profileError) {
           console.error('Error con perfil de cliente:', profileError);
         }

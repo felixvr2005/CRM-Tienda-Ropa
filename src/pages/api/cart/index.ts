@@ -2,7 +2,7 @@
  * API Cart - Obtener y gestionar carrito del servidor
  */
 import type { APIRoute } from 'astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ request }) => {
     });
   }
 
-  let query = supabase
+  let query = supabaseAdmin
     .from('cart_items')
     .select(`
       id,
@@ -43,10 +43,12 @@ export const GET: APIRoute = async ({ request }) => {
   }
 
   // Formatear items para el frontend
+  // product.price viene en céntimos desde la BD - convertir a euros
   const items = (data || []).map(item => {
     const product = item.product as any;
     const variant = item.variant as any;
-    const discountedPrice = product.price * (1 - (product.discount_percentage || 0) / 100);
+    const priceEuros = (product.price || 0) / 100;
+    const discountedPrice = priceEuros * (1 - (product.discount_percentage || 0) / 100);
     
     return {
       id: item.id,
@@ -55,7 +57,7 @@ export const GET: APIRoute = async ({ request }) => {
       name: product.name,
       slug: product.slug,
       price: discountedPrice,
-      originalPrice: product.price,
+      originalPrice: priceEuros,
       discount: product.discount_percentage || 0,
       image: product.image_url,
       size: variant.size,
@@ -99,7 +101,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('cart_items')
     .upsert(insertData, {
       onConflict: customerId ? 'customer_id,variant_id' : 'session_id,variant_id'
@@ -131,7 +133,7 @@ export const DELETE: APIRoute = async ({ request }) => {
     });
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('cart_items')
     .delete()
     .eq('id', itemId);

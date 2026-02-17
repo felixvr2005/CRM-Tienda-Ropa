@@ -104,7 +104,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           product_id: productId,
           color: v.color || null,
           size: v.size || null,
-          price: v.price || null,
+          price_modifier: v.price_modifier || 0,
           stock: v.stock || 0,
           sku: v.sku || null
         }));

@@ -1,6 +1,6 @@
 ---
 import AccountLayout from '@layouts/AccountLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -42,7 +42,7 @@ if (Astro.request.method === 'POST') {
     const action = data.action;
 
     // Obtener direcciones actuales AHORA (no antes)
-    const { data: currentCustomer } = await supabase
+    const { data: currentCustomer } = await supabaseAdmin
       .from('customers')
       .select('id, addresses')
       .eq('auth_user_id', user.id)
@@ -83,7 +83,7 @@ if (Astro.request.method === 'POST') {
         }));
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('customers')
         .update({ addresses: newAddresses })
         .eq('auth_user_id', user.id);
@@ -96,7 +96,7 @@ if (Astro.request.method === 'POST') {
       const addressId = data.addressId;
       const newAddresses = currentAddresses.filter((a: any) => a.id !== addressId);
 
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('customers')
         .update({ addresses: newAddresses })
         .eq('auth_user_id', user.id);
@@ -112,7 +112,7 @@ if (Astro.request.method === 'POST') {
         is_default: a.id === addressId
       }));
 
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('customers')
         .update({ addresses: newAddresses })
         .eq('auth_user_id', user.id);
@@ -127,7 +127,7 @@ if (Astro.request.method === 'POST') {
 }
 
 // Obtener cliente y direcciones actualizadas
-const { data: customer } = await supabase
+const { data: customer } = await supabaseAdmin
   .from('customers')
   .select('id, addresses')
   .eq('auth_user_id', user.id)

@@ -5,7 +5,7 @@
  * y establece las cookies de sesión
  */
 import BaseLayout from '@layouts/BaseLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -51,14 +51,14 @@ if (error) {
         redirectUrl = '/admin';
       } else {
         // Crear perfil de cliente si no existe
-        const { data: existingCustomer } = await supabase
+        const { data: existingCustomer } = await supabaseAdmin
           .from('customers')
           .select('id')
           .eq('auth_user_id', data.user.id)
           .single();
 
         if (!existingCustomer) {
-          await supabase
+          await supabaseAdmin
             .from('customers')
             .insert({
               auth_user_id: data.user.id,

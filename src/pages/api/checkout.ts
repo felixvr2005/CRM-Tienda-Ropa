@@ -3,7 +3,7 @@
  */
 import type { APIRoute } from 'astro';
 import { createCheckoutSession } from '@lib/stripe';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 import { logger } from '@lib/logger';
 import type { CartItem } from '@stores/cart';
 
@@ -46,7 +46,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Validar cupón si se proporciona
     let discountAmount = 0;
     if (couponCode) {
-      const { data: coupon, error: couponError } = await supabase
+      const { data: coupon, error: couponError } = await supabaseAdmin
         .from('coupons')
         .select('id, discount_type, discount_value, is_active, max_uses, used_count, expires_at')
         .eq('code', couponCode.toUpperCase())

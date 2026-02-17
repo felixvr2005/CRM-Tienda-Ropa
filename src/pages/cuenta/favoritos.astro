@@ -98,19 +98,22 @@ const favoriteProducts = wishlistItems.map((item: any) => {
   const product = item.product;
   const variants = product?.variants || [];
   
-  const minPrice = variants.length > 0 
-    ? Math.min(...variants.map((v: any) => v.price))
-    : 0;
-  const minOriginalPrice = variants.length > 0
-    ? Math.min(...variants.map((v: any) => v.original_price || v.price))
-    : 0;
+  // Precios en BD están en céntimos - convertir a euros
+  const basePrice = (product?.price || 0) / 100;
+  const comparePrice = product?.compare_at_price ? product.compare_at_price / 100 : null;
+  const discountPercentage = product?.discount_percentage || 0;
+
+  // Calcular precio final con descuento si aplica
+  const finalPrice = discountPercentage > 0 
+    ? basePrice * (1 - discountPercentage / 100) 
+    : basePrice;
 
   const colors = [...new Set(variants.map((v: any) => v.color))];
 
   return {
     ...product,
-    price: minPrice,
-    originalPrice: minOriginalPrice > minPrice ? minOriginalPrice : null,
+    price: finalPrice,
+    originalPrice: (comparePrice && comparePrice > finalPrice) ? comparePrice : (discountPercentage > 0 ? basePrice : null),
     colors,
     wishlistId: item.id,
     addedAt: item.created_at
@@ -187,7 +190,7 @@ const formatPrice = (price: number) => {
               size: v.size,
               color: v.color,
               stock: v.stock,
-              price: v.price
+              price_modifier: v.price_modifier || 0
             })) || []
           }))
         )} />
@@ -267,16 +270,15 @@ const formatPrice = (price: number) => {
       
       if (availableVariant) {
         try {
-          // Añadir al carrito - precio ya está en centavos desde la BD
-          const priceInEuros = availableVariant.price / 100;
+          // Precios ya convertidos a euros en el server-side
           addToCart({
             id: availableVariant.id,
             productId: product.id,
             variantId: availableVariant.id,
             name: product.name,
             slug: product.slug,
-            price: priceInEuros,
-            originalPrice: product.originalPrice ? product.originalPrice / 100 : priceInEuros,
+            price: product.price,
+            originalPrice: product.originalPrice || product.price,
             discount: 0,
             image: product.image,
             size: availableVariant.size,

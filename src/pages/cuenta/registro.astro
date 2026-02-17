@@ -406,20 +406,24 @@ if (user) {
       }
 
       if (data.user) {
-        // Crear perfil del cliente
-        const { data: customer, error: customerError } = await supabase
-          .from('customers')
-          .insert({
-            auth_user_id: data.user.id,
-            email: data.user.email,
-            first_name: firstName,
-            last_name: lastName || null,
-            is_subscribed_newsletter: newsletter,
-          })
-          .select()
-          .single();
-
-        if (customerError) {
+        // Crear perfil del cliente usando API server-side (supabaseAdmin)
+        try {
+          const customerResp = await fetch('/api/auth/ensure-customer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: data.user.id,
+              email: data.user.email,
+              firstName: firstName,
+              lastName: lastName || '',
+            })
+          });
+          
+          if (!customerResp.ok) {
+            const errData = await customerResp.json();
+            console.error('Error creating customer profile:', errData.error);
+          }
+        } catch (customerError) {
           console.error('Error creating customer profile:', customerError);
         }
 

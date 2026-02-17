@@ -83,7 +83,6 @@ if (!returnRequest) {
   return Astro.redirect('/cuenta/devoluciones');
 }
 
-import { logger } from '@lib/logger';
 // Log some info to help debugging (server-side)
 logger.debug('Return detail hit', {
   id,
@@ -325,5 +324,4 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
       )}
     </div>
   </div>
-</AccountLayout>
 </AccountLayout>

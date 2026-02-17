@@ -40,7 +40,7 @@ if (adminUser) {
 // Obtener perfil del cliente (buscar por auth_user_id; si no existe, intentar por email)
 let customer = null;
 {
-  const { data: customerByAuth } = await supabase
+  const { data: customerByAuth } = await supabaseAdmin
     .from('customers')
     .select('*')
     .eq('auth_user_id', user.id)
@@ -49,7 +49,7 @@ let customer = null;
   if (customerByAuth) {
     customer = customerByAuth;
   } else {
-    const { data: customerByEmail } = await supabase
+    const { data: customerByEmail } = await supabaseAdmin
       .from('customers')
       .select('*')
       .eq('email', user.email)

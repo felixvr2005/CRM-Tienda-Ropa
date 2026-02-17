@@ -2,7 +2,7 @@
  * API Cart Merge - Fusionar carrito de invitado con usuario
  */
 import type { APIRoute } from 'astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (items && items.length > 0) {
       for (const item of items) {
         // Verificar si ya existe este variant en el carrito del usuario
-        const { data: existing } = await supabase
+        const { data: existing } = await supabaseAdmin
           .from('cart_items')
           .select('id, quantity')
           .eq('customer_id', customerId)
@@ -31,13 +31,13 @@ export const POST: APIRoute = async ({ request }) => {
 
         if (existing) {
           // Actualizar cantidad
-          await supabase
+          await supabaseAdmin
             .from('cart_items')
             .update({ quantity: existing.quantity + item.quantity })
             .eq('id', existing.id);
         } else {
           // Insertar nuevo
-          await supabase
+          await supabaseAdmin
             .from('cart_items')
             .insert({
               customer_id: customerId,
@@ -51,7 +51,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Si hay sessionId, transferir items de la sesión de invitado
     if (sessionId) {
-      const { data: guestItems } = await supabase
+      const { data: guestItems } = await supabaseAdmin
         .from('cart_items')
         .select('*')
         .eq('session_id', sessionId);
@@ -59,7 +59,7 @@ export const POST: APIRoute = async ({ request }) => {
       if (guestItems && guestItems.length > 0) {
         for (const guestItem of guestItems) {
           // Verificar si ya existe
-          const { data: existing } = await supabase
+          const { data: existing } = await supabaseAdmin
             .from('cart_items')
             .select('id, quantity')
             .eq('customer_id', customerId)
@@ -68,13 +68,13 @@ export const POST: APIRoute = async ({ request }) => {
 
           if (existing) {
             // Actualizar cantidad
-            await supabase
+            await supabaseAdmin
               .from('cart_items')
               .update({ quantity: existing.quantity + guestItem.quantity })
               .eq('id', existing.id);
           } else {
             // Insertar nuevo con customer_id
-            await supabase
+            await supabaseAdmin
               .from('cart_items')
               .insert({
                 customer_id: customerId,
@@ -86,7 +86,7 @@ export const POST: APIRoute = async ({ request }) => {
         }
 
         // Eliminar items de la sesión de invitado
-        await supabase
+        await supabaseAdmin
           .from('cart_items')
           .delete()
           .eq('session_id', sessionId);

@@ -34,7 +34,7 @@ export const PUT: APIRoute = async ({ request }) => {
           id,
           color,
           size,
-          price,
+          price_modifier,
           stripe_price_id
         )
       `);
@@ -61,7 +61,9 @@ export const PUT: APIRoute = async ({ request }) => {
       // Sincronizar cada variante
       if (product.variants && product.variants.length > 0) {
         for (const variant of product.variants as any[]) {
-          const priceInCents = Math.round(variant.price * 100);
+          // product.price ya está en céntimos en la BD, price_modifier también
+          const variantPriceCents = product.price + (variant.price_modifier || 0);
+          const variantPriceEuros = variantPriceCents / 100;
 
           if (variant.stripe_price_id) {
             // Actualizar metadatos del precio existente
@@ -69,7 +71,7 @@ export const PUT: APIRoute = async ({ request }) => {
               await stripe.prices.update(variant.stripe_price_id, {
                 metadata: {
                   sync_date: new Date().toISOString(),
-                  price_eur: variant.price.toString(),
+                  price_eur: variantPriceEuros.toString(),
                   color: variant.color || '',
                   size: variant.size || ''
                 }
@@ -79,7 +81,7 @@ export const PUT: APIRoute = async ({ request }) => {
               results.details.push({
                 product: product.name,
                 variant: `${variant.color}/${variant.size}`,
-                price: `€${variant.price}`,
+                price: `€${variantPriceEuros.toFixed(2)}`,
                 status: 'synced'
               });
             } catch (err: any) {
@@ -88,8 +90,8 @@ export const PUT: APIRoute = async ({ request }) => {
           }
         }
       } else {
-        // Sincronizar precio base del producto
-        const priceInCents = Math.round(product.price * 100);
+        // Sincronizar precio base del producto (product.price ya está en céntimos en la BD)
+        const priceInCents = product.price;
 
         const stripePrices = await stripe.prices.list({
           product: product.stripe_product_id,
