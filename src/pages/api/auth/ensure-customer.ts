@@ -5,6 +5,7 @@
  */
 import type { APIRoute } from 'astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
@@ -89,7 +90,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       { status: 201, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('Error en ensure-customer:', error);
+    logger.error('Error en ensure-customer:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Error interno' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
