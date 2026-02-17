@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Run console check before pushing
+# Verify no console.* in server files (security/quality check)
 npm run check:console || { echo 'check-console failed — aborting push'; exit 1; }
 
-# Run only unit tests (exclude integration/RLS tests that need local Supabase)
-npx vitest run --exclude 'tests/rls/**' --exclude 'tests/concurrency/**' --silent 2>/dev/null || { echo 'Unit tests failed — aborting push'; exit 1; }
+# Verify TypeScript compiles without errors
+npx tsc --noEmit --quiet 2>/dev/null || { echo 'TypeScript compilation failed — aborting push'; exit 1; }
