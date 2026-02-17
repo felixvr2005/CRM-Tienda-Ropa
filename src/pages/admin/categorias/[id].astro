@@ -3,13 +3,13 @@
  * Admin - Editar Categoría
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
 const { id } = Astro.params;
 
-const { data: category } = await supabase
+const { data: category } = await supabaseAdmin
   .from('categories')
   .select('*')
   .eq('id', id)

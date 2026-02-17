@@ -6,7 +6,7 @@ export const prerender = false;
 
 import AdminLayout from '@layouts/AdminLayout.astro';
 import VariantsPanel from '@components/islands/VariantsPanel';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 
 const productId = Astro.params.productId;
 
@@ -15,7 +15,7 @@ if (!productId) {
 }
 
 // Obtener producto
-const { data: product } = await supabase
+const { data: product } = await supabaseAdmin
   .from('products')
   .select('*')
   .eq('id', productId)
@@ -26,7 +26,7 @@ if (!product) {
 }
 
 // Obtener variantes con imágenes
-const { data: variants } = await supabase
+const { data: variants } = await supabaseAdmin
   .from('product_variants')
   .select('*')
   .eq('product_id', productId)
@@ -36,7 +36,7 @@ let variantsWithImages: any[] = [];
 
 if (variants && variants.length > 0) {
   for (const variant of variants) {
-    const { data: images } = await supabase
+    const { data: images } = await supabaseAdmin
       .from('variant_images')
       .select('*')
       .eq('variant_id', variant.id)

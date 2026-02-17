@@ -4,7 +4,7 @@
  * Con soporte para tipos de producto y variantes con múltiples imágenes
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { supabase, supabaseAdmin } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 import { VariantImagesUploader } from '@components/islands/VariantImagesUploader.tsx';
 
 export const prerender = false;
@@ -20,11 +20,11 @@ const [
   { data: categories },
   { data: productTypes }
 ] = await Promise.all([
-  supabase
+  supabaseAdmin
     .from('categories')
     .select('id, name')
     .order('name'),
-  supabase
+  supabaseAdmin
     .from('product_types')
     .select('id, name, size_type, available_sizes')
     .order('name')

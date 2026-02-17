@@ -3,7 +3,7 @@ import { logger } from '@lib/logger';
  * API Admin: Single Product CRUD
  */
 import type { APIRoute } from 'astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 import { slugify } from '@lib/utils';
 
 export const prerender = false;
@@ -16,7 +16,7 @@ export const GET: APIRoute = async ({ params }) => {
       return new Response(JSON.stringify({ error: 'ID requerido' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('products')
       .select('*, variants:product_variants(*)')
       .eq('id', id)
@@ -57,7 +57,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
       product.slug = slugify(product.name);
       
       // Check if slug exists (excluding current product)
-      const { data: existing } = await supabase
+      const { data: existing } = await supabaseAdmin
         .from('products')
         .select('slug')
         .eq('slug', product.slug)
@@ -114,7 +114,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
     logger.info('Updating product:', id, 'with data:', updateData);
     
     // Update product
-    const { error: productError, data: updatedProduct } = await supabase
+    const { error: productError, data: updatedProduct } = await supabaseAdmin
       .from('products')
       .update(updateData)
       .eq('id', id)
@@ -129,7 +129,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
     // Update variants
     if (variants && Array.isArray(variants)) {
       // Get existing variants
-      const { data: existingVariants } = await supabase
+      const { data: existingVariants } = await supabaseAdmin
         .from('product_variants')
         .select('id')
         .eq('product_id', id);
@@ -140,7 +140,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
       // Delete removed variants
       const toDelete = existingIds.filter(vid => !newVariantIds.includes(vid));
       if (toDelete.length > 0) {
-        await supabase
+        await supabaseAdmin
           .from('product_variants')
           .delete()
           .in('id', toDelete);
@@ -151,13 +151,13 @@ export const PUT: APIRoute = async ({ params, request }) => {
         if (variant.id) {
           // Update existing
           const { id: variantId, ...variantData } = variant;
-          await supabase
+          await supabaseAdmin
             .from('product_variants')
             .update({ ...variantData, updated_at: new Date().toISOString() })
             .eq('id', variantId);
         } else {
           // Insert new
-          await supabase
+          await supabaseAdmin
             .from('product_variants')
             .insert({
               ...variant,
@@ -189,13 +189,13 @@ export const DELETE: APIRoute = async ({ params }) => {
     }
     
     // Delete variants first (cascade should handle this but just in case)
-    await supabase
+    await supabaseAdmin
       .from('product_variants')
       .delete()
       .eq('product_id', id);
     
     // Delete product
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('products')
       .delete()
       .eq('id', id);

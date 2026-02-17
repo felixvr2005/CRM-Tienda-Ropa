@@ -3,7 +3,7 @@ import { logger } from '@lib/logger';
  * API Admin: Products CRUD
  */
 import type { APIRoute } from 'astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 import { slugify } from '@lib/utils';
 import { createStripeProduct, createStripePrice } from '@lib/stripe';
 
@@ -12,7 +12,7 @@ export const prerender = false;
 // GET - List all products
 export const GET: APIRoute = async () => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('products')
       .select('*, category:categories(name)')
       .order('created_at', { ascending: false });
@@ -55,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
     let slug = slugify(product.name);
     
     // Check if slug exists
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from('products')
       .select('slug')
       .eq('slug', slug)
@@ -127,7 +127,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
     
     // Create product
-    const { data: newProduct, error: productError } = await supabase
+    const { data: newProduct, error: productError } = await supabaseAdmin
       .from('products')
       .insert(productData)
       .select()
@@ -147,7 +147,7 @@ export const POST: APIRoute = async ({ request }) => {
         product_id: (newProduct as any).id,
       }));
       
-      const { error: variantsError } = await supabase
+      const { error: variantsError } = await supabaseAdmin
         .from('product_variants')
         .insert(variantsWithProductId);
       

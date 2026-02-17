@@ -1,6 +1,6 @@
 import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 
 /**
  * GET /api/admin/product-types/sizes?type_id=xxx
@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
       });
     }
 
-    const { data: productType, error } = await supabase
+    const { data: productType, error } = await supabaseAdmin
       .from('product_types')
       .select('available_sizes, size_type')
       .eq('id', typeId)

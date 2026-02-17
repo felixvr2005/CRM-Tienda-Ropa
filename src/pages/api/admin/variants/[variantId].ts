@@ -4,7 +4,7 @@ import { logger } from '@lib/logger';
  */
 export const prerender = false;
 
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 import type { APIRoute } from 'astro';
 
 export const PATCH: APIRoute = async ({ params, request }) => {
@@ -20,7 +20,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('product_variants')
       .update({
         color,

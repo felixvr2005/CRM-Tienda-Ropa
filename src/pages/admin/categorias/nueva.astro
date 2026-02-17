@@ -115,8 +115,6 @@ export const prerender = false;
 </AdminLayout>
 
 <script>
-  import { supabase } from '@lib/supabase';
-
   const form = document.getElementById('categoryForm') as HTMLFormElement;
   const errorDiv = document.getElementById('errorMessage') as HTMLDivElement;
   const nameInput = form.querySelector('input[name="name"]') as HTMLInputElement;
@@ -148,15 +146,23 @@ export const prerender = false;
       is_active: formData.has('is_active'),
     };
 
-    const { error } = await supabase
-      .from('categories')
-      .insert(categoryData);
+    try {
+      const response = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(categoryData),
+      });
+      const result = await response.json();
 
-    if (error) {
-      errorDiv.textContent = error.message;
+      if (response.ok) {
+        window.location.href = '/admin/categorias';
+      } else {
+        errorDiv.textContent = result.error || 'Error al crear categoría';
+        errorDiv.classList.remove('hidden');
+      }
+    } catch (err: any) {
+      errorDiv.textContent = err.message || 'Error de conexión';
       errorDiv.classList.remove('hidden');
-    } else {
-      window.location.href = '/admin/categorias';
     }
   });
 </script>

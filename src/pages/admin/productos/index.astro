@@ -3,12 +3,12 @@
  * Admin Products List - SSR
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 import { formatPrice } from '@lib/utils';
 
 export const prerender = false;
 
-const { data: products } = await supabase
+const { data: products } = await supabaseAdmin
   .from('products')
   .select(`
     *,

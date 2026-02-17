@@ -4,7 +4,7 @@
  * Login separado para administradores
  */
 import BaseLayout from '@layouts/BaseLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -20,7 +20,7 @@ if (user) {
   }
   
   // Si no es admin pero está logueado, también verificar en tabla
-  const { data: adminUser } = await supabase
+  const { data: adminUser } = await supabaseAdmin
     .from('admin_users')
     .select('id')
     .eq('auth_user_id', user.id)
@@ -206,15 +206,15 @@ if (user) {
                       data.user.user_metadata?.role === 'admin';
       
       if (!isAdmin) {
-        // Intentar verificar en admin_users como fallback
-        const { data: adminUser } = await supabase
-          .from('admin_users')
-          .select('id')
-          .eq('auth_user_id', data.user.id)
-          .eq('is_active', true)
-          .single();
+        // Verificar en admin_users via API server-side
+        const checkResponse = await fetch('/api/admin/check-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: data.user.id })
+        });
+        const checkResult = await checkResponse.json();
         
-        if (!adminUser) {
+        if (!checkResult.isAdmin) {
           await supabase.auth.signOut();
           throw new Error('No tienes permisos de administrador. Si eres cliente, usa el login de clientes.');
         }

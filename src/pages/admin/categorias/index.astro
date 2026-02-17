@@ -3,12 +3,12 @@
  * Admin - Lista de Categorías
  */
 import AdminLayout from '@layouts/AdminLayout.astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
 // Obtener categorías
-const { data: categories } = await supabase
+const { data: categories } = await supabaseAdmin
   .from('categories')
   .select('*')
   .order('sort_order', { ascending: true });
@@ -97,21 +97,23 @@ const { data: categories } = await supabase
 </AdminLayout>
 
 <script>
-  import { supabase } from '@lib/supabase';
-
   document.querySelectorAll('[data-delete-category]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = btn.getAttribute('data-delete-category');
       if (confirm('¿Estás seguro de eliminar esta categoría?')) {
-        const { error } = await supabase
-          .from('categories')
-          .delete()
-          .eq('id', id);
-        
-        if (!error) {
-          window.location.reload();
-        } else {
-          alert('Error al eliminar: ' + error.message);
+        try {
+          const response = await fetch(`/api/admin/categories/${id}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          const result = await response.json();
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            alert('Error al eliminar: ' + (result.error || 'Error desconocido'));
+          }
+        } catch (err: any) {
+          alert('Error de conexión: ' + err.message);
         }
       }
     });
