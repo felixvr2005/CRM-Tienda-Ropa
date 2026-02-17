@@ -8,13 +8,16 @@ node_modules/
 .env.local
 .env.*.local
 .env.production
+.env.test
 
 # Build outputs
 dist/
+dist.bak/
 build/
 .astro/
 .next/
 out/
+*.bak
 
 # IDE and Editor files
 .vscode/
