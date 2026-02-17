@@ -439,8 +439,8 @@ if (user) {
         }
 
         // Si no hay confirmación, hacer login automático
-        if (customer) {
-          await mergeCartOnLogin(customer.id);
+        if (data.user) {
+          await mergeCartOnLogin(data.user.id);
         }
 
         showSuccess('¡Cuenta creada! Redirigiendo...');

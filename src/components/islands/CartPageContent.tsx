@@ -4,7 +4,7 @@
  */
 import { useStore } from '@nanostores/react';
 import { useState, useEffect } from 'react';
-import { $cart, removeFromCart, updateQuantity, clearCart, getCartTimeRemaining, startCartExpirationTimer, type CartItem } from '@stores/cart';
+import { $cart, removeFromCart, updateQuantity, clearCart, getCartTimeRemaining, startCartExpirationTimer, initCart, type CartItem } from '@stores/cart';
 import { formatPrice, computeShippingCost } from '@lib/utils';
 import CouponInput from './CouponInput';
 
@@ -15,6 +15,11 @@ export default function CartPageContent() {
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponError, setCouponError] = useState('');
   const [timeRemaining, setTimeRemaining] = useState(0);
+
+  // Ensure cart is loaded from localStorage (backup in case CartIcon hydrates after this)
+  useEffect(() => {
+    initCart();
+  }, []);
 
   // Timer de cuenta atrás
   useEffect(() => {

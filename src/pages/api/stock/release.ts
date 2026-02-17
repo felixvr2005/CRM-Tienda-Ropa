@@ -3,7 +3,7 @@
  * Se llama cuando expira el timer del carrito o se elimina un producto
  */
 import type { APIRoute } from 'astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
 import { logger } from '@lib/logger';
 
 export const prerender = false;
@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Obtener stock actual
-    const { data: variant, error: fetchError } = await supabase
+    const { data: variant, error: fetchError } = await supabaseAdmin
       .from('product_variants')
       .select('stock')
       .eq('id', variantId)
@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Devolver stock
     const newStock = variant.stock + quantity;
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('product_variants')
       .update({ stock: newStock })
       .eq('id', variantId);
@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Registrar cambio en stock_change_log
-    await supabase
+    await supabaseAdmin
       .from('stock_change_log')
       .insert({
         product_id: variantId,

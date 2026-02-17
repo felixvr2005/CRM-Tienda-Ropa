@@ -317,14 +317,22 @@ export function getCartTimeRemaining(): number {
 }
 
 // Cargar carrito del servidor (para usuarios logueados)
-export async function loadCartFromServer(customerId: string) {
+export async function loadCartFromServer(authUserId: string) {
   $isCartSyncing.set(true);
   try {
-    const response = await fetch(`/api/cart?customerId=${customerId}`);
+    const response = await fetch(`/api/cart?authUserId=${authUserId}`);
     if (response.ok) {
       const { items } = await response.json();
-      $cart.set(items);
-      $customerId.set(customerId);
+      // Only update cart if server actually returned items
+      // or if our local cart is empty (prevents overwriting good local data with empty server data)
+      if (items && items.length > 0) {
+        $cart.set(items);
+        $customerId.set(authUserId);
+      } else if ($cart.get().length === 0) {
+        $cart.set([]);
+        $customerId.set(authUserId);
+      }
+      // If server is empty but we have local items, keep them
     }
   } catch (e) {
     console.error('Error loading cart from server:', e);
@@ -334,38 +342,41 @@ export async function loadCartFromServer(customerId: string) {
 }
 
 // Merge carrito de invitado con usuario logueado
-export async function mergeCartOnLogin(customerId: string) {
+export async function mergeCartOnLogin(authUserId: string) {
   const guestCart = $cart.get();
   const sessionId = getGuestSessionId();
   
   if (guestCart.length === 0) {
     // No hay carrito de invitado, solo cargar del servidor
-    await loadCartFromServer(customerId);
+    await loadCartFromServer(authUserId);
     return;
   }
 
   $isCartSyncing.set(true);
   try {
     // Enviar items del carrito de invitado al servidor
-    await fetch('/api/cart/merge', {
+    const mergeResponse = await fetch('/api/cart/merge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         sessionId,
-        customerId,
+        authUserId,
         items: guestCart
       })
     });
     
-    // Limpiar localStorage
-    localStorage.removeItem('fashionstore_cart');
-    localStorage.removeItem('fashionstore_cart_expires');
-    localStorage.removeItem('fashionstore_guest_session');
+    // Solo limpiar localStorage si el merge fue exitoso
+    if (mergeResponse.ok) {
+      localStorage.removeItem('fashionstore_cart');
+      localStorage.removeItem('fashionstore_cart_expires');
+      localStorage.removeItem('fashionstore_guest_session');
+    }
     
     // Cargar carrito actualizado del servidor
-    await loadCartFromServer(customerId);
+    await loadCartFromServer(authUserId);
   } catch (e) {
     console.error('Error merging cart:', e);
+    // Si falla, mantener los items locales (no borrar localStorage)
   } finally {
     $isCartSyncing.set(false);
   }

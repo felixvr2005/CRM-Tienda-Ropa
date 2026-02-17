@@ -6,13 +6,26 @@ import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
+/**
+ * Resolve auth_user_id → customers.id
+ * The client sends the Supabase auth UUID, but cart_items.customer_id references customers.id
+ */
+async function resolveCustomerId(authUserId: string): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from('customers')
+    .select('id')
+    .eq('auth_user_id', authUserId)
+    .single();
+  return data?.id || null;
+}
+
 export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
-  const customerId = url.searchParams.get('customerId');
+  const authUserId = url.searchParams.get('authUserId');
   const sessionId = url.searchParams.get('sessionId');
 
-  if (!customerId && !sessionId) {
-    return new Response(JSON.stringify({ error: 'Missing customerId or sessionId' }), {
+  if (!authUserId && !sessionId) {
+    return new Response(JSON.stringify({ error: 'Missing authUserId or sessionId' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -27,7 +40,15 @@ export const GET: APIRoute = async ({ request }) => {
       variant:product_variants(id, size, color, color_hex, stock)
     `);
 
-  if (customerId) {
+  if (authUserId) {
+    const customerId = await resolveCustomerId(authUserId);
+    if (!customerId) {
+      // User doesn't have a customer profile yet — return empty cart
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     query = query.eq('customer_id', customerId);
   } else {
     query = query.eq('session_id', sessionId!);
@@ -75,7 +96,7 @@ export const GET: APIRoute = async ({ request }) => {
 
 export const POST: APIRoute = async ({ request }) => {
   const body = await request.json();
-  const { customerId, sessionId, productId, variantId, quantity } = body;
+  const { authUserId, sessionId, productId, variantId, quantity } = body;
 
   if (!productId || !variantId || !quantity) {
     return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -90,12 +111,19 @@ export const POST: APIRoute = async ({ request }) => {
     quantity,
   };
 
-  if (customerId) {
+  if (authUserId) {
+    const customerId = await resolveCustomerId(authUserId);
+    if (!customerId) {
+      return new Response(JSON.stringify({ error: 'Customer profile not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     insertData.customer_id = customerId;
   } else if (sessionId) {
     insertData.session_id = sessionId;
   } else {
-    return new Response(JSON.stringify({ error: 'Missing customerId or sessionId' }), {
+    return new Response(JSON.stringify({ error: 'Missing authUserId or sessionId' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -104,7 +132,7 @@ export const POST: APIRoute = async ({ request }) => {
   const { data, error } = await supabaseAdmin
     .from('cart_items')
     .upsert(insertData, {
-      onConflict: customerId ? 'customer_id,variant_id' : 'session_id,variant_id'
+      onConflict: authUserId ? 'customer_id,variant_id' : 'session_id,variant_id'
     })
     .select()
     .single();

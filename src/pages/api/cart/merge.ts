@@ -6,13 +6,34 @@ import { supabaseAdmin } from '@lib/supabase';
 
 export const prerender = false;
 
+/**
+ * Resolve auth_user_id → customers.id
+ */
+async function resolveCustomerId(authUserId: string): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from('customers')
+    .select('id')
+    .eq('auth_user_id', authUserId)
+    .single();
+  return data?.id || null;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const body = await request.json();
-  const { sessionId, customerId, items } = body;
+  const { sessionId, authUserId, items } = body;
 
-  if (!customerId) {
-    return new Response(JSON.stringify({ error: 'Missing customerId' }), {
+  if (!authUserId) {
+    return new Response(JSON.stringify({ error: 'Missing authUserId' }), {
       status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Resolve auth UUID to customer ID
+  const customerId = await resolveCustomerId(authUserId);
+  if (!customerId) {
+    return new Response(JSON.stringify({ error: 'Customer profile not found' }), {
+      status: 404,
       headers: { 'Content-Type': 'application/json' }
     });
   }

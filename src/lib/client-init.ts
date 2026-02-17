@@ -9,7 +9,7 @@ if (typeof window !== 'undefined') {
   // Expose a minimal auth state for UI code that needs it synchronously
   (window as any).__FASHION_AUTH_STATE = (window as any).__FASHION_AUTH_STATE || {};
 
-  // Initialize cart from localStorage
+  // Initialize cart from localStorage (always — this is the primary source of truth)
   try {
     initCart();
   } catch (err) {
@@ -22,19 +22,46 @@ if (typeof window !== 'undefined') {
       const user = session?.user || null;
       (window as any).__FASHION_AUTH_STATE.user = user;
 
-      if (event === 'SIGNED_IN' && user) {
-        // Merge guest cart into user cart
+      // INITIAL_SESSION fires on every page load — just restore user state, don't touch cart
+      if (event === 'INITIAL_SESSION' && user) {
         try {
-          await mergeCartOnLogin(user.id);
-        } catch (err) {
-          logger.warn('mergeCartOnLogin failed:', err);
+          setUser(user);
+        } catch (_err) {
+          // noop
+        }
+        return;
+      }
+
+      // SIGNED_IN fires only on actual new login (not page reload in Supabase v2.39+)
+      // Use sessionStorage flag to prevent double-merge if event fires multiple times
+      if (event === 'SIGNED_IN' && user) {
+        const mergeKey = `fashionstore_merged_${user.id}`;
+        const alreadyMerged = sessionStorage.getItem(mergeKey);
+
+        if (!alreadyMerged) {
+          try {
+            await mergeCartOnLogin(user.id);
+            sessionStorage.setItem(mergeKey, '1');
+          } catch (err) {
+            logger.warn('mergeCartOnLogin failed:', err);
+          }
         }
 
         try {
           setUser(user);
-        } catch (err) {
+        } catch (_err) {
           // noop
         }
+      }
+
+      // TOKEN_REFRESHED — just update user, don't touch cart
+      if (event === 'TOKEN_REFRESHED' && user) {
+        try {
+          setUser(user);
+        } catch (_err) {
+          // noop
+        }
+        return;
       }
 
       if (event === 'SIGNED_OUT') {
@@ -47,7 +74,19 @@ if (typeof window !== 'undefined') {
 
         try {
           clearAuth();
-        } catch (err) {
+        } catch (_err) {
+          // noop
+        }
+
+        // Clear merge flags
+        try {
+          for (let i = sessionStorage.length - 1; i >= 0; i--) {
+            const key = sessionStorage.key(i);
+            if (key?.startsWith('fashionstore_merged_')) {
+              sessionStorage.removeItem(key);
+            }
+          }
+        } catch (_err) {
           // noop
         }
 
