@@ -25,7 +25,6 @@
   "lint-staged": {
     "**/*.{ts,tsx,js,jsx,astro}": [
       "npm run check:console",
-      "npm run test -- --findRelatedTests",
       "npm run format --"
     ]
   },
