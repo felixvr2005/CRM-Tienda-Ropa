@@ -47,6 +47,16 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    // Registrar cambio en stock_change_log
+    await supabase
+      .from('stock_change_log')
+      .insert({
+        product_id: variantId,
+        previous_stock: variant.stock,
+        new_stock: newStock,
+        reason: 'release_cart'
+      });
+
     logger.info('Stock liberado', { variantId, quantity, newStock });
 
     return new Response(

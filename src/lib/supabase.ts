@@ -115,10 +115,10 @@ export async function getProducts(limit?: number) {
   return (data || []).map(product => ({
     ...product,
     price: product.price / 100,
-    original_price: product.original_price ? product.original_price / 100 : undefined,
+    compare_at_price: product.compare_at_price ? product.compare_at_price / 100 : undefined,
     variants: (product.variants || []).map((v: any) => ({
       ...v,
-      price: v.price / 100,
+      computed_price: (product.price + (v.price_modifier || 0)) / 100,
     })),
   }));
 }
@@ -142,10 +142,10 @@ export async function getProductBySlug(slug: string) {
   return {
     ...data,
     price: data.price / 100,
-    original_price: data.original_price ? data.original_price / 100 : undefined,
+    compare_at_price: data.compare_at_price ? data.compare_at_price / 100 : undefined,
     variants: (data.variants || []).map((v: any) => ({
       ...v,
-      price: v.price / 100,
+      computed_price: (data.price + (v.price_modifier || 0)) / 100,
     })),
   };
 }
@@ -178,10 +178,10 @@ export async function getProductsByCategory(categorySlug: string) {
   return (data || []).map(product => ({
     ...product,
     price: product.price / 100,
-    original_price: product.original_price ? product.original_price / 100 : undefined,
+    compare_at_price: product.compare_at_price ? product.compare_at_price / 100 : undefined,
     variants: (product.variants || []).map((v: any) => ({
       ...v,
-      price: v.price / 100,
+      computed_price: (product.price + (v.price_modifier || 0)) / 100,
     })),
   }));
 }
@@ -218,10 +218,10 @@ export async function getFeaturedProducts() {
   return (data || []).map(product => ({
     ...product,
     price: product.price / 100,
-    original_price: product.original_price ? product.original_price / 100 : undefined,
+    compare_at_price: product.compare_at_price ? product.compare_at_price / 100 : undefined,
     variants: (product.variants || []).map((v: any) => ({
       ...v,
-      price: v.price / 100,
+      computed_price: (product.price + (v.price_modifier || 0)) / 100,
     })),
   }));
 }
@@ -260,10 +260,10 @@ export async function getFlashOffers() {
   return (data || []).map(product => ({
     ...product,
     price: product.price / 100,
-    original_price: product.original_price ? product.original_price / 100 : undefined,
+    compare_at_price: product.compare_at_price ? product.compare_at_price / 100 : undefined,
     variants: (product.variants || []).map((v: any) => ({
       ...v,
-      price: v.price / 100,
+      computed_price: (product.price + (v.price_modifier || 0)) / 100,
     })),
   }));
 }
@@ -361,10 +361,10 @@ export async function getFilteredProducts(filters: ProductFilters) {
   products = products.map(p => ({
     ...p,
     price: p.price / 100,
-    original_price: p.original_price ? p.original_price / 100 : undefined,
+    compare_at_price: p.compare_at_price ? p.compare_at_price / 100 : null,
     variants: (p.variants || []).map((v: any) => ({
       ...v,
-      price: v.price ? v.price / 100 : undefined,
+      computed_price: (p.price + (v.price_modifier || 0)) / 100,
     })),
   }));
 
@@ -394,6 +394,7 @@ export async function getAvailableFilters(categorySlug?: string) {
       price,
       discount_percentage,
       is_new,
+      product_type_id,
       variants:product_variants(size, color)
     `)
     .eq('is_active', true);
@@ -468,7 +469,7 @@ export async function getAvailableFilters(categorySlug?: string) {
       .in('id', (data || []).map((p: any) => p.product_type_id).filter(Boolean))
       .limit(1);
     if (pt && pt.length > 0 && pt[0].size_type) {
-      inferredSizeType = pt[0].size_type;
+      inferredSizeType = pt[0].size_type as 'standard' | 'shoe' | 'unique';
     }
   } catch (e) {
     // noop - inference best-effort only
@@ -509,7 +510,7 @@ export async function signUp(email: string, password: string, userData?: {
   if (data.user) {
     await client.from('customers').insert({
       auth_user_id: data.user.id,
-      email: data.user.email,
+      email: data.user.email!,
       first_name: userData?.first_name || null,
       last_name: userData?.last_name || null,
     });
@@ -594,7 +595,7 @@ export async function adminSignIn(email: string, password: string) {
 
   // Debug: ver qué contiene app_metadata
   logger.debug('Admin sign-in user data', { userId: data.user?.id });
-  logger.silly?.('Full app metadata (debug)', data.user?.app_metadata);
+  logger.debug('Full app metadata (debug)', data.user?.app_metadata);
   logger.debug('Detected role', { role: data.user?.app_metadata?.role });
 
   // Verificar si es admin - múltiples formas
@@ -858,8 +859,13 @@ export async function getOrderByNumber(orderNumber: string) {
       order_items(
         id,
         quantity,
-        price,
-        original_price,
+        unit_price,
+        line_total,
+        discount_percentage,
+        product_name,
+        product_image,
+        size,
+        color,
         product_variant:product_variants(
           id,
           color,
@@ -893,7 +899,7 @@ export async function getWishlist(customerId: string) {
         description,
         images,
         category:categories!products_category_id_fkey(name, slug),
-        variants:product_variants(id, color, size, price, original_price, stock)
+        variants:product_variants(id, color, size, price_modifier, stock, color_hex)
       )
     `)
     .eq('customer_id', customerId)
@@ -983,7 +989,6 @@ export async function getProductReviews(productId: string) {
 export async function addReview(data: {
   customerId: string;
   productId: string;
-  variantId?: string;
   orderId?: string;
   rating: number;
   title?: string;
@@ -997,7 +1002,6 @@ export async function addReview(data: {
     .insert({
       customer_id: data.customerId,
       product_id: data.productId,
-      variant_id: data.variantId,
       order_id: data.orderId,
       rating: data.rating,
       title: data.title,

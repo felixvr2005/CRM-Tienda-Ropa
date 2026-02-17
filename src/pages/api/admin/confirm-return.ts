@@ -125,7 +125,7 @@ export const POST: APIRoute = async ({ request }) => {
           name: customerName,
           orderNumber,
           returnId,
-          amount: returnRequest.refund_amount,
+          amount: returnRequest.refund_amount ?? 0,
           labelUrl,
           trackingNumber,
         });

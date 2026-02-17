@@ -30,7 +30,7 @@ export const GET: APIRoute = async ({ request }) => {
   if (customerId) {
     query = query.eq('customer_id', customerId);
   } else {
-    query = query.eq('session_id', sessionId);
+    query = query.eq('session_id', sessionId!);
   }
 
   const { data, error } = await query;

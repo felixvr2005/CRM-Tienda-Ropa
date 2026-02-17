@@ -54,13 +54,14 @@ export const PUT: APIRoute = async ({ request }) => {
     // Enviar email al cliente sobre el envío
     if (order.customer_email) {
       try {
-        await sendAdminNotificationEmail({
-          customerEmail: order.customer_email,
-          customerName: order.customer_name,
-          orderNumber: order.order_number,
-          status: 'shipped',
-          trackingNumber: trackingNumber,
-          trackingUrl: trackingUrl
+        await sendAdminNotificationEmail(order.customer_email, {
+          order_number: order.order_number,
+          previous_status: order.status,
+          new_status: 'shipped',
+          customer_name: order.customer_name || 'Cliente',
+          order_date: order.created_at,
+          total_amount: order.total_amount ?? 0,
+          tracking_url: trackingUrl || ''
         });
       } catch (emailError) {
         logger.error('Error sending tracking email:', emailError);

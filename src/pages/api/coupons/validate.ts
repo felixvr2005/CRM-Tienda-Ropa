@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
         return new Response(JSON.stringify({ valid: false, error: 'Código expirado' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
       }
 
-      if (coupon.times_used && coupon.times_used >= (coupon.usage_limit || 0)) {
+      if (coupon.used_count && coupon.used_count >= (coupon.max_uses || Infinity)) {
         return new Response(JSON.stringify({ valid: false, error: 'Este código ya no está disponible' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
       }
 

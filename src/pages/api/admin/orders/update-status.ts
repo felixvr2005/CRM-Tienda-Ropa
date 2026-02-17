@@ -129,10 +129,12 @@ export const PUT: APIRoute = async ({ request }) => {
       if (items && Array.isArray(items)) {
         for (const item of items) {
           try {
-            await supabaseAdmin.rpc('increase_stock', {
-              p_variant_id: item.variant_id,
-              p_quantity: item.quantity
-            });
+            if (item.variant_id) {
+              await supabaseAdmin.rpc('increase_stock', {
+                p_variant_id: item.variant_id,
+                p_quantity: item.quantity
+              });
+            }
           } catch (error) {
             logger.error('Error restoring stock:', error);
           }

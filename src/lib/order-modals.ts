@@ -22,12 +22,12 @@ export function setupOrderModals() {
   // ===== MODAL CANCELACIÓN =====
   function openCancelModal() {
     console.log('Opening cancel modal');
-    cancelModal.classList.remove('hidden');
+    cancelModal!.classList.remove('hidden');
   }
 
   function closeCancelModal() {
     console.log('Closing cancel modal');
-    cancelModal.classList.add('hidden');
+    cancelModal!.classList.add('hidden');
   }
 
   // Botón para abrir
@@ -51,14 +51,14 @@ export function setupOrderModals() {
   // ===== MODAL DEVOLUCIÓN =====
   function openReturnModal() {
     console.log('Opening return modal');
-    returnModal.classList.remove('hidden');
+    returnModal!.classList.remove('hidden');
   }
 
   function closeReturnModal() {
     console.log('Closing return modal');
-    const form = returnModal.querySelector('#returnForm') as HTMLFormElement;
-    const success = returnModal.querySelector('#returnSuccess');
-    returnModal.classList.add('hidden');
+    const form = returnModal!.querySelector('#returnForm') as HTMLFormElement;
+    const success = returnModal!.querySelector('#returnSuccess');
+    returnModal!.classList.add('hidden');
     if (form) form.classList.remove('hidden');
     if (success) success.classList.add('hidden');
   }
@@ -92,8 +92,8 @@ export function setupOrderModals() {
         return;
       }
 
-      confirmCancelBtn.disabled = true;
-      const spinner = cancelModal.querySelector('#cancelSpinner');
+      (confirmCancelBtn as HTMLButtonElement).disabled = true;
+      const spinner = cancelModal!.querySelector('#cancelSpinner');
       if (spinner) spinner.classList.remove('hidden');
 
       try {
@@ -110,13 +110,13 @@ export function setupOrderModals() {
           window.location.href = '/cuenta/pedidos';
         } else {
           alert(data.message || 'Error al cancelar el pedido');
-          confirmCancelBtn.disabled = false;
+          (confirmCancelBtn as HTMLButtonElement).disabled = false;
           if (spinner) spinner.classList.add('hidden');
         }
       } catch (error) {
         console.error('Error:', error);
         alert('Error al cancelar el pedido');
-        confirmCancelBtn.disabled = false;
+        (confirmCancelBtn as HTMLButtonElement).disabled = false;
         if (spinner) spinner.classList.add('hidden');
       }
     });
@@ -141,7 +141,7 @@ export function setupOrderModals() {
       }
 
       if (submitReturnBtn) {
-        submitReturnBtn.disabled = true;
+        (submitReturnBtn as HTMLButtonElement).disabled = true;
         submitReturnBtn.textContent = 'Procesando...';
       }
 
@@ -160,7 +160,7 @@ export function setupOrderModals() {
         if (response.ok) {
           // Mostrar success
           if (returnForm) returnForm.classList.add('hidden');
-          const success = returnModal.querySelector('#returnSuccess');
+          const success = returnModal!.querySelector('#returnSuccess');
           if (success) success.classList.remove('hidden');
 
           // Redirigir después de 3 segundos
@@ -170,7 +170,7 @@ export function setupOrderModals() {
         } else {
           alert(data.message || 'Error al solicitar la devolución');
           if (submitReturnBtn) {
-            submitReturnBtn.disabled = false;
+            (submitReturnBtn as HTMLButtonElement).disabled = false;
             submitReturnBtn.textContent = 'Solicitar Devolución';
           }
         }
@@ -178,7 +178,7 @@ export function setupOrderModals() {
         console.error('Error:', error);
         alert('Error al solicitar la devolución');
         if (submitReturnBtn) {
-          submitReturnBtn.disabled = false;
+          (submitReturnBtn as HTMLButtonElement).disabled = false;
           submitReturnBtn.textContent = 'Solicitar Devolución';
         }
       }

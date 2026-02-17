@@ -4,6 +4,7 @@
 import type { APIRoute } from 'astro';
 import { createCheckoutSession } from '@lib/stripe';
 import { supabase } from '@lib/supabase';
+import { logger } from '@lib/logger';
 import type { CartItem } from '@stores/cart';
 
 export const prerender = false;
@@ -47,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (couponCode) {
       const { data: coupon, error: couponError } = await supabase
         .from('coupons')
-        .select('id, discount_percentage, is_active, max_uses, used_count, expiry_date')
+        .select('id, discount_type, discount_value, is_active, max_uses, used_count, expires_at')
         .eq('code', couponCode.toUpperCase())
         .single();
 
@@ -75,7 +76,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       // Verificar expiración
-      if (coupon.expiry_date && new Date(coupon.expiry_date) < new Date()) {
+      if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
         return new Response(
           JSON.stringify({ error: 'Este cupón ha expirado' }),
           { status: 400 }
@@ -84,9 +85,13 @@ export const POST: APIRoute = async ({ request }) => {
 
       // Calcular descuento total
       const totalBeforeDiscount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      discountAmount = (totalBeforeDiscount * coupon.discount_percentage) / 100;
+      if (coupon.discount_type === 'percentage') {
+        discountAmount = (totalBeforeDiscount * coupon.discount_value) / 100;
+      } else {
+        discountAmount = coupon.discount_value;
+      }
 
-      logger.info('Cupón validado', { couponCode, discountPct: coupon.discount_percentage });
+      logger.info('Cupón validado', { couponCode, discountType: coupon.discount_type, discountValue: coupon.discount_value });
     }
 
     

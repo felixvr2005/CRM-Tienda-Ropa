@@ -24,25 +24,28 @@ interface DailyMetrics {
 interface OrderData {
     id: string;
     order_number: string;
-    user_id: string;
+    customer_id: string | null;
+    customer_name?: string | null;
+    customer_email?: string | null;
     total_amount: number;
     status: string;
     created_at: string;
     payment_method?: string;
-    users?: { name: string; email: string };
+    discount_amount?: number;
+    shipping_cost?: number;
+    tracking_number?: string | null;
     order_items?: any[];
     is_new_customer?: boolean;
 }
 
 interface ShipmentData {
     id: string;
-    order_id: string;
-    tracking_number: string;
+    order_number: string;
+    tracking_number: string | null;
     status: string;
-    destination: string;
-    estimated_delivery?: string;
-    shipped_at: string;
-    orders?: { order_number: string };
+    shipping_address: any;
+    estimated_delivery_date: string | null;
+    shipped_at: string | null;
 }
 
 interface PaymentErrorData {
@@ -141,18 +144,21 @@ const fetchOrdersData = async (from: string, to: string): Promise<OrderData[]> =
             .select(`
                 id,
                 order_number,
-                user_id,
+                customer_id,
+                customer_name,
+                customer_email,
                 total_amount,
                 status,
                 created_at,
                 payment_method,
-                users (name, email),
+                discount_amount,
+                shipping_cost,
+                tracking_number,
                 order_items (
                     id,
                     product_id,
                     quantity,
-                    unit_price,
-                    products (name, sku)
+                    unit_price
                 )
             `)
             .gte('created_at', from)
@@ -160,7 +166,7 @@ const fetchOrdersData = async (from: string, to: string): Promise<OrderData[]> =
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data || [];
+        return (data || []) as OrderData[];
     } catch (error) {
         logger.error('Error fetching orders:', error);
         return [];
@@ -171,23 +177,26 @@ const fetchOrdersData = async (from: string, to: string): Promise<OrderData[]> =
 const fetchShipmentsData = async (from: string, to: string): Promise<ShipmentData[]> => {
     try {
         const { data, error } = await supabase
-            .from('shipments')
+            .from('orders')
             .select(`
                 id,
-                order_id,
+                order_number,
                 tracking_number,
                 status,
-                destination,
-                estimated_delivery,
-                shipped_at,
-                orders (order_number)
+                shipping_address,
+                updated_at
             `)
-            .gte('shipped_at', from)
-            .lte('shipped_at', to)
-            .order('shipped_at', { ascending: false });
+            .in('status', ['shipped', 'delivered'])
+            .gte('updated_at', from)
+            .lte('updated_at', to)
+            .order('updated_at', { ascending: false });
 
         if (error) throw error;
-        return data || [];
+        return (data || []).map(d => ({
+            ...d,
+            estimated_delivery_date: null,
+            shipped_at: d.updated_at,
+        })) as ShipmentData[];
     } catch (error) {
         logger.error('Error fetching shipments:', error);
         return [];
@@ -203,7 +212,7 @@ const fetchAlerts = async (from: string, to: string) => {
         const { data: paymentErrors } = await supabase
             .from('orders')
             .select('id, order_number, status, created_at')
-            .eq('status', 'payment_failed')
+            .eq('status', 'cancelled')
             .gte('created_at', from)
             .lte('created_at', to);
 
@@ -216,9 +225,9 @@ const fetchAlerts = async (from: string, to: string) => {
 
         // Stock bajo
         const { data: lowStock } = await supabase
-            .from('products')
-            .select('id, name, sku, stock_quantity')
-            .lt('stock_quantity', 10);
+            .from('product_variants')
+            .select('id, size, color, stock, product:products(id, name, sku)')
+            .lt('stock', 10);
 
         if (lowStock && lowStock.length > 0) {
             alerts.push({
@@ -410,17 +419,17 @@ export const generateAdminEmailData = async (
         pending_shipments: pendingShipments,
         critical_alerts: alerts.length,
         has_alerts: alerts.length > 0,
-        payment_errors: paymentErrors.map((p) => ({
+        payment_errors: paymentErrors.map((p: any) => ({
             error_description: `Error en procesamiento de pago - Estado: ${p.status}`,
             affected_order: p.order_number,
         })),
-        incomplete_orders: incompleteOrders.map((io) => ({
+        incomplete_orders: incompleteOrders.map((io: any) => ({
             order_issue: `Pedido en estado: ${io.status}`,
             order_id: io.order_number,
         })),
-        low_stock: lowStockItems.map((ls) => ({
-            product_name: ls.name,
-            stock_quantity: ls.stock_quantity,
+        low_stock: lowStockItems.map((ls: any) => ({
+            product_name: ls.product?.name || 'Variante',
+            stock_quantity: ls.stock,
         })),
         system_alerts: [
             {
@@ -429,7 +438,7 @@ export const generateAdminEmailData = async (
         ],
         recent_orders: orders.slice(0, 10).map((o) => ({
             order_number: o.order_number,
-            customer_name: o.users?.name || 'Cliente',
+            customer_name: o.customer_name || 'Cliente',
             order_amount: o.total_amount,
             order_status: o.status.toUpperCase(),
             order_status_lower: o.status.toLowerCase(),
@@ -442,11 +451,11 @@ export const generateAdminEmailData = async (
         commissions: financials.commissions.toFixed(2) as any,
         net_profit: financials.netProfit.toFixed(2) as any,
         shipments: shipments.slice(0, 10).map((s) => ({
-            tracking_number: s.tracking_number,
-            destination: s.destination,
+            tracking_number: s.tracking_number || 'N/A',
+            destination: s.shipping_address ? (typeof s.shipping_address === 'string' ? s.shipping_address : JSON.stringify(s.shipping_address)) : 'N/A',
             shipment_status: s.status.toUpperCase(),
             shipment_status_lower: s.status.toLowerCase(),
-            shipment_date: new Date(s.shipped_at).toLocaleDateString('es-ES'),
+            shipment_date: s.shipped_at ? new Date(s.shipped_at).toLocaleDateString('es-ES') : 'N/A',
         })),
         top_products: topProducts,
         average_order_value: (totalRevenue / orders.length || 0).toFixed(2) as any,
@@ -489,8 +498,8 @@ export const exportReportData = async (
         ];
         const rows = orders.map((o) => [
             o.order_number,
-            o.users?.name || 'N/A',
-            o.users?.email || 'N/A',
+            o.customer_name || 'N/A',
+            o.customer_email || 'N/A',
             o.total_amount,
             o.status,
             o.payment_method || 'N/A',

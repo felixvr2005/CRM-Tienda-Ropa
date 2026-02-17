@@ -8,7 +8,7 @@ export async function GET({ request }: any) {
     let returnError: any = null;
     let returnRequests: any[] = [];
     const cookieHeader = request.headers.get('cookie') || '';
-    const accessToken = cookieHeader.split(';').map(s => s.trim()).find(c => c.startsWith('sb-access-token='))?.split('=')[1];
+    const accessToken = cookieHeader.split(';').map((s: any) => s.trim()).find((c: any) => c.startsWith('sb-access-token='))?.split('=')[1];
 
     if (!accessToken) {
       return new Response(JSON.stringify({ error: 'No access token' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
@@ -32,7 +32,7 @@ export async function GET({ request }: any) {
     const { data: orders } = await supabaseAdmin
       .from('orders')
       .select('id, order_number')
-      .eq('customer_id', customer?.id);
+      .eq('customer_id', customer?.id!);
 
     const orderIds = (orders || []).map((o: any) => o.id);
 
@@ -110,7 +110,7 @@ export async function GET({ request }: any) {
         }
       }
     } else {
-      const { data, error } = await returnsQuery.eq('customer_id', customer?.id);
+      const { data, error } = await returnsQuery.eq('customer_id', customer?.id!);
       if (error) {
         logger.error('Error fetching returns:', error);
         returnError = error;

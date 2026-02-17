@@ -29,11 +29,11 @@ export const PUT: APIRoute = async ({ request }) => {
         supabaseAdmin
           .from('configuracion')
           .upsert({
-            key: 'flash_sales_enabled',
-            value: String(flash_sales_enabled),
-            type: 'boolean',
-            description: 'Activa/desactiva ofertas flash'
-          }, { onConflict: 'key' })
+            clave: 'flash_sales_enabled',
+            valor: String(flash_sales_enabled),
+            tipo: 'boolean',
+            descripcion: 'Activa/desactiva ofertas flash'
+          }, { onConflict: 'clave' })
       );
     }
 
@@ -42,11 +42,11 @@ export const PUT: APIRoute = async ({ request }) => {
         supabaseAdmin
           .from('configuracion')
           .upsert({
-            key: 'flash_sales_discount',
-            value: String(flash_sales_discount),
-            type: 'number',
-            description: 'Descuento de ofertas flash (%)'
-          }, { onConflict: 'key' })
+            clave: 'flash_sales_discount',
+            valor: String(flash_sales_discount),
+            tipo: 'number',
+            descripcion: 'Descuento de ofertas flash (%)'
+          }, { onConflict: 'clave' })
       );
     }
 
@@ -55,11 +55,11 @@ export const PUT: APIRoute = async ({ request }) => {
         supabaseAdmin
           .from('configuracion')
           .upsert({
-            key: 'min_order_amount',
-            value: String(min_order_amount),
-            type: 'number',
-            description: 'Monto mínimo del pedido'
-          }, { onConflict: 'key' })
+            clave: 'min_order_amount',
+            valor: String(min_order_amount),
+            tipo: 'number',
+            descripcion: 'Monto mínimo del pedido'
+          }, { onConflict: 'clave' })
       );
     }
 
@@ -68,11 +68,11 @@ export const PUT: APIRoute = async ({ request }) => {
         supabaseAdmin
           .from('configuracion')
           .upsert({
-            key: 'free_shipping_threshold',
-            value: String(free_shipping_threshold),
-            type: 'number',
-            description: 'Envío gratis a partir de este monto'
-          }, { onConflict: 'key' })
+            clave: 'free_shipping_threshold',
+            valor: String(free_shipping_threshold),
+            tipo: 'number',
+            descripcion: 'Envío gratis a partir de este monto'
+          }, { onConflict: 'clave' })
       );
     }
 

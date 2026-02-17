@@ -31,7 +31,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Insertar mensaje de contacto
-    const { data: contact, error: insertError } = await supabaseAdmin
+    const { data: contact, error: insertError } = await (supabaseAdmin as any)
       .from('contact_messages')
       .insert({
         name,

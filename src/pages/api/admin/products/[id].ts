@@ -11,7 +11,10 @@ export const prerender = false;
 // GET - Get single product
 export const GET: APIRoute = async ({ params }) => {
   try {
-    const { id } = params;
+    const id = params.id;
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'ID requerido' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
     
     const { data, error } = await supabase
       .from('products')
@@ -33,7 +36,10 @@ export const GET: APIRoute = async ({ params }) => {
 // PUT - Update product
 export const PUT: APIRoute = async ({ params, request }) => {
   try {
-    const { id } = params;
+    const id = params.id;
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'ID requerido' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
     const { product, variants } = await request.json();
     
     logger.info('PUT /api/admin/products/[id]', { id, product, variantsCount: variants?.length || 0 });
@@ -177,7 +183,10 @@ export const PUT: APIRoute = async ({ params, request }) => {
 // DELETE - Delete product
 export const DELETE: APIRoute = async ({ params }) => {
   try {
-    const { id } = params;
+    const id = params.id;
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'ID requerido' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
     
     // Delete variants first (cascade should handle this but just in case)
     await supabase

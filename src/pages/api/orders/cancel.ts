@@ -55,24 +55,24 @@ export async function POST({ request }: any) {
     // Restaurar stock para cada variante
     for (const item of orderItems || []) {
       if (item.variant_id) {
-        const { error: updateError } = await supabaseAdmin
-          .from('product_variants')
-          .update({
-            stock: supabaseAdmin.rpc('increment_stock', { 
-              variant_id: item.variant_id, 
-              quantity: item.quantity 
-            })
-          })
-          .eq('id', item.variant_id);
-
-        // Si rpc falla, usar update directo
-        if (updateError) {
-          await supabaseAdmin
+        try {
+          await supabaseAdmin.rpc('increase_stock', { 
+            p_variant_id: item.variant_id, 
+            p_quantity: item.quantity 
+          });
+        } catch (_rpcErr) {
+          // Fallback: update directo
+          const { data: variant } = await supabaseAdmin
             .from('product_variants')
-            .update({
-              stock: supabaseAdmin.raw(`stock + ${item.quantity}`)
-            })
-            .eq('id', item.variant_id);
+            .select('stock')
+            .eq('id', item.variant_id)
+            .single();
+          if (variant) {
+            await supabaseAdmin
+              .from('product_variants')
+              .update({ stock: variant.stock + item.quantity })
+              .eq('id', item.variant_id);
+          }
         }
       }
     }
@@ -94,7 +94,7 @@ export async function POST({ request }: any) {
     }
 
     // Procesar reembolso en Stripe si existe payment intent
-    if (order.stripe_payment_intent && order.payment_status === 'paid') {
+    if (order.stripe_payment_intent_id && order.payment_status === 'paid') {
       try {
         const response = await fetch('https://api.stripe.com/v1/refunds', {
           method: 'POST',
@@ -102,7 +102,7 @@ export async function POST({ request }: any) {
             'Authorization': `Bearer ${process.env.STRIPE_SECRET_KEY}`,
             'Content-Type': 'application/x-www-form-urlencoded'
           },
-          body: `payment_intent=${order.stripe_payment_intent}`
+          body: `payment_intent=${order.stripe_payment_intent_id}`
         });
 
         const refundData = await response.json();

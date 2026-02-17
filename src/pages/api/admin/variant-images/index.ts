@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
     let body: any;
     try {
       body = await request.json();
-      logger.silly?.('Body parsed (debug)', JSON.stringify(body, null, 2));
+      logger.debug?.('Body parsed (debug)', JSON.stringify(body, null, 2));
     } catch (parseErr) {
       logger.error('JSON parse error in variant-images', { error: String(parseErr) });
       logger.warn('Request body is empty or invalid');

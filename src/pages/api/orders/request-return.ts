@@ -60,10 +60,10 @@ export async function POST({ request }: any) {
       .from('return_requests')
       .insert({
         order_id: order.id,
-        customer_id: order.customer_id,
+        customer_id: order.customer_id!,
         status: 'pending',
         reason,
-        refund_amount: order.total_amount || order.subtotal
+        refund_amount: order.total_amount ?? order.subtotal ?? 0
       })
       .select()
       .single();
@@ -74,6 +74,32 @@ export async function POST({ request }: any) {
         JSON.stringify({ message: 'Error al solicitar la devolución' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Crear items de devolución desde los items del pedido
+    const { data: orderItems } = await supabaseAdmin
+      .from('order_items')
+      .select('product_id, product_name, product_sku, quantity, unit_price')
+      .eq('order_id', order.id);
+
+    if (orderItems && orderItems.length > 0) {
+      const returnItems = orderItems.map((item: any) => ({
+        return_request_id: returnRequest.id,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        product_sku: item.product_sku,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        reason
+      }));
+
+      const { error: itemsError } = await supabaseAdmin
+        .from('return_request_items')
+        .insert(returnItems);
+
+      if (itemsError) {
+        logger.error('Error creando items de devolución:', itemsError);
+      }
     }
 
     // TODO: Enviar email al cliente notificando que recibimos la solicitud

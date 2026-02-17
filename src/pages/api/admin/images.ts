@@ -5,6 +5,7 @@
  */
 import type { APIRoute } from 'astro';
 import { generateUploadSignature, deleteImage } from '../../../lib/cloudinary';
+import { logger } from '@lib/logger';
 
 // Generar firma para upload seguro
 export const POST: APIRoute = async ({ request }) => {

@@ -122,8 +122,8 @@ export default function ImageUploader({
             if (onUpload) {
               onUpload([newImage]);
             }
-            if (window.handleImagesUpload) {
-              window.handleImagesUpload([newImage]);
+            if ((window as any).handleImagesUpload) {
+              (window as any).handleImagesUpload([newImage]);
             }
             return updated;
           });

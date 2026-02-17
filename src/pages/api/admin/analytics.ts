@@ -9,6 +9,8 @@ export const prerender = false;
  * GET /api/admin/analytics
  */
 export const GET: APIRoute = async ({ request }) => {
+  let debugMode = false;
+  let BUILD_TAG = 'unknown';
   try {
     // Parse URL / params early so debugMode and date range are available
     const url = new URL(request.url);
@@ -19,10 +21,10 @@ export const GET: APIRoute = async ({ request }) => {
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
 
-    const debugMode = url.searchParams.get('debug') === '1';
+    debugMode = url.searchParams.get('debug') === '1';
 
     // Identificador de build para depuración en producción
-    const BUILD_TAG = process.env.GITHUB_SHA || process.env.COMMIT_SHA || process.env.BUILD_ID || process.env.npm_package_version || ('local-' + new Date().toISOString());
+    BUILD_TAG = process.env.GITHUB_SHA || process.env.COMMIT_SHA || process.env.BUILD_ID || process.env.npm_package_version || ('local-' + new Date().toISOString());
     if (debugMode) logger.debug('Analytics debug: BUILD_TAG', { BUILD_TAG });
 
     // Verificar autenticación (admin)

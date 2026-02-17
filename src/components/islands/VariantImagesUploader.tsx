@@ -42,7 +42,7 @@ export function VariantImagesUploader({
         .order('sort_order', { ascending: true });
 
       if (loadError) throw loadError;
-      setImages(data || []);
+      setImages((data || []) as VariantImage[]);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -100,6 +100,7 @@ export function VariantImagesUploader({
     try {
       setError(null);
       const { error: updateError } = await supabase.rpc('set_primary_variant_image', {
+        p_variant_id: variantId,
         p_image_id: imageId
       });
 

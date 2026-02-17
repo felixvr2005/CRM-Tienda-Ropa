@@ -1,0 +1,39 @@
+# OpenAPI Generator Configuration for Dart
+# Location: scripts/openapi-dart-config.yaml
+# Reference: https://openapi-generator.tech/docs/generators/dart
+
+packageName: crm_tienda_ropa_api
+pubVersion: 1.0.0
+pubAuthor: Tech Team
+pubAuthorUrl: https://github.com/turepositorio
+pubDescription: Generated Dart models and API client from CRM Tienda Ropa OpenAPI spec
+pubHomepage: https://github.com/turepositorio
+pubRepository: https://github.com/turepositorio
+
+# Model generation
+models:
+  enumUnknownDefaultCase: true
+  disallowAdditionalPropertiesIfNotPresent: true
+  useInheritance: true
+
+# Serialization
+serialization:
+  dateLibrary: core # Use core DateTime class
+
+# API generation
+apiDocumentationUrl: /docs
+
+# Include/Exclude patterns
+generateApiDocs: true
+generateModelDocs: true
+generateApiTests: true
+generateModelTests: true
+
+# Naming conventions
+modelPackage: models
+apiPackage: api
+
+# Additional properties for Dart
+prependFormOrBodyParameters: true
+pubBuildRunnerSource: true
+sourceFolder: lib

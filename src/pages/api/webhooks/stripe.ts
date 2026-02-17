@@ -187,7 +187,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       subtotal: subtotal,
       shipping_cost: shippingCost,
       discount_amount: discountAmount,
-      discount_code: couponCode,
+      coupon_code: couponCode,
       total_amount: totalAmount,
       shipping_address: shippingAddress,
       shipping_method: shippingMethod
@@ -208,8 +208,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const { data: variant } = await supabaseAdmin
       .from('product_variants')
       .select(`
-        id, color, size, price, stock,
-        product:products(id, name, images)
+        id, color, size, stock, price_modifier,
+        product:products(id, name, slug, images, price)
       `)
       .eq('id', item.variantId)
       .single() as any;
@@ -229,16 +229,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         product_id: variantData.product?.id,
         variant_id: item.variantId,
         product_name: variantData.product?.name || item.name || 'Producto',
-        product_slug: item.slug || null,
+        product_slug: variantData.product?.slug || item.slug || null,
         product_image: variantData.product?.images?.[0] || item.image || null,
+        product_sku: item.sku || null,
         color: variantData.color || item.color || null,
         size: variantData.size || item.size || null,
-        variant_info: `${variantData.color || ''} / ${variantData.size || ''}`,
         quantity: item.quantity,
         unit_price: item.price,
         line_total: item.price * item.quantity,
-        discount_percentage: item.discount || 0,
-        image_url: variantData.product?.images?.[0] || item.image || null
+        discount_percentage: item.discount || 0
       } as any);
 
     if (itemError) {

@@ -11,8 +11,14 @@ export interface CustomerProfile {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  birth_date: string | null;
   avatar_url: string | null;
-  is_subscribed_newsletter: boolean;
+  newsletter_subscribed: boolean;
+  is_active: boolean;
+  total_orders: number;
+  total_spent: number;
+  default_shipping_address: any | null;
+  default_billing_address: any | null;
 }
 
 export interface AuthState {

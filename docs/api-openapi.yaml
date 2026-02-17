@@ -1,0 +1,1090 @@
+openapi: 3.0.3
+info:
+  title: CRM Tienda Ropa API
+  version: 1.0.0
+  description: |
+    API para tienda de ropa con Astro + Supabase + Stripe.
+    Documentación completa de endpoints, tipos de datos, y comportamiento.
+  contact:
+    name: Tech Team
+    url: https://github.com/turepositorio
+  license:
+    name: MIT
+
+servers:
+  - url: https://your-supabase-instance.supabase.co
+    description: Production Supabase
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: Products
+    description: Product catalog management
+  - name: Categories
+    description: Product categories
+  - name: Cart
+    description: Shopping cart operations
+  - name: Orders
+    description: Order management
+  - name: Customers
+    description: Customer profile operations
+  - name: Admin
+    description: Administrative operations (admin only)
+  - name: Coupons
+    description: Promotional coupons
+  - name: Returns
+    description: Product return management
+
+paths:
+  # ============================================================================
+  # PRODUCTS
+  # ============================================================================
+
+  /rest/v1/products:
+    get:
+      tags:
+        - Products
+      summary: List all active products
+      description: |
+        Retrieves paginated list of active products. Public endpoint.
+        Returns: Product data with images and variants.
+      operationId: listProducts
+      parameters:
+        - name: select
+          in: query
+          schema:
+            type: string
+          description: 'Columns to select (e.g., "id,name,price,stock")'
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+          description: Filter by active status
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by category
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Pagination limit
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: Sort order (created_at)
+      responses:
+        '200':
+          description: Success - list of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags:
+        - Products
+      summary: Create product (admin only)
+      description: Creates a new product. Requires admin role.
+      operationId: createProduct
+      security:
+        - bearerAuth: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /rest/v1/products/{productId}:
+    get:
+      tags:
+        - Products
+      summary: Get product details
+      operationId: getProduct
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Products
+      summary: Update product (admin only)
+      operationId: updateProduct
+      security:
+        - bearerAuth: [admin]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    delete:
+      tags:
+        - Products
+      summary: Delete product (admin only)
+      operationId: deleteProduct
+      security:
+        - bearerAuth: [admin]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Product deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ============================================================================
+  # CART
+  # ============================================================================
+
+  /rest/v1/cart_items:
+    get:
+      tags:
+        - Cart
+      summary: Get current user's cart
+      description: Returns cart items for authenticated user
+      operationId: getCart
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cart items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Cart
+      summary: Add item to cart
+      operationId: addToCart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToCartInput'
+      responses:
+        '201':
+          description: Item added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Stock unavailable
+
+  /rest/v1/cart_items/{cartItemId}:
+    patch:
+      tags:
+        - Cart
+      summary: Update cart item quantity
+      operationId: updateCartItem
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cartItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+
+    delete:
+      tags:
+        - Cart
+      summary: Remove from cart
+      operationId: removeFromCart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cartItemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Removed
+
+  # ============================================================================
+  # ORDERS
+  # ============================================================================
+
+  /rest/v1/orders:
+    get:
+      tags:
+        - Orders
+      summary: Get user's orders
+      description: Returns orders for authenticated customer (RLS filters to own)
+      operationId: getUserOrders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: User's orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Orders
+      summary: Create order from cart
+      description: |
+        Creates order from user's cart. Automatically:
+        1. Validates stock availability
+        2. Reserves stock (decrements)
+        3. Applies coupon if provided
+        4. Clears cart
+        5. Returns order with Stripe client secret
+      operationId: createOrder
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderInput'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderWithSecret'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Stock conflict (insufficient inventory)
+
+  /rest/v1/orders/{orderId}:
+    get:
+      tags:
+        - Orders
+      summary: Get order details
+      operationId: getOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================================
+  # COUPONS
+  # ============================================================================
+
+  /rest/v1/coupons:
+    get:
+      tags:
+        - Coupons
+      summary: List active coupons (public)
+      description: Returns all active coupons with discount info
+      operationId: listCoupons
+      parameters:
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of coupons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Coupon'
+
+  /rest/v1/coupons/validate:
+    post:
+      tags:
+        - Coupons
+      summary: Validate coupon code
+      description: Checks if coupon is valid and returns discount amount
+      operationId: validateCoupon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                order_total:
+                  type: number
+                  minimum: 0
+      responses:
+        '200':
+          description: Coupon valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  discount_amount:
+                    type: number
+                  discount_percentage:
+                    type: number
+                  message:
+                    type: string
+        '400':
+          description: Invalid coupon
+
+  # ============================================================================
+  # RETURNS
+  # ============================================================================
+
+  /rest/v1/returns:
+    get:
+      tags:
+        - Returns
+      summary: Get user's returns
+      description: Lists all return requests for authenticated user
+      operationId: getUserReturns
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Return requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Return'
+
+    post:
+      tags:
+        - Returns
+      summary: Request return
+      description: Creates a return request for an order item
+      operationId: createReturn
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReturnInput'
+      responses:
+        '201':
+          description: Return created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Return'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ============================================================================
+  # ADMIN
+  # ============================================================================
+
+  /api/admin/users/{userId}:
+    get:
+      tags:
+        - Admin
+      summary: Get user profile (admin only)
+      operationId: adminGetUser
+      security:
+        - bearerAuth: [admin]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    patch:
+      tags:
+        - Admin
+      summary: Update user (admin only)
+      operationId: adminUpdateUser
+      security:
+        - bearerAuth: [admin]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /api/admin/dashboard:
+    get:
+      tags:
+        - Admin
+      summary: Get admin dashboard stats
+      description: Sales, inventory, orders, customers analytics
+      operationId: adminGetDashboard
+      security:
+        - bearerAuth: [admin]
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month, year]
+            default: month
+      responses:
+        '200':
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+
+components:
+  # ============================================================================
+  # SCHEMAS
+  # ============================================================================
+
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - price
+        - stock
+        - category_id
+        - is_active
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          description: URL-friendly product name
+        description:
+          type: string
+        price:
+          type: number
+          format: decimal
+          minimum: 0
+        stock:
+          type: integer
+          minimum: 0
+        category_id:
+          type: string
+          format: uuid
+        is_active:
+          type: boolean
+          default: true
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductImage'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProductDetail:
+      allOf:
+        - $ref: '#/components/schemas/Product'
+        - type: object
+          properties:
+            variants:
+              type: array
+              items:
+                $ref: '#/components/schemas/Variant'
+            category:
+              $ref: '#/components/schemas/Category'
+
+    ProductInput:
+      type: object
+      required:
+        - name
+        - slug
+        - price
+        - category_id
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: decimal
+          minimum: 0
+        stock:
+          type: integer
+          minimum: 0
+        category_id:
+          type: string
+          format: uuid
+        is_active:
+          type: boolean
+
+    ProductImage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        alt_text:
+          type: string
+        display_order:
+          type: integer
+
+    Variant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [color, size, material]
+        value:
+          type: string
+        stock:
+          type: integer
+        sku:
+          type: string
+
+    Category:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        is_active:
+          type: boolean
+
+    CartItem:
+      type: object
+      required:
+        - id
+        - product_id
+        - quantity
+        - user_id
+      properties:
+        id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        variant_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+        user_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+        product:
+          $ref: '#/components/schemas/Product'
+
+    AddToCartInput:
+      type: object
+      required:
+        - product_id
+        - quantity
+      properties:
+        product_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+        variant_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    Order:
+      type: object
+      required:
+        - id
+        - customer_id
+        - status
+        - total_amount
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, completed, cancelled, refunded]
+        total_amount:
+          type: number
+          format: decimal
+        subtotal:
+          type: number
+          format: decimal
+        discount_amount:
+          type: number
+          format: decimal
+        tax_amount:
+          type: number
+          format: decimal
+        coupon_id:
+          type: string
+          format: uuid
+        notes:
+          type: string
+        shipping_address:
+          type: object
+        payment_method:
+          type: string
+        stripe_payment_intent_id:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrderWithSecret:
+      allOf:
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          properties:
+            client_secret:
+              type: string
+              description: Stripe Payment Intent client secret for frontend
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+          format: decimal
+        subtotal:
+          type: number
+          format: decimal
+
+    CreateOrderInput:
+      type: object
+      required:
+        - shipping_address
+      properties:
+        coupon_code:
+          type: string
+        shipping_address:
+          type: object
+          required:
+            - street
+            - city
+            - state
+            - zip
+            - country
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            zip:
+              type: string
+            country:
+              type: string
+        notes:
+          type: string
+
+    Coupon:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          unique: true
+        discount_percentage:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 100
+        discount_amount:
+          type: number
+          format: decimal
+        max_uses:
+          type: integer
+        used_count:
+          type: integer
+        valid_from:
+          type: string
+          format: date-time
+        valid_until:
+          type: string
+          format: date-time
+        is_active:
+          type: boolean
+
+    Return:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        order_id:
+          type: string
+          format: uuid
+        customer_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [defective, wrong_size, not_as_described, changed_mind]
+        status:
+          type: string
+          enum: [requested, approved, rejected, completed]
+        refund_amount:
+          type: number
+          format: decimal
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CreateReturnInput:
+      type: object
+      required:
+        - order_id
+        - reason
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [defective, wrong_size, not_as_described, changed_mind]
+        notes:
+          type: string
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        phone:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+
+    DashboardStats:
+      type: object
+      properties:
+        total_sales:
+          type: number
+          format: decimal
+        total_orders:
+          type: integer
+        total_customers:
+          type: integer
+        top_products:
+          type: array
+          items:
+            type: object
+            properties:
+              product_id:
+                type: string
+              name:
+                type: string
+              sales:
+                type: number
+        inventory_summary:
+          type: object
+          properties:
+            total_items:
+              type: integer
+            low_stock_items:
+              type: integer
+            out_of_stock:
+              type: integer
+
+  # ============================================================================
+  # SECURITY SCHEMES
+  # ============================================================================
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Supabase JWT token obtained from auth.signIn*() methods.
+        Token must include user_id in JWT sub claim and role in custom claims.
+
+  # ============================================================================
+  # RESPONSES
+  # ============================================================================
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+
+    Unauthorized:
+      description: Unauthorized - missing or invalid token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string

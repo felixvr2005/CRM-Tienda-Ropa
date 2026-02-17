@@ -53,7 +53,7 @@ export async function buildStripeLineItems(items: any[], shippingCost = 0) {
     result.push({
       price_data: {
         currency: 'eur',
-        product_data: { name: 'Envío Estándar', images: [] },
+        product_data: { name: 'Envío Estándar', description: '', images: [] },
         unit_amount: Math.round(shippingCost * 100),
       },
       quantity: 1,
