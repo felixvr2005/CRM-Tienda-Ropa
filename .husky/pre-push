@@ -5,4 +5,4 @@
 npm run check:console || { echo 'check-console failed — aborting push'; exit 1; }
 
 # Verify TypeScript compiles without errors
-npx tsc --noEmit --quiet 2>/dev/null || { echo 'TypeScript compilation failed — aborting push'; exit 1; }
+npx tsc --noEmit 2>/dev/null || { echo 'TypeScript compilation failed — aborting push'; exit 1; }
