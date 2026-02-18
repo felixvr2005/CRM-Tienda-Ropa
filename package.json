@@ -55,7 +55,7 @@
     "@types/pdfkit": "^0.17.4",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "husky": "^8.0.0",
     "jsdom": "^22.1.0",
     "lint-staged": "^14.0.0",
