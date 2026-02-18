@@ -173,7 +173,7 @@ if (sessionId) {
                   promo_code_available: true,
                   promo_code: 'WELCOME2026',
                   promo_description: 'Código de bienvenida: 10% en tu próxima compra',
-                  track_order_url: `${Astro.site}/cuenta/pedidos/${orderNumber}`,
+                  track_order_url: `${Astro.site || ''}pedido/seguimiento?order=${orderNumber}`,
                   continue_shopping_url: `${Astro.site}/productos`,
                   customer_address: shippingAddress ? `${shippingAddress.address}, ${shippingAddress.city} (${shippingAddress.postal_code})` : '',
                   support_email: 'soporte@tiendamoda.com',
@@ -313,10 +313,31 @@ if (sessionId) {
       </ul>
     </div>
     
+    {order && (
+      <div class="bg-primary-50 border border-primary-200 p-4 mb-6 text-left">
+        <p class="text-sm text-primary-700 mb-1">Guarda tu número de pedido para consultar el estado:</p>
+        <p class="font-mono text-lg font-bold text-primary-900">#{(order as any).order_number}</p>
+        <a
+          href={`/pedido/seguimiento?order=${(order as any).order_number}`}
+          class="inline-block mt-2 text-sm text-primary-600 hover:text-primary-900 underline"
+        >
+          Ver estado de mi pedido &rarr;
+        </a>
+      </div>
+    )}
+
     <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      {order && (
+        <a 
+          href={`/pedido/seguimiento?order=${(order as any).order_number}`}
+          class="bg-primary-900 text-white px-8 py-3 text-sm tracking-widest uppercase hover:bg-primary-800 transition-colors"
+        >
+          Ver mi pedido
+        </a>
+      )}
       <a 
         href="/productos" 
-        class="bg-primary-900 text-white px-8 py-3 text-sm tracking-widest uppercase hover:bg-primary-800 transition-colors"
+        class="border border-primary-300 px-8 py-3 text-sm tracking-widest uppercase hover:bg-primary-50 transition-colors"
       >
         Seguir comprando
       </a>

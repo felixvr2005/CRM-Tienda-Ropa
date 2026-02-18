@@ -1,0 +1,351 @@
+---
+/**
+ * Seguimiento de Pedido - Página pública
+ * Permite a invitados consultar el estado de su pedido con email + número de pedido
+ */
+import PublicLayout from '@layouts/PublicLayout.astro';
+
+export const prerender = false;
+
+// Leer parámetros opcionales de la URL (pueden venir pre-rellenados desde el email)
+const orderParam = Astro.url.searchParams.get('order') || '';
+const emailParam = Astro.url.searchParams.get('email') || '';
+---
+
+<PublicLayout title="Seguimiento de Pedido | Fashion Store">
+  <main class="max-w-3xl mx-auto px-4 py-12">
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <h1 class="font-display text-3xl tracking-wide uppercase mb-2">Seguimiento de Pedido</h1>
+      <p class="text-primary-500">Introduce tu email y número de pedido para consultar el estado</p>
+    </div>
+
+    <!-- Search Form -->
+    <form id="trackingForm" class="bg-white border border-primary-200 p-6 mb-8">
+      <div class="grid sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="trackEmail" class="block text-sm font-medium text-primary-700 mb-1">Email</label>
+          <input
+            type="email"
+            id="trackEmail"
+            name="email"
+            value={emailParam}
+            required
+            placeholder="tu@email.com"
+            class="w-full px-4 py-3 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 text-sm"
+          />
+        </div>
+        <div>
+          <label for="trackOrderNumber" class="block text-sm font-medium text-primary-700 mb-1">Número de Pedido</label>
+          <input
+            type="text"
+            id="trackOrderNumber"
+            name="orderNumber"
+            value={orderParam}
+            required
+            placeholder="000001"
+            class="w-full px-4 py-3 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 text-sm font-mono"
+          />
+        </div>
+      </div>
+      <button
+        type="submit"
+        id="trackSubmitBtn"
+        class="w-full bg-primary-900 text-white py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium text-sm tracking-widest uppercase"
+      >
+        Consultar pedido
+      </button>
+      <div id="trackError" class="hidden mt-4 bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm"></div>
+    </form>
+
+    <!-- Results (hidden by default) -->
+    <div id="trackResults" class="hidden space-y-6">
+      <!-- Order Header -->
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-light">PEDIDO #<span id="resultOrderNumber"></span></h2>
+          <p class="text-primary-500 text-sm" id="resultDate"></p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="resultStatusBadge" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="bg-white border border-primary-200 p-6">
+        <h3 class="text-lg font-medium mb-6">Estado del Pedido</h3>
+        <div class="relative" id="timelineContainer">
+          <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-primary-200"></div>
+        </div>
+        <!-- Tracking number -->
+        <div id="trackingNumberSection" class="hidden mt-6 pt-6 border-t border-primary-200">
+          <p class="text-sm text-primary-500 mb-1">Número de seguimiento</p>
+          <p class="font-mono text-lg" id="trackingNumberValue"></p>
+          <a id="trackingNumberLink" href="#" target="_blank" rel="noopener noreferrer"
+            class="inline-block mt-2 text-sm text-primary-600 hover:text-primary-900 underline">
+            Rastrear envío &rarr;
+          </a>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div class="bg-white border border-primary-200 p-6">
+        <h3 class="text-lg font-medium mb-6">Productos</h3>
+        <div id="itemsContainer" class="space-y-4"></div>
+      </div>
+
+      <!-- Sidebar info in a 2-col grid -->
+      <div class="grid sm:grid-cols-2 gap-6">
+        <!-- Summary -->
+        <div class="bg-white border border-primary-200 p-6">
+          <h3 class="text-lg font-medium mb-4">Resumen</h3>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <span class="text-primary-500">Subtotal</span>
+              <span id="resultSubtotal"></span>
+            </div>
+            <div id="resultDiscountRow" class="hidden flex justify-between text-green-600">
+              <span>Descuento</span>
+              <span id="resultDiscount"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-primary-500">Envío</span>
+              <span id="resultShipping"></span>
+            </div>
+            <div class="flex justify-between pt-3 border-t border-primary-200 text-lg font-medium">
+              <span>Total</span>
+              <span id="resultTotal"></span>
+            </div>
+          </div>
+          <div id="resultCouponSection" class="hidden mt-4 pt-4 border-t border-primary-200">
+            <p class="text-sm text-primary-500">Cupón aplicado</p>
+            <p class="font-mono" id="resultCoupon"></p>
+          </div>
+        </div>
+
+        <!-- Shipping Address -->
+        <div class="bg-white border border-primary-200 p-6">
+          <h3 class="text-lg font-medium mb-4">Dirección de Envío</h3>
+          <div id="resultAddress" class="text-sm space-y-1"></div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-col sm:flex-row gap-3">
+        <a
+          href="/productos"
+          class="flex-1 text-center bg-primary-900 text-white px-6 py-3 text-sm tracking-widest uppercase hover:bg-primary-800 transition-colors"
+        >
+          Seguir comprando
+        </a>
+        <button
+          id="searchAgainBtn"
+          class="flex-1 text-center border border-primary-300 px-6 py-3 text-sm tracking-widest uppercase hover:bg-primary-50 transition-colors"
+        >
+          Consultar otro pedido
+        </button>
+      </div>
+    </div>
+  </main>
+</PublicLayout>
+
+<script>
+  function setupTracking() {
+    const form = document.getElementById('trackingForm') as HTMLFormElement;
+    const results = document.getElementById('trackResults')!;
+    const errorDiv = document.getElementById('trackError')!;
+    const submitBtn = document.getElementById('trackSubmitBtn') as HTMLButtonElement;
+    const searchAgainBtn = document.getElementById('searchAgainBtn');
+
+    const formatPrice = (v: number) =>
+      new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(v);
+
+    const formatDate = (d: string) =>
+      new Date(d).toLocaleDateString('es-ES', {
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+
+    const statusMap: Record<string, { label: string; bg: string; text: string }> = {
+      pending:    { label: 'Pendiente',  bg: 'bg-yellow-100', text: 'text-yellow-800' },
+      confirmed:  { label: 'Confirmado', bg: 'bg-blue-100',   text: 'text-blue-800'   },
+      processing: { label: 'Procesando', bg: 'bg-blue-100',   text: 'text-blue-800'   },
+      shipped:    { label: 'Enviado',    bg: 'bg-purple-100', text: 'text-purple-800' },
+      delivered:  { label: 'Entregado',  bg: 'bg-green-100',  text: 'text-green-800'  },
+      cancelled:  { label: 'Cancelado',  bg: 'bg-red-100',    text: 'text-red-800'    },
+      refunded:   { label: 'Reembolsado',bg: 'bg-gray-100',  text: 'text-gray-800'   },
+    };
+
+    const timelineSteps = [
+      { status: 'pending',    label: 'Pedido recibido' },
+      { status: 'processing', label: 'Preparando envío' },
+      { status: 'shipped',    label: 'Enviado' },
+      { status: 'delivered',  label: 'Entregado' },
+    ];
+
+    const statusOrder = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+
+    if (searchAgainBtn) {
+      searchAgainBtn.addEventListener('click', () => {
+        results.classList.add('hidden');
+        form.classList.remove('hidden');
+        (document.getElementById('trackEmail') as HTMLInputElement).focus();
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorDiv.classList.add('hidden');
+
+      const email = (document.getElementById('trackEmail') as HTMLInputElement).value.trim();
+      const orderNumber = (document.getElementById('trackOrderNumber') as HTMLInputElement).value.trim();
+
+      if (!email || !orderNumber) {
+        errorDiv.textContent = 'Rellena ambos campos';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Buscando...';
+
+      try {
+        const resp = await fetch(`/api/orders/track?email=${encodeURIComponent(email)}&orderNumber=${encodeURIComponent(orderNumber)}`);
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          errorDiv.textContent = data.error || 'Error al buscar el pedido';
+          errorDiv.classList.remove('hidden');
+          return;
+        }
+
+        renderOrder(data.order, data.items);
+        form.classList.add('hidden');
+        results.classList.remove('hidden');
+      } catch (err) {
+        errorDiv.textContent = 'Error de conexión. Inténtalo de nuevo.';
+        errorDiv.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Consultar pedido';
+      }
+    });
+
+    function renderOrder(order: any, items: any[]) {
+      // Header
+      document.getElementById('resultOrderNumber')!.textContent = order.order_number;
+      document.getElementById('resultDate')!.textContent = `Realizado el ${formatDate(order.created_at)}`;
+
+      // Status badge
+      const st = statusMap[order.status] || statusMap.pending;
+      const badge = document.getElementById('resultStatusBadge')!;
+      badge.textContent = st.label;
+      badge.className = `px-3 py-1 rounded-full text-sm font-medium ${st.bg} ${st.text}`;
+
+      // Timeline
+      const container = document.getElementById('timelineContainer')!;
+      const currentIdx = statusOrder.indexOf(order.status);
+      // keep only the line div
+      container.innerHTML = '<div class="absolute left-4 top-0 bottom-0 w-0.5 bg-primary-200"></div>';
+      timelineSteps.forEach((step, i) => {
+        const isPast = currentIdx >= statusOrder.indexOf(step.status);
+        const isCurrent = step.status === order.status;
+        const el = document.createElement('div');
+        el.className = 'flex items-start gap-4 relative mb-6 last:mb-0';
+        el.innerHTML = `
+          <div class="w-8 h-8 rounded-full flex items-center justify-center z-10 ${
+            isPast ? 'bg-primary-900 text-white' : 'bg-primary-200 text-primary-400'
+          } ${isCurrent ? 'ring-4 ring-primary-100' : ''}">
+            ${isPast ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>' : i + 1}
+          </div>
+          <div class="flex-1 pt-1">
+            <p class="font-medium ${isPast ? 'text-primary-900' : 'text-primary-400'}">${step.label}</p>
+            ${isPast && step.status === 'pending' ? `<p class="text-sm text-primary-500">${formatDate(order.created_at)}</p>` : ''}
+            ${isPast && isCurrent && step.status !== 'pending' ? `<p class="text-sm text-primary-500">${formatDate(order.updated_at)}</p>` : ''}
+          </div>`;
+        container.appendChild(el);
+      });
+
+      // Tracking number
+      const trackSection = document.getElementById('trackingNumberSection')!;
+      if (order.tracking_number) {
+        trackSection.classList.remove('hidden');
+        document.getElementById('trackingNumberValue')!.textContent = order.tracking_number;
+        (document.getElementById('trackingNumberLink') as HTMLAnchorElement).href =
+          `https://www.google.com/search?q=tracking+${order.tracking_number}`;
+      } else {
+        trackSection.classList.add('hidden');
+      }
+
+      // Items
+      const itemsContainer = document.getElementById('itemsContainer')!;
+      itemsContainer.innerHTML = '';
+      items.forEach((item: any) => {
+        const el = document.createElement('div');
+        el.className = 'flex gap-4 pb-4 border-b border-primary-100 last:border-0 last:pb-0';
+        el.innerHTML = `
+          <a href="/productos/${item.product_slug || '#'}" class="w-20 aspect-[3/4] bg-primary-100 flex-shrink-0 block">
+            ${item.product_image
+              ? `<img src="${item.product_image}" alt="${item.product_name}" class="w-full h-full object-cover"/>`
+              : `<div class="w-full h-full flex items-center justify-center text-primary-400">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>`}
+          </a>
+          <div class="flex-1">
+            <a href="/productos/${item.product_slug || '#'}" class="font-medium hover:underline">${item.product_name}</a>
+            <p class="text-sm text-primary-500 mt-1">Color: ${item.color || 'N/A'} | Talla: ${item.size || 'N/A'}</p>
+            <p class="text-sm text-primary-500">Cantidad: ${item.quantity}</p>
+            <span class="font-medium">${formatPrice(item.line_total)}</span>
+          </div>`;
+        itemsContainer.appendChild(el);
+      });
+
+      // Summary
+      document.getElementById('resultSubtotal')!.textContent = formatPrice(order.subtotal);
+      document.getElementById('resultShipping')!.textContent = order.shipping_cost > 0 ? formatPrice(order.shipping_cost) : 'Gratis';
+      document.getElementById('resultTotal')!.textContent = formatPrice(order.total_amount || order.subtotal);
+
+      if (order.discount_amount > 0) {
+        document.getElementById('resultDiscountRow')!.classList.remove('hidden');
+        document.getElementById('resultDiscount')!.textContent = `-${formatPrice(order.discount_amount)}`;
+      }
+
+      if (order.coupon_code) {
+        document.getElementById('resultCouponSection')!.classList.remove('hidden');
+        document.getElementById('resultCoupon')!.textContent = order.coupon_code;
+      }
+
+      // Address
+      const addrDiv = document.getElementById('resultAddress')!;
+      if (order.shipping_address) {
+        const a = order.shipping_address;
+        addrDiv.innerHTML = `
+          <p class="font-medium">${a.name || ''}</p>
+          <p>${a.street || a.address || ''}</p>
+          ${a.street2 ? `<p>${a.street2}</p>` : ''}
+          <p>${a.postal_code || ''} ${a.city || ''}</p>
+          <p>${a.province || a.state || ''}, ${a.country || 'ES'}</p>
+          ${a.phone ? `<p class="mt-2">Tel: ${a.phone}</p>` : ''}`;
+      } else {
+        addrDiv.innerHTML = '<p class="text-primary-500">No disponible</p>';
+      }
+    }
+
+    // Auto-submit if both params arrive pre-filled
+    const emailInput = document.getElementById('trackEmail') as HTMLInputElement;
+    const orderInput = document.getElementById('trackOrderNumber') as HTMLInputElement;
+    if (emailInput.value && orderInput.value) {
+      form.dispatchEvent(new Event('submit'));
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupTracking);
+  } else {
+    setupTracking();
+  }
+</script>

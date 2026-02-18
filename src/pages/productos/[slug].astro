@@ -57,13 +57,28 @@ if (variants && variants.length > 0) {
 
 logger.debug('[Astro] variantImages keys', { keys: Object.keys(variantImages).length });
 
-// Imagen por defecto (primera imagen disponible o placeholder)
+// Imagen por defecto: variant_images de primera variante → product.images → product.image_url → placeholder
+// Esto cubre productos de un solo color donde las variantes son solo tallas (sin fotos propias)
+const productImages: string[] = Array.isArray(product.images) && product.images.length > 0
+  ? product.images
+  : product.image_url
+    ? [product.image_url]
+    : [];
+
 let defaultImages = ['/images/products/placeholder.jpg'];
 if (variants && variants.length > 0) {
-  const firstVariant = variants[0];
-  if (variantImages[firstVariant.id] && variantImages[firstVariant.id].length > 0) {
-    defaultImages = variantImages[firstVariant.id].map((img: any) => img.image_url);
+  // Buscar la primera variante que tenga imágenes en variant_images
+  const variantWithImages = variants.find((v: any) =>
+    variantImages[v.id] && variantImages[v.id].length > 0
+  );
+  if (variantWithImages) {
+    defaultImages = variantImages[variantWithImages.id].map((img: any) => img.image_url);
+  } else if (productImages.length > 0) {
+    // Ninguna variante tiene fotos propias → usar las fotos del producto
+    defaultImages = productImages;
   }
+} else if (productImages.length > 0) {
+  defaultImages = productImages;
 }
 ---
 
@@ -104,6 +119,7 @@ if (variants && variants.length > 0) {
       productPrice={product.price}
       productDiscount={product.discount_percentage}
       productImage={defaultImages[0] || '/images/products/placeholder.jpg'}
+      productImages={defaultImages}
       variants={variants || []}
       variantImages={variantImages}
     />

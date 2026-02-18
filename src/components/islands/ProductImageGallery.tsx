@@ -101,19 +101,30 @@ export default function ProductImageGallery({
 
     if (import.meta.env.DEV) console.debug('🎨 Color seleccionado:', selectedColor);
 
-    // Encontrar variante del color seleccionado
-    const variant = safeVariants.find((v) => v.color === selectedColor);
+    // Buscar TODAS las variantes del color seleccionado (Rojo/S, Rojo/M, etc. comparten fotos)
+    const colorVariants = safeVariants.filter((v) => v.color === selectedColor);
 
-    if (import.meta.env.DEV) console.debug('Found variant:', variant);
+    if (import.meta.env.DEV) console.debug('Found variants for color:', colorVariants.length);
 
-    if (variant) {
-      if (import.meta.env.DEV) console.debug(`📸 Buscando imágenes para variant.id: ${variant.id}`);
-      const variantImgs = safeVariantImages[variant.id];
-      if (import.meta.env.DEV) console.debug('Imágenes encontradas:', variantImgs);
+    if (colorVariants.length > 0) {
+      // Recoger imágenes de TODAS las variantes de este color (normalmente subidas a una sola)
+      const allColorImages: VariantImage[] = [];
+      for (const variant of colorVariants) {
+        const variantImgs = safeVariantImages[variant.id];
+        if (variantImgs && Array.isArray(variantImgs)) {
+          allColorImages.push(...variantImgs);
+        }
+      }
 
-      if (variantImgs && Array.isArray(variantImgs) && variantImgs.length > 0) {
-        // Ordenar por sort_order, principal primero
-        const sortedImages = variantImgs
+      if (import.meta.env.DEV) console.debug('Total images found for color:', allColorImages.length);
+
+      if (allColorImages.length > 0) {
+        // Deduplicar por URL y ordenar
+        const uniqueUrls = new Map<string, VariantImage>();
+        allColorImages.forEach(img => {
+          if (!uniqueUrls.has(img.image_url)) uniqueUrls.set(img.image_url, img);
+        });
+        const sortedImages = Array.from(uniqueUrls.values())
           .sort((a, b) => {
             if (a.is_primary) return -1;
             if (b.is_primary) return 1;
@@ -124,12 +135,13 @@ export default function ProductImageGallery({
         if (import.meta.env.DEV) console.debug('✅ Imágenes ordenadas:', sortedImages);
         setImages(sortedImages);
       } else {
-        if (import.meta.env.DEV) console.debug('⚠️ Sin imágenes para esta variante, usando default');
+        // Variantes sin fotos propias → usar defaultImages (fotos del producto)
+        if (import.meta.env.DEV) console.debug('⚠️ Sin imágenes para este color, usando fotos del producto');
         setImages(defaultImages);
       }
     } else {
       if (import.meta.env.DEV) console.debug('❌ Variante no encontrada para color:', selectedColor);
-      if (import.meta.env.DEV) console.debug('Available colors in variants:', safeVariants.map(v => v.color));
+      setImages(defaultImages);
     }
 
     setCurrentImageIndex(0);

@@ -23,6 +23,7 @@ interface Props {
   productPrice: number;
   productDiscount: number;
   productImage: string;
+  productImages?: string[];
   variants: ProductVariant[];
   variantImages: Record<string, VariantImage[]>;
 }
@@ -34,6 +35,7 @@ export default function ProductViewer({
   productPrice,
   productDiscount,
   productImage,
+  productImages = [],
   variants = [],
   variantImages = {},
 }: Props) {
@@ -69,7 +71,7 @@ export default function ProductViewer({
           variants={safeVariants}
           variantImages={variantImages || {}}
           productName={productName}
-          defaultImages={[productImage || '/images/products/placeholder.jpg']}
+          defaultImages={productImages.length > 0 ? productImages : [productImage || '/images/products/placeholder.jpg']}
           selectedColor={selectedColor || firstColor}
           onColorChange={setSelectedColor}
         />
