@@ -220,21 +220,6 @@ const { data: updatedCustomer } = await supabaseAdmin
       </div>
     </form>
 
-    <!-- Change Password -->
-    <div class="bg-white border border-primary-200 p-6">
-      <h2 class="text-lg font-medium mb-4">Cambiar Contraseña</h2>
-      <p class="text-primary-500 mb-4">
-        Para cambiar tu contraseña, te enviaremos un enlace a tu email.
-      </p>
-      <button
-        id="resetPasswordBtn"
-        type="button"
-        class="px-6 py-2 border border-primary-900 text-primary-900 hover:bg-primary-900 hover:text-white transition-colors"
-      >
-        SOLICITAR CAMBIO DE CONTRASEÑA
-      </button>
-    </div>
-
     <!-- Delete Account -->
     <div class="bg-white border border-red-200 p-6">
       <h2 class="text-lg font-medium mb-4 text-red-600">Eliminar Cuenta</h2>
@@ -259,22 +244,6 @@ const { data: updatedCustomer } = await supabaseAdmin
   const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-  // Reset Password
-  document.getElementById('resetPasswordBtn')?.addEventListener('click', async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) return;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/cuenta/nueva-password`
-    });
-
-    if (error) {
-      alert('Error al enviar el email: ' + error.message);
-    } else {
-      alert('Te hemos enviado un email para cambiar tu contraseña');
-    }
-  });
 
   // Delete Account
   document.getElementById('deleteAccountBtn')?.addEventListener('click', async () => {

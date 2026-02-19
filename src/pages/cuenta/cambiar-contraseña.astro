@@ -41,121 +41,84 @@ if (adminUser) {
     <h1 class="text-2xl font-bold text-primary-900">Cambiar Contraseña</h1>
 
     <div class="bg-white border border-primary-200 rounded-lg p-8 max-w-2xl">
+      <!-- Hidden field to pass user email to client script -->
+      <input type="hidden" id="userEmail" value={user.email} />
+
       <form id="changePasswordForm" class="space-y-6">
         <div>
           <label for="currentPassword" class="block text-sm font-medium text-primary-900 mb-2">
-            Contraseña Actual *
+            Contraseña Actual
           </label>
           <input
             type="password"
             id="currentPassword"
             name="currentPassword"
             required
-            class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
+            class="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
             placeholder="Ingresa tu contraseña actual"
           />
         </div>
 
         <div>
           <label for="newPassword" class="block text-sm font-medium text-primary-900 mb-2">
-            Nueva Contraseña *
+            Nueva Contraseña
           </label>
           <input
             type="password"
             id="newPassword"
             name="newPassword"
             required
-            class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
+            class="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
             placeholder="Ingresa tu nueva contraseña"
           />
-          <p class="text-xs text-primary-500 mt-1">Mínimo 8 caracteres</p>
+          <div class="mt-2 text-xs text-primary-500">
+            <p>La contraseña debe contener:</p>
+            <ul class="list-disc list-inside space-y-1 mt-1">
+              <li id="lengthCheck">Al menos 8 caracteres</li>
+              <li id="uppercaseCheck">Una letra mayúscula</li>
+              <li id="lowercaseCheck">Una letra minúscula</li>
+              <li id="numberCheck">Un número</li>
+            </ul>
+          </div>
         </div>
 
         <div>
           <label for="confirmPassword" class="block text-sm font-medium text-primary-900 mb-2">
-            Confirmar Contraseña *
+            Confirmar Nueva Contraseña
           </label>
           <input
             type="password"
             id="confirmPassword"
             name="confirmPassword"
             required
-            class="w-full px-4 py-2 border border-primary-300 rounded focus:outline-none focus:border-primary-900"
+            class="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
             placeholder="Confirma tu nueva contraseña"
           />
+          <p id="matchError" class="text-xs text-red-600 mt-1 hidden">Las contraseñas no coinciden</p>
+          <p id="matchSuccess" class="text-xs text-green-600 mt-1 hidden">Las contraseñas coinciden</p>
         </div>
-
-        <div id="message" class="p-4 rounded hidden"></div>
 
         <button
           type="submit"
-          class="w-full py-3 bg-primary-900 text-white rounded hover:bg-primary-800 transition-colors"
+          class="w-full bg-primary-900 text-white py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium"
+          id="submitBtn"
         >
           Cambiar Contraseña
         </button>
+
+        <a href="/cuenta" class="block text-center text-sm text-primary-600 hover:text-primary-900 underline">
+          Volver a Mi Cuenta
+        </a>
       </form>
-    </div>
-  </div>
-</AccountLayout>
-              Nueva Contraseña
-            </label>
-            <input
-              type="password"
-              id="newPassword"
-              name="newPassword"
-              required
-              class="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
-              placeholder="Ingresa tu nueva contraseña"
-            />
-            <div class="mt-2 text-xs text-primary-500">
-              <p>La contraseña debe contener:</p>
-              <ul class="list-disc list-inside space-y-1 mt-1">
-                <li id="lengthCheck">Al menos 8 caracteres</li>
-                <li id="uppercaseCheck">Una letra mayúscula</li>
-                <li id="lowercaseCheck">Una letra minúscula</li>
-                <li id="numberCheck">Un número</li>
-              </ul>
-            </div>
-          </div>
 
-          <div>
-            <label for="confirmPassword" class="block text-sm font-medium text-primary-900 mb-2">
-              Confirmar Nueva Contraseña
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              required
-              class="w-full px-4 py-2 border border-primary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
-              placeholder="Confirma tu nueva contraseña"
-            />
-            <p id="matchError" class="text-xs text-red-600 mt-1 hidden">Las contraseñas no coinciden</p>
-            <p id="matchSuccess" class="text-xs text-green-600 mt-1 hidden">Las contraseñas coinciden</p>
-          </div>
-
-          <button
-            type="submit"
-            class="w-full bg-primary-900 text-white py-3 rounded-lg hover:bg-primary-800 transition-colors font-medium"
-            id="submitBtn"
-          >
-            Cambiar Contraseña
-          </button>
-
-          <a href="/cuenta" class="block text-center text-sm text-primary-600 hover:text-primary-900 underline">
-            Volver a Mi Cuenta
-          </a>
-        </form>
-
-        <!-- Success Message -->
-        <div id="successMessage" class="hidden bg-green-100 text-green-800 p-4 rounded-lg text-center">
-          <p class="font-medium">Contraseña actualizada correctamente</p>
-          <p class="text-sm mt-1">Tu contraseña ha sido cambiada. Usa tu nueva contraseña para futuras sesiones.</p>
-        </div>
-
-        <!-- Error Message -->
-        <div id="errorMessage" class="hidden bg-red-100 text-red-800 p-4 rounded-lg"></div>
+      <!-- Success Message -->
+      <div id="successMessage" class="hidden bg-green-100 text-green-800 p-4 rounded-lg text-center">
+        <p class="font-medium">Contraseña actualizada correctamente</p>
+        <p class="text-sm mt-1">Tu contraseña ha sido cambiada. Usa tu nueva contraseña para futuras sesiones.</p>
       </div>
+
+      <!-- Error Message -->
+      <div id="errorMessage" class="hidden bg-red-100 text-red-800 p-4 rounded-lg"></div>
     </div>
   </div>
 </AccountLayout>
@@ -165,10 +128,10 @@ if (adminUser) {
   const newPasswordInput = document.getElementById('newPassword') as HTMLInputElement;
   const confirmPasswordInput = document.getElementById('confirmPassword') as HTMLInputElement;
   const successMsg = document.getElementById('successMessage');
-  const errorMsg = document.getElementById('errorMessage');
   const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+  const userEmail = (document.getElementById('userEmail') as HTMLInputElement)?.value;
 
-  // Validación de contraseña
+  // Validación de fuerza de contraseña en tiempo real
   newPasswordInput?.addEventListener('input', () => {
     const password = newPasswordInput.value;
     const lengthCheck = document.getElementById('lengthCheck');
@@ -176,35 +139,30 @@ if (adminUser) {
     const lowercaseCheck = document.getElementById('lowercaseCheck');
     const numberCheck = document.getElementById('numberCheck');
 
-    // Validar longitud
     if (password.length >= 8) {
       lengthCheck?.classList.add('text-green-600');
     } else {
       lengthCheck?.classList.remove('text-green-600');
     }
 
-    // Validar mayúscula
     if (/[A-Z]/.test(password)) {
       uppercaseCheck?.classList.add('text-green-600');
     } else {
       uppercaseCheck?.classList.remove('text-green-600');
     }
 
-    // Validar minúscula
     if (/[a-z]/.test(password)) {
       lowercaseCheck?.classList.add('text-green-600');
     } else {
       lowercaseCheck?.classList.remove('text-green-600');
     }
 
-    // Validar número
     if (/[0-9]/.test(password)) {
       numberCheck?.classList.add('text-green-600');
     } else {
       numberCheck?.classList.remove('text-green-600');
     }
 
-    // Validar coincidencia
     validatePasswords();
   });
 
@@ -213,7 +171,7 @@ if (adminUser) {
   function validatePasswords() {
     const matchError = document.getElementById('matchError');
     const matchSuccess = document.getElementById('matchSuccess');
-    
+
     if (newPasswordInput.value && confirmPasswordInput.value) {
       if (newPasswordInput.value === confirmPasswordInput.value) {
         matchError?.classList.add('hidden');
@@ -236,7 +194,6 @@ if (adminUser) {
     const newPassword = newPasswordInput.value;
     const confirmPassword = confirmPasswordInput.value;
 
-    // Validaciones
     if (!currentPassword) {
       showError('Por favor ingresa tu contraseña actual');
       return;
@@ -268,11 +225,11 @@ if (adminUser) {
 
       const response = await fetch('/api/auth/change-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-email': userEmail || ''
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
       });
 
       const data = await response.json();
@@ -286,7 +243,6 @@ if (adminUser) {
       form.classList.add('hidden');
       successMsg?.classList.remove('hidden');
 
-      // Redirigir después de 3 segundos
       setTimeout(() => {
         window.location.href = '/cuenta';
       }, 3000);

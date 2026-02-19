@@ -1,7 +1,7 @@
 import { logger } from '@lib/logger';
-import { supabase } from '@lib/supabase';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
-export async function POST({ request }: any) {
+export async function POST({ request, cookies }: any) {
   try {
     const { currentPassword, newPassword } = await request.json();
 
@@ -12,9 +12,27 @@ export async function POST({ request }: any) {
       );
     }
 
+    // Obtener email del usuario autenticado a través de la cookie de sesión
+    const accessToken = cookies?.get('sb-access-token')?.value;
+    let userEmail = request.headers.get('x-user-email');
+
+    if (accessToken) {
+      const { data: { user }, error: tokenError } = await supabase.auth.getUser(accessToken);
+      if (!tokenError && user?.email) {
+        userEmail = user.email;
+      }
+    }
+
+    if (!userEmail) {
+      return new Response(
+        JSON.stringify({ message: 'No se pudo identificar al usuario' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Verificar contraseña actual intentando hacer signin
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: request.headers.get('x-user-email'),
+      email: userEmail,
       password: currentPassword
     });
 
@@ -25,10 +43,11 @@ export async function POST({ request }: any) {
       );
     }
 
-    // Cambiar contraseña
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: newPassword
-    });
+    // Cambiar contraseña usando supabaseAdmin para asegurar que se actualiza el usuario correcto
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      authData.user.id,
+      { password: newPassword }
+    );
 
     if (updateError) {
       return new Response(
