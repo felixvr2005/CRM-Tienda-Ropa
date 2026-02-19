@@ -22,7 +22,15 @@ const { data: products } = await supabase
   .order('created_at', { ascending: false })
   .limit(48);
 
-const newProducts = products || [];
+const newProducts = (products || []).map((p: any) => ({
+  ...p,
+  price: p.price / 100,
+  compare_at_price: p.compare_at_price ? p.compare_at_price / 100 : null,
+  variants: (p.variants || []).map((v: any) => ({
+    ...v,
+    computed_price: (p.price + (v.price_modifier || 0)) / 100,
+  })),
+}));
 ---
 
 <PublicLayout title="Novedades | Essential Force">

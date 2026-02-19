@@ -85,8 +85,17 @@ const colorHex: Record<string, string> = {
     
     <div class="flex gap-8">
       <!-- Sidebar Filters -->
-      <aside class="hidden lg:block w-64 flex-shrink-0">
-        <div class="sticky top-24 space-y-8">
+      <aside id="filterSidebar" class="hidden lg:block w-64 flex-shrink-0 lg:relative fixed inset-0 z-50 lg:z-auto bg-white lg:bg-transparent overflow-y-auto lg:overflow-visible">
+        <div class="sticky top-24 space-y-8 p-6 lg:p-0">
+          <!-- Close button (mobile only) -->
+          <div class="lg:hidden flex items-center justify-between pb-4 border-b border-primary-200">
+            <h2 class="font-display text-xl">Filtros y Ordenar</h2>
+            <button id="closeFilterBtn" class="p-2 hover:bg-primary-100 rounded">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           <!-- Categories -->
           <div>
             <h3 class="text-xs uppercase tracking-wider text-primary-500 mb-4">Categorías</h3>
@@ -368,8 +377,20 @@ const colorHex: Record<string, string> = {
   // Mobile filter button - mostrar sidebar en móvil
   const mobileFilterBtn = document.getElementById('mobileFilterBtn');
   mobileFilterBtn?.addEventListener('click', () => {
-    // Scroll arriba para ver filtros (versión simple)
-    // En versión completa, abriríamos un modal
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const sidebar = document.getElementById('filterSidebar');
+    if (sidebar) {
+      sidebar.classList.remove('hidden');
+      sidebar.classList.add('block');
+      document.body.style.overflow = 'hidden';
+    }
+  });
+
+  document.getElementById('closeFilterBtn')?.addEventListener('click', () => {
+    const sidebar = document.getElementById('filterSidebar');
+    if (sidebar) {
+      sidebar.classList.add('hidden');
+      sidebar.classList.remove('block');
+      document.body.style.overflow = '';
+    }
   });
 </script>

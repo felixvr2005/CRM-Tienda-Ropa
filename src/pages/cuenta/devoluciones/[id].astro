@@ -42,7 +42,7 @@ let returnRequestError: any = null;
 try {
   const res = await supabaseAdmin
     .from('return_requests')
-    .select('*, orders(customer_id, customer_email, order_number), return_request_items(*), credit_notes(*)')
+    .select('*, orders(customer_id, customer_email, order_number, total_amount), return_request_items(*), credit_notes(*)')
     .eq('id', id)
     .single();
   returnRequest = res.data;
@@ -58,7 +58,7 @@ if (!returnRequest && returnRequestError && (returnRequestError.code === 'PGRST2
 
   const { data: parent, error: parentError } = await supabaseAdmin
     .from('return_requests')
-    .select('*, orders(customer_id, customer_email, order_number), credit_notes(*)')
+    .select('*, orders(customer_id, customer_email, order_number, total_amount), credit_notes(*)')
     .eq('id', id)
     .single();
 
@@ -231,7 +231,7 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
           </div>
           <div>
             <p class="text-sm text-primary-500 mb-1">Monto Solicitado</p>
-            <p class="font-bold text-lg text-primary-900">{formatPrice(returnRequest.refund_amount || 0)}</p>
+            <p class="font-bold text-lg text-primary-900">{formatPrice(returnRequest.refund_amount || safeReturnRequest.return_request_items.reduce((sum: number, item: any) => sum + ((item.unit_price || 0) * (item.quantity || 1)), 0))}</p>
           </div>
           {returnRequest.label_code && (
             <div>
@@ -317,7 +317,7 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
             </div>
             <div>
               <p class="text-sm text-primary-500 mb-1">Total del Pedido</p>
-              <p class="font-bold text-primary-900">{formatPrice(safeReturnRequest.orders.total_amount || 0)}</p>
+              <p class="font-bold text-primary-900">{formatPrice((safeReturnRequest.orders.total_amount || 0) / 100)}</p>
             </div>
           </div>
         </div>

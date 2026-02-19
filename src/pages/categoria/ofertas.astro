@@ -22,7 +22,15 @@ const { data: products } = await supabase
   .order('discount_percentage', { ascending: false })
   .limit(48);
 
-const saleProducts = products || [];
+const saleProducts = (products || []).map((p: any) => ({
+  ...p,
+  price: p.price / 100,
+  compare_at_price: p.compare_at_price ? p.compare_at_price / 100 : null,
+  variants: (p.variants || []).map((v: any) => ({
+    ...v,
+    computed_price: (p.price + (v.price_modifier || 0)) / 100,
+  })),
+}));
 
 // Calcular el mayor descuento
 const maxDiscount = saleProducts.length > 0 

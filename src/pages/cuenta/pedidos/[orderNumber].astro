@@ -101,6 +101,11 @@ const timeline = [
   { status: 'shipped', label: 'Enviado', date: order.tracking_number ? order.updated_at : null },
   { status: 'delivered', label: 'Entregado', date: order.status === 'delivered' ? order.updated_at : null }
 ];
+
+// Calcular progreso del timeline para la línea visual
+const statusOrder = ['pending', 'processing', 'shipped', 'delivered'];
+const currentStepIndex = statusOrder.indexOf(order.status);
+const progressPercent = currentStepIndex >= 0 ? (currentStepIndex / (statusOrder.length - 1)) * 100 : 0;
 ---
 
 <PublicLayout title={`Pedido #${orderNumber} | Essential Force`}>
@@ -138,6 +143,7 @@ const timeline = [
           <h2 class="text-lg font-medium mb-6">Estado del Pedido</h2>
           <div class="relative">
             <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-primary-200"></div>
+            <div class="absolute left-4 top-0 w-0.5 bg-primary-900 transition-all duration-500" style={`height: ${progressPercent}%`}></div>
             <div class="space-y-6">
               {timeline.map((step, index) => {
                 const isPast = timeline.findIndex(t => t.status === order.status) >= index;
