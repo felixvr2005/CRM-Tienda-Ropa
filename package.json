@@ -31,6 +31,7 @@
   "dependencies": {
     "@astrojs/node": "^9.0.0",
     "@astrojs/react": "^4.2.0",
+    "@astrojs/sitemap": "^3.7.0",
     "@astrojs/tailwind": "^6.0.0",
     "@nanostores/react": "^0.8.4",
     "@stripe/stripe-js": "^5.5.0",
