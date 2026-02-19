@@ -1,5 +1,5 @@
 -- ============================================
--- FASHIONSTORE - DATABASE SCHEMA
+-- ESSENTIAL FORCE - DATABASE SCHEMA
 -- Supabase PostgreSQL
 -- ============================================
 

@@ -314,7 +314,7 @@ function generateEmailHTML({
                 Si tienes preguntas o problemas, contáctanos a través de nuestro sitio web.
               </p>
               <p style="margin: 0; font-size: 11px; color: #bbb;">
-                © 2025 Fashion Force. Todos los derechos reservados.
+                © 2025 Essential Force. Todos los derechos reservados.
               </p>
             </td>
           </tr>

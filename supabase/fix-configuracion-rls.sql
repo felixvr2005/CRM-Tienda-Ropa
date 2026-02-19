@@ -46,9 +46,9 @@ VALUES
   ('free_shipping_threshold', '100', 'number', 'Envío gratis a partir de (€)', 'shipping', true),
   ('standard_shipping_cost', '4.95', 'number', 'Coste envío estándar (€)', 'shipping', true),
   ('express_shipping_cost', '9.95', 'number', 'Coste envío express (€)', 'shipping', true),
-  ('site_name', 'FashionStore', 'string', 'Nombre del sitio', 'general', true),
+  ('site_name', 'Essential Force', 'string', 'Nombre del sitio', 'general', true),
   ('site_description', 'Tu tienda de moda online', 'string', 'Descripción del sitio', 'general', true),
-  ('contact_email', 'hola@fashionstore.com', 'string', 'Email de contacto', 'general', true),
+  ('contact_email', 'hola@essentialforce.com', 'string', 'Email de contacto', 'general', true),
   ('contact_phone', '+34 900 123 456', 'string', 'Teléfono de contacto', 'general', true)
 ON CONFLICT (clave) DO NOTHING;
 

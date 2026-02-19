@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 
 const siteUrl = 'https://fashionforcestore.victoriafp.online';
 
-const robotsTxt = `# robots.txt - FASHION STORE
+const robotsTxt = `# robots.txt - ESSENTIAL FORCE
 # https://fashionforcestore.victoriafp.online
 
 User-agent: *

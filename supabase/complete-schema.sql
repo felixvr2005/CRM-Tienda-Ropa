@@ -1,5 +1,5 @@
 -- ============================================
--- FASHIONSTORE - COMPLETE DATABASE SCHEMA
+-- ESSENTIAL FORCE - COMPLETE DATABASE SCHEMA
 -- Supabase PostgreSQL
 -- Con autenticación separada Admin/Cliente
 -- y carrito persistente para usuarios
@@ -686,7 +686,7 @@ INSERT INTO products (name, slug, description, price, compare_at_price, discount
     'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80',
     ARRAY['https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80', 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800&q=80'],
     (SELECT id FROM categories WHERE slug = 'vestidos'),
-    'FashionStore',
+    'Essential Force',
     '100% Poliéster satinado',
     true,
     true,
@@ -702,7 +702,7 @@ INSERT INTO products (name, slug, description, price, compare_at_price, discount
     'https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800&q=80',
     ARRAY['https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800&q=80'],
     (SELECT id FROM categories WHERE slug = 'blusas'),
-    'FashionStore',
+    'Essential Force',
     '100% Lino',
     true,
     false,
@@ -718,7 +718,7 @@ INSERT INTO products (name, slug, description, price, compare_at_price, discount
     'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=800&q=80',
     ARRAY['https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=800&q=80'],
     (SELECT id FROM categories WHERE slug = 'pantalones-mujer'),
-    'FashionStore',
+    'Essential Force',
     '65% Poliéster, 35% Viscosa',
     false,
     true,
@@ -734,7 +734,7 @@ INSERT INTO products (name, slug, description, price, compare_at_price, discount
     'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&q=80',
     ARRAY['https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&q=80', 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=80'],
     (SELECT id FROM categories WHERE slug = 'camisas'),
-    'FashionStore',
+    'Essential Force',
     '100% Algodón Oxford',
     true,
     false,
@@ -750,7 +750,7 @@ INSERT INTO products (name, slug, description, price, compare_at_price, discount
     'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800&q=80',
     ARRAY['https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800&q=80'],
     (SELECT id FROM categories WHERE slug = 'pantalones-hombre'),
-    'FashionStore',
+    'Essential Force',
     '98% Algodón, 2% Elastano',
     true,
     false,
@@ -766,7 +766,7 @@ INSERT INTO products (name, slug, description, price, compare_at_price, discount
     'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80',
     ARRAY['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80'],
     (SELECT id FROM categories WHERE slug = 'chaquetas'),
-    'FashionStore',
+    'Essential Force',
     '70% Lana, 30% Poliéster',
     true,
     true,
@@ -782,7 +782,7 @@ INSERT INTO products (name, slug, description, price, compare_at_price, discount
     'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80',
     ARRAY['https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80'],
     (SELECT id FROM categories WHERE slug = 'bolsos'),
-    'FashionStore',
+    'Essential Force',
     '100% Piel Vacuno',
     false,
     false,
@@ -798,7 +798,7 @@ INSERT INTO products (name, slug, description, price, compare_at_price, discount
     'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80',
     ARRAY['https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80'],
     (SELECT id FROM categories WHERE slug = 'cinturones'),
-    'FashionStore',
+    'Essential Force',
     '100% Piel',
     false,
     false,

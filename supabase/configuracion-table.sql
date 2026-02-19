@@ -25,9 +25,9 @@ VALUES
   ('flash_sales_discount', '20', 'number', 'Descuento de ofertas flash (%)', 'ofertas', true),
   ('min_order_amount', '0', 'number', 'Monto mínimo del pedido (€)', 'general', false),
   ('free_shipping_threshold', '100', 'number', 'Envío gratis a partir de (€)', 'envios', true),
-  ('site_name', 'FashionStore', 'string', 'Nombre del sitio', 'general', true),
+  ('site_name', 'Essential Force', 'string', 'Nombre del sitio', 'general', true),
   ('site_description', 'Tu tienda de moda online', 'string', 'Descripción del sitio', 'general', true),
-  ('contact_email', 'hola@fashionstore.com', 'string', 'Email de contacto', 'general', true),
+  ('contact_email', 'hola@essentialforce.com', 'string', 'Email de contacto', 'general', true),
   ('contact_phone', '+34 900 123 456', 'string', 'Teléfono de contacto', 'general', true)
 ON CONFLICT (clave) DO NOTHING;
 

@@ -92,11 +92,11 @@ export const POST: APIRoute = async ({ request }) => {
     doc.fillColor('black');
 
     // Datos de la empresa
-    doc.fontSize(12).font('Helvetica-Bold').text('Fashion Store', 50, 180);
+    doc.fontSize(12).font('Helvetica-Bold').text('Essential Force', 50, 180);
     doc.fontSize(10).font('Helvetica')
       .text('Calle Principal 123', 50, 200)
       .text('28001 Madrid, España', 50, 215)
-      .text('info@fashionstore.com', 50, 230);
+      .text('info@essentialforce.com', 50, 230);
 
     // Datos del cliente
     doc.fontSize(10).font('Helvetica-Bold').text('ABONO A:', 300, 180);

@@ -58,10 +58,10 @@ export const GET: APIRoute = async ({ url, request }) => {
     doc.text(`Fecha: ${new Date((order as any).created_at).toLocaleDateString('es-ES')}`, 50, 95);
 
     // Datos de la empresa
-    doc.fontSize(12).font('Helvetica-Bold').text('Fashion Store', 50, 130);
+    doc.fontSize(12).font('Helvetica-Bold').text('Essential Force', 50, 130);
     doc.fontSize(10).font('Helvetica').text('Calle Principal 123', 50, 150);
     doc.text('28001 Madrid, España', 50, 165);
-    doc.text('info@fashionstore.com', 50, 180);
+    doc.text('info@essentialforce.com', 50, 180);
 
     // Datos de facturación
     doc.fontSize(10).font('Helvetica-Bold').text('FACTURADO A:', 300, 130);

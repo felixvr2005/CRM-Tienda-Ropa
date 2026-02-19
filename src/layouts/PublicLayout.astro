@@ -72,8 +72,8 @@ if (accessToken) {
         </button>
         
         <!-- Logo -->
-        <a href="/" class="font-display text-xl lg:text-2xl tracking-[0.2em] uppercase font-semibold">
-          Fashion Store
+        <a href="/" class="flex items-center gap-2" aria-label="Essential Force - Inicio">
+          <img src="/images/logo.png" alt="Essential Force" class="h-10 lg:h-12 w-auto" />
         </a>
         
         <!-- Desktop Navigation -->
@@ -127,7 +127,7 @@ if (accessToken) {
     <div class="absolute inset-0 bg-black/50" id="mobile-menu-overlay"></div>
     <div class="absolute left-0 top-0 bottom-0 w-80 bg-white transform -translate-x-full transition-transform duration-300" id="mobile-menu-panel">
       <div class="flex items-center justify-between p-4 border-b">
-        <span class="font-display text-lg tracking-widest uppercase">Menú</span>
+        <img src="/images/logo.png" alt="Essential Force" class="h-8 w-auto" />
         <button id="close-mobile-menu" class="p-2">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
@@ -157,7 +157,9 @@ if (accessToken) {
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
         <!-- Brand -->
         <div>
-          <h3 class="font-display text-2xl tracking-widest uppercase mb-4">Fashion Store</h3>
+          <a href="/" aria-label="Essential Force - Inicio">
+            <img src="/images/logo.png" alt="Essential Force" class="h-14 w-auto mb-4 brightness-0 invert" />
+          </a>
           <p class="text-primary-400 text-sm leading-relaxed">
             Moda premium para el hombre moderno. Calidad, estilo y elegancia en cada prenda.
           </p>
@@ -218,7 +220,7 @@ if (accessToken) {
       
       <!-- Bottom -->
       <div class="border-t border-primary-800 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-        <p class="text-primary-500 text-xs">© 2026 Fashion Store. Todos los derechos reservados.</p>
+        <p class="text-primary-500 text-xs">© 2026 Essential Force. Todos los derechos reservados.</p>
         <div class="hidden lg:flex items-center gap-4 text-primary-500 text-xs">
           <a href="/terminos" class="hover:text-white transition-colors">Términos</a>
           <span>|</span>

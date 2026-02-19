@@ -43,12 +43,12 @@ async function sendNewsletterWelcomeEmail(email: string, discountCode: string) {
   <body>
     <div class="container">
       <div class="header">
-        <h1>¡Bienvenido a Fashion Store!</h1>
+        <h1>¡Bienvenido a Essential Force!</h1>
         <p>Tu código de descuento especial te espera</p>
       </div>
       <div class="content">
         <h2>Hola,</h2>
-        <p>Gracias por suscribirte a nuestro newsletter. Te damos la bienvenida a la comunidad Fashion Store.</p>
+        <p>Gracias por suscribirte a nuestro newsletter. Te damos la bienvenida a la comunidad Essential Force.</p>
         
         <p>Como regalo especial, te ofrecemos un <strong>20% de descuento</strong> en tu próxima compra usando el siguiente código:</p>
         
@@ -71,7 +71,7 @@ async function sendNewsletterWelcomeEmail(email: string, discountCode: string) {
         </ul>
         
         <div class="footer">
-          <p>Fashion Store - Tu tienda de moda online</p>
+          <p>Essential Force - Tu tienda de moda online</p>
           <p>Si deseas dejar de recibir emails, <a href="${(process.env.PUBLIC_APP_URL || 'https://tienda.com')}/unsubscribe?email=${encodeURIComponent(email)}&code=${discountCode}">haz clic aquí para darte de baja</a></p>
         </div>
       </div>
@@ -82,9 +82,9 @@ async function sendNewsletterWelcomeEmail(email: string, discountCode: string) {
 
   try {
     await transporter.sendMail({
-      from: process.env.GMAIL_USER || 'noreply@fashionstore.com',
+      from: process.env.GMAIL_USER || 'noreply@essentialforce.com',
       to: email,
-      subject: '¡Bienvenido! Tu código de descuento especial - Fashion Store',
+      subject: '¡Bienvenido! Tu código de descuento especial - Essential Force',
       html: htmlContent
     });
     logger.info('Newsletter welcome email sent', { to: email });

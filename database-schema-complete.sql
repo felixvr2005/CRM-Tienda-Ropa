@@ -1,5 +1,5 @@
 -- ============================================
--- FASHIONSTORE - ESQUEMA COMPLETO DE BASE DE DATOS
+-- ESSENTIAL FORCE - ESQUEMA COMPLETO DE BASE DE DATOS
 -- Supabase PostgreSQL
 -- Versión: 2.0 - Completo
 -- ============================================
@@ -37,7 +37,7 @@ INSERT INTO configuracion (clave, valor, tipo, descripcion, categoria) VALUES
   ('ofertas_activas', 'false', 'boolean', 'Activa/desactiva la sección de ofertas flash en la home', 'ofertas'),
   ('ofertas_titulo', 'Ofertas Flash ⚡', 'string', 'Título de la sección de ofertas', 'ofertas'),
   ('ofertas_subtitulo', 'Descuentos por tiempo limitado', 'string', 'Subtítulo de ofertas', 'ofertas'),
-  ('nombre_tienda', 'FashionStore', 'string', 'Nombre de la tienda', 'general'),
+  ('nombre_tienda', 'Essential Force', 'string', 'Nombre de la tienda', 'general'),
   ('descripcion_tienda', 'Tu tienda de moda online', 'string', 'Descripción SEO', 'general'),
   ('moneda', 'EUR', 'string', 'Moneda principal', 'general'),
   ('simbolo_moneda', '€', 'string', 'Símbolo de moneda', 'general'),
@@ -47,7 +47,7 @@ INSERT INTO configuracion (clave, valor, tipo, descripcion, categoria) VALUES
   ('stripe_mode', 'test', 'string', 'Modo de Stripe: test o live', 'pagos'),
   ('max_productos_carrito', '10', 'integer', 'Máximo de productos por carrito', 'carrito'),
   ('dias_devolucion', '30', 'integer', 'Días para devolución', 'politicas'),
-  ('email_contacto', 'contacto@fashionstore.com', 'string', 'Email de contacto', 'contacto'),
+  ('email_contacto', 'contacto@essentialforce.com', 'string', 'Email de contacto', 'contacto'),
   ('telefono_contacto', '+34 900 000 000', 'string', 'Teléfono de contacto', 'contacto'),
   ('direccion_tienda', 'Calle Ejemplo 123, Madrid, España', 'string', 'Dirección física', 'contacto'),
   ('redes_sociales', '{"instagram": "", "facebook": "", "twitter": ""}', 'json', 'URLs redes sociales', 'contacto')

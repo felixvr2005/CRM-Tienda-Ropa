@@ -241,7 +241,7 @@ function generateProduct(index) {
     discount_percentage: discountPercentage,
     sku: `SKU-${String(index + 1).padStart(5, '0')}`,
     images: images,
-    brand: 'Fashion Store',
+    brand: 'Essential Force',
     material: material,
     care_instructions: 'Lavar con agua fría. No blanquear. Secar al aire. Planchar a temperatura baja.',
     is_active: true,
