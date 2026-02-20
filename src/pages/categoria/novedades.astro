@@ -9,7 +9,10 @@ import { supabase } from '@lib/supabase';
 
 export const prerender = false;
 
-// Obtener productos nuevos
+// Obtener productos nuevos: recientes (últimos 60 días) O marcados como is_new
+const sixtyDaysAgo = new Date();
+sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
 const { data: products } = await supabase
   .from('products')
   .select(`
@@ -18,7 +21,7 @@ const { data: products } = await supabase
     variants:product_variants(id, size, color, color_hex, stock, price_modifier)
   `)
   .eq('is_active', true)
-  .eq('is_new', true)
+  .or(`is_new.eq.true,created_at.gte.${sixtyDaysAgo.toISOString()}`)
   .order('created_at', { ascending: false })
   .limit(48);
 

@@ -228,17 +228,26 @@ export default function AddToCartButton({
         <p className="text-sm text-red-600">{error}</p>
       )}
       
+      {/* Out of stock message */}
+      {selectedVariant && currentStock === 0 && (
+        <p className="text-sm text-red-600 font-medium">Producto agotado</p>
+      )}
+
       {/* Add to Cart Button */}
       <button
         onClick={handleAddToCart}
-        disabled={isAdding}
+        disabled={isAdding || (selectedVariant !== undefined && currentStock === 0)}
         className={`w-full py-4 text-sm tracking-widest uppercase font-medium transition-all ${
-          isAdding
+          selectedVariant && currentStock === 0
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : isAdding
             ? 'bg-green-600 text-white'
             : 'bg-primary-900 text-white hover:bg-primary-800'
         }`}
       >
-        {isAdding ? (
+        {selectedVariant && currentStock === 0 ? (
+          'Agotado'
+        ) : isAdding ? (
           <span className="flex items-center justify-center gap-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />

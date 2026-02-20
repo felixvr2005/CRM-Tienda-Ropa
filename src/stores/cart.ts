@@ -136,11 +136,26 @@ export async function addToCart(item: Omit<CartItem, 'quantity'>, quantity: numb
       if (!response.ok) {
         const error = await response.json();
         console.error('Error reservando stock:', error);
-        // Usar toast si está disponible, sino fallback a alert
+        // Mostrar mensaje específico con stock disponible
+        const msg = error.availableStock !== undefined && error.availableStock > 0
+          ? `Solo quedan ${error.availableStock} unidades de "${error.productName || item.name}"`
+          : error.availableStock === 0
+          ? `"${error.productName || item.name}" está agotado`
+          : error.error || 'Error al reservar el producto';
         if (typeof window !== 'undefined' && (window as any).toast) {
-          (window as any).toast.error('Error', error.error || 'Error al reservar el producto');
+          (window as any).toast.error('Sin stock', msg);
         }
         return;
+      }
+
+      // Actualizar maxStock con el newStock real del servidor
+      const result = await response.json();
+      if (result.newStock !== undefined) {
+        newCart = newCart.map(i => 
+          i.variantId === item.variantId 
+            ? { ...i, maxStock: result.newStock + i.quantity } 
+            : i
+        );
       }
     } catch (e) {
       console.error('Error en reserva de stock:', e);

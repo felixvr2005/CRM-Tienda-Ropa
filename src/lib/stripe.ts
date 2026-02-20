@@ -49,7 +49,7 @@ export async function createCheckoutSession(
       currency: 'eur',
       product_data: {
         name: item.name,
-        description: item.description,
+        ...(item.description ? { description: item.description } : {}),
         images: item.image ? [item.image] : [],
       },
       unit_amount: item.price, // Ya viene en céntimos

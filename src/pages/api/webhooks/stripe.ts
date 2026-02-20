@@ -119,9 +119,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const orderNumber = await generateSequentialOrderNumber();
 
   // Calcular totales
-  const subtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
-  // Free shipping threshold aligned with checkout UI (100€)
-  const shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 100 ? 0 : 4.95);
+  const subtotal = Number(metadata.subtotal) || items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
+  // Leer shippingCost de metadata; fallback: calcular por método de envío
+  let shippingCost = Number(metadata.shippingCost || 0);
+  if (!shippingCost && shippingMethod !== 'store') {
+    shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 100 ? 0 : 4.95);
+  }
   // Intentar obtener descuento desde metadata (si la UI lo envió)
   const discountAmount = Number(metadata.discountAmount || metadata.discount_amount || 0) || 0;
 
@@ -244,22 +247,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       logger.error('Error creating order item', { error: itemError });
     }
 
-    // Descontar stock usando función atómica
-    const { error: stockError } = await (supabaseAdmin as any).rpc('decrease_stock', {
-      p_variant_id: item.variantId,
-      p_quantity: item.quantity
-    });
-
-    if (stockError) {
-      logger.error('Error decreasing stock', { error: stockError });
-      // Fallback: actualización directa (menos seguro)
-      await (supabaseAdmin as any)
-        .from('product_variants')
-        .update({ stock: Math.max(0, variantData.stock - item.quantity) })
-        .eq('id', item.variantId);
-    }
-
-    logger.info('Stock updated for variant', { variantId: item.variantId, decrement: item.quantity });
+    // El stock ya fue reservado al añadir al carrito (/api/stock/reserve).
+    // NO descontar de nuevo aquí para evitar doble descuento.
+    logger.info('Stock already reserved at cart time', { variantId: item.variantId, quantity: item.quantity });
   }
 
   logger.info('Checkout completed successfully', { orderNumber });

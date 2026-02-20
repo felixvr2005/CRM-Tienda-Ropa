@@ -9,6 +9,7 @@ import { supabaseAdmin } from '@lib/supabase';
 import { sendCustomerEmail } from '@lib/email';
 import type { CustomerEmailData } from '@lib/email';
 import { ensureEnv } from '@lib/ensureEnv';
+import { logger } from '@lib/logger';
 
 export const prerender = false;
 
@@ -89,9 +90,16 @@ if (sessionId) {
           logger.info('Generated order number', { orderNumber });
 
           // Calcular totales
-          const subtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
+          const subtotal = Number(metadata.subtotal) || items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
           const totalAmount = (session.amount_total || 0) / 100;
-          const shippingCost = totalAmount - subtotal; // Calcular costo de envío por diferencia
+          const discountAmount = Number(metadata.discountAmount || metadata.discount_amount || 0) || 0;
+          const couponCode = metadata.couponCode || null;
+          const shippingMethod = metadata.shippingMethod || 'standard';
+          // Leer shippingCost de metadata; fallback: calcular por método
+          let shippingCost = Number(metadata.shippingCost || 0);
+          if (!shippingCost && shippingCost !== 0) {
+            shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 100 ? 0 : 4.95);
+          }
 
           // Buscar customer
           let customerId = null;
@@ -120,7 +128,8 @@ if (sessionId) {
             stripe_payment_intent_id: session.payment_intent as string,
             subtotal: subtotal,
             shipping_cost: shippingCost > 0 ? shippingCost : 0,
-            discount_amount: 0,
+            discount_amount: discountAmount,
+            coupon_code: couponCode,
             total_amount: totalAmount,
             shipping_address: shippingAddress
           };
@@ -164,9 +173,9 @@ if (sessionId) {
                   tax_rate: 0,
                   tax_amount: 0,
                   shipping_cost: shippingCost > 0 ? shippingCost : 0,
-                  discount_applied: false,
-                  discount_code: undefined,
-                  discount_amount: 0,
+                  discount_applied: discountAmount > 0,
+                  discount_code: couponCode || undefined,
+                  discount_amount: discountAmount,
                   total_amount: totalAmount,
                   active_offers: [],
                   recommendations: [],
