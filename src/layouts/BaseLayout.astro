@@ -64,6 +64,16 @@ const ogImageURL = image.startsWith('http') ? image : new URL(image, siteUrl).hr
   <a href="#main-content" class="skip-link" style="position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden" onfocus="this.style.left='1rem';this.style.top='1rem';this.style.width='auto';this.style.height='auto'" onblur="this.style.left='-999px'">Ir al contenido</a>
   <div id="main-content" tabindex="-1" aria-hidden="false"></div>
   <slot />
+  <script is:inline>
+    // Global OAuth hash handler: si Supabase redirige con #access_token a cualquier página,
+    // redirigir a /cuenta/callback para procesar la sesión correctamente
+    (function() {
+      var h = window.location.hash;
+      if (h && h.indexOf('access_token') !== -1 && window.location.pathname !== '/cuenta/callback') {
+        window.location.href = '/cuenta/callback' + h;
+      }
+    })();
+  </script>
 </body>
 </html>
 
