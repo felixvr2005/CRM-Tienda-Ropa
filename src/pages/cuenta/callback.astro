@@ -123,24 +123,49 @@ if (error) {
   import { mergeCartOnLogin } from '@stores/cart';
   import { supabase } from '@lib/supabase';
 
-  // Si no hay error, hacer merge del carrito de invitado y redirigir
-  const hasError = document.querySelector('.text-red-800');
-  if (!hasError) {
-    (async () => {
-      try {
+  // Manejar tanto PKCE (code en query) como Implicit (token en hash fragment)
+  (async () => {
+    try {
+      // Si hay hash con access_token (implicit flow / Google OAuth redirect)
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        // Supabase JS detecta automáticamente el hash y establece la sesión
+        // Pero necesitamos esperar a que lo procese
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session from hash:', error);
+        }
+        
+        if (session?.user?.id) {
+          // Guardar cookies
+          document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+          document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+          await mergeCartOnLogin(session.user.id);
+          
+          const params = new URLSearchParams(window.location.search);
+          const redirect = params.get('redirect') || '/cuenta';
+          window.location.href = redirect;
+          return;
+        }
+      }
+
+      // Si no hay hash, intentar getSession normal (PKCE ya procesado server-side)
+      const hasError = document.querySelector('.text-red-800');
+      if (!hasError) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.id) {
-          // Asegurar cookies en el cliente
           document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
           document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
           await mergeCartOnLogin(session.user.id);
         }
-      } catch (err) {
-        console.error('Error merging cart after OAuth:', err);
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect') || '/cuenta';
+        window.location.href = redirect;
       }
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get('redirect') || '/cuenta';
-      window.location.href = redirect;
-    })();
-  }
+    } catch (err) {
+      console.error('Error in OAuth callback:', err);
+      window.location.href = '/cuenta';
+    }
+  })();
 </script>
