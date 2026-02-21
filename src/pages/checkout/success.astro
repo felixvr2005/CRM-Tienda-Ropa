@@ -155,41 +155,46 @@ if (sessionId) {
                 logger.info('Preparando email de confirmación', { to: email });
                 
                 // Construir datos del email
+                const IVA_RATE = 0.21;
+                const baseAmount = +(totalAmount / (1 + IVA_RATE)).toFixed(2);
+                const taxAmount = +(totalAmount - baseAmount).toFixed(2);
+
+                const fmtNum = (n: number) => n.toFixed(2).replace('.', ',');
+
                 const emailData: CustomerEmailData = {
                   customer_name: shippingAddress?.name || 'Cliente',
                   order_number: orderNumber,
                   order_date: new Date().toLocaleDateString('es-ES'),
                   order_status: 'Pendiente',
-                  payment_method: 'Tarjeta de Crédito (Stripe)',
-                  products: items.map((item: any) => ({
-                    product_name: item.name || 'Producto',
-                    product_sku: item.sku || 'N/A',
-                    quantity: item.quantity,
-                    unit: 'unidad',
-                    unit_price: item.price,
-                    total_price: item.price * item.quantity
-                  })),
-                  subtotal: subtotal,
-                  tax_rate: 0,
-                  tax_amount: 0,
+                  payment_method: 'Tarjeta (Stripe)',
+                  products: items.map((item: any) => {
+                    const details: string[] = [];
+                    if (item.size) details.push(`Talla: ${item.size}`);
+                    if (item.color) details.push(`Color: ${item.color}`);
+                    if (item.sku) details.push(`SKU: ${item.sku}`);
+                    return {
+                      product_name: item.name || 'Producto',
+                      product_sku: item.sku || '',
+                      product_image: item.image || '',
+                      product_details: details.join(' · '),
+                      quantity: item.quantity,
+                      unit: 'ud.',
+                      unit_price: fmtNum(item.price),
+                      total_price: fmtNum(item.price * item.quantity),
+                    };
+                  }),
+                  base_amount: fmtNum(baseAmount),
+                  tax_amount: fmtNum(taxAmount),
                   shipping_cost: shippingCost > 0 ? shippingCost : 0,
+                  shipping_label: shippingCost > 0 ? `${fmtNum(shippingCost)} €` : 'Gratis',
                   discount_applied: discountAmount > 0,
                   discount_code: couponCode || undefined,
-                  discount_amount: discountAmount,
-                  total_amount: totalAmount,
-                  active_offers: [],
-                  recommendations: [],
-                  promo_code_available: true,
-                  promo_code: 'WELCOME2026',
-                  promo_description: 'Código de bienvenida: 10% en tu próxima compra',
+                  discount_amount: discountAmount > 0 ? fmtNum(discountAmount) : undefined,
+                  total_amount: fmtNum(totalAmount),
                   track_order_url: `${Astro.site || ''}pedido/seguimiento?order=${orderNumber}`,
-                  continue_shopping_url: `${Astro.site}/productos`,
                   customer_address: shippingAddress ? `${shippingAddress.address}, ${shippingAddress.city} (${shippingAddress.postal_code})` : '',
-                  support_email: 'soporte@tiendamoda.com',
-                  facebook_url: 'https://facebook.com/tiendamoda',
-                  instagram_url: 'https://instagram.com/tiendamoda',
-                  twitter_url: 'https://twitter.com/tiendamoda',
-                  company_name: 'Tienda de Moda Premium',
+                  support_email: 'info@essentialforce.com',
+                  company_name: 'Essential Force',
                   current_year: new Date().getFullYear()
                 };
                 

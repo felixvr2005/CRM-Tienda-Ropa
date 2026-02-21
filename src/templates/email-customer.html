@@ -3,339 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmación de Pedido</title>
+    <title>Confirmación de Pedido — Essential Force</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f5f5f5;
-        }
-        
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .content {
-            padding: 40px 30px;
-        }
-        
-        .greeting {
-            font-size: 16px;
-            margin-bottom: 25px;
-            color: #333;
-        }
-        
-        .section {
-            margin-bottom: 30px;
-        }
-        
-        .section-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-        
-        .order-info {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-        
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-        
-        .info-label {
-            font-weight: bold;
-            color: #555;
-        }
-        
-        .info-value {
-            color: #333;
-        }
-        
-        /* Tabla de Productos */
-        .products-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        
-        .products-table thead {
-            background-color: #667eea;
-            color: white;
-        }
-        
-        .products-table th {
-            padding: 12px;
-            text-align: left;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        .products-table td {
-            padding: 12px;
-            border-bottom: 1px solid #e0e0e0;
-            font-size: 14px;
-        }
-        
-        .products-table tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .product-name {
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .price-total {
-            text-align: right;
-            font-weight: bold;
-            color: #667eea;
-        }
-        
-        .summary {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 5px;
-            margin-top: 15px;
-        }
-        
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        
-        .summary-row.total {
-            border-top: 2px solid #667eea;
-            padding-top: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            color: #667eea;
-        }
-        
-        /* Ofertas */
-        .offers-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .offer-card {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .offer-discount {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .offer-text {
-            font-size: 13px;
-            margin-bottom: 10px;
-        }
-        
-        .offer-code {
-            background-color: rgba(255,255,255,0.2);
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            font-family: monospace;
-        }
-        
-        /* Recomendaciones */
-        .recommendations {
-            margin-bottom: 15px;
-        }
-        
-        .recommendation-item {
-            background-color: #f0f7ff;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-left: 4px solid #667eea;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        .recommendation-title {
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-        
-        /* Código Promocional */
-        .promo-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .promo-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .promo-code {
-            background-color: rgba(255,255,255,0.2);
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-size: 20px;
-            font-weight: bold;
-            font-family: monospace;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-        }
-        
-        .promo-desc {
-            font-size: 13px;
-            opacity: 0.9;
-        }
-        
-        /* CTA Botones */
-        .cta-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 25px 0;
-        }
-        
-        .cta-button {
-            padding: 12px 20px;
-            text-align: center;
-            border-radius: 6px;
-            font-weight: bold;
-            text-decoration: none;
-            font-size: 14px;
-            display: block;
-            transition: all 0.3s ease;
-        }
-        
-        .cta-primary {
-            background-color: #667eea;
-            color: white;
-        }
-        
-        .cta-primary:hover {
-            background-color: #764ba2;
-        }
-        
-        .cta-secondary {
-            background-color: #f0f0f0;
-            color: #667eea;
-            border: 2px solid #667eea;
-        }
-        
-        .cta-secondary:hover {
-            background-color: #667eea;
-            color: white;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #404040; background-color: #f5f5f5; -webkit-font-smoothing: antialiased; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+        /* Header */
+        .header { background-color: #171717; color: #ffffff; padding: 32px 40px; text-align: center; }
+        .header h1 { font-size: 13px; letter-spacing: 4px; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+        .header p { font-size: 12px; color: #a3a3a3; font-weight: 300; }
+        /* Content */
+        .content { padding: 40px; }
+        .greeting { font-size: 15px; margin-bottom: 28px; color: #171717; }
+        .greeting strong { font-weight: 600; }
+        /* Section */
+        .section { margin-bottom: 32px; }
+        .section-title { font-size: 11px; letter-spacing: 2px; font-weight: 600; text-transform: uppercase; color: #737373; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e5e5; }
+        /* Order info */
+        .order-info { background-color: #fafafa; padding: 16px 20px; border: 1px solid #e5e5e5; font-size: 14px; margin-bottom: 16px; }
+        .info-row { display: flex; justify-content: space-between; padding: 4px 0; }
+        .info-label { color: #737373; font-size: 13px; }
+        .info-value { color: #171717; font-weight: 500; font-size: 13px; }
+        /* Products table */
+        .product-row { border-bottom: 1px solid #f0f0f0; padding: 14px 0; }
+        .product-row:last-child { border-bottom: none; }
+        .product-row td { vertical-align: top; padding: 10px 4px; font-size: 13px; }
+        .products-table { width: 100%; border-collapse: collapse; }
+        .products-table thead { border-bottom: 1px solid #e5e5e5; }
+        .products-table th { padding: 8px 4px; text-align: left; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #a3a3a3; font-weight: 600; }
+        .product-img { width: 50px; height: 50px; object-fit: cover; border: 1px solid #e5e5e5; }
+        .product-img-placeholder { width: 50px; height: 50px; background-color: #fafafa; border: 1px solid #e5e5e5; }
+        .product-name { font-weight: 600; color: #171717; font-size: 14px; }
+        .product-meta { color: #a3a3a3; font-size: 12px; margin-top: 2px; }
+        .price-total { text-align: right; font-weight: 600; color: #171717; }
+        /* Summary */
+        .summary { background-color: #fafafa; padding: 20px; border: 1px solid #e5e5e5; margin-top: 16px; }
+        .summary-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; color: #404040; }
+        .summary-row.discount { color: #16a34a; }
+        .summary-divider { border-top: 1px solid #e5e5e5; margin: 8px 0; }
+        .summary-row.total { font-size: 16px; font-weight: 700; color: #171717; padding-top: 10px; }
+        /* CTA */
+        .cta-section { text-align: center; margin: 28px 0; }
+        .cta-button { display: inline-block; background-color: #171717; color: #ffffff; padding: 14px 40px; text-decoration: none; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
+        .cta-button:hover { background-color: #404040; }
         /* Footer */
-        .footer {
-            background-color: #f8f9fa;
-            padding: 25px 30px;
-            text-align: center;
-            border-top: 1px solid #e0e0e0;
-        }
-        
-        .footer-text {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        
-        .social-links {
-            margin-top: 15px;
-            font-size: 12px;
-        }
-        
-        .social-links a {
-            color: #667eea;
-            text-decoration: none;
-            margin: 0 10px;
-        }
-        
-        .footer-note {
-            font-size: 11px;
-            color: #999;
-            margin-top: 15px;
-            font-style: italic;
-        }
-        
+        .footer { background-color: #fafafa; padding: 28px 40px; text-align: center; border-top: 1px solid #e5e5e5; }
+        .footer-address { font-size: 12px; color: #737373; margin-bottom: 8px; }
+        .footer-note { font-size: 11px; color: #a3a3a3; line-height: 1.6; }
         @media (max-width: 600px) {
-            .container {
-                border-radius: 0;
-            }
-            
-            .offers-grid,
-            .cta-buttons {
-                grid-template-columns: 1fr;
-            }
-            
-            .header {
-                padding: 30px 20px;
-            }
-            
-            .content {
-                padding: 20px;
-            }
-            
-            .products-table {
-                font-size: 12px;
-            }
-            
-            .products-table th,
-            .products-table td {
-                padding: 8px;
-            }
+            .content { padding: 24px 20px; }
+            .header { padding: 24px 20px; }
+            .footer { padding: 20px; }
         }
     </style>
 </head>
@@ -343,155 +61,122 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>Pedido Confirmado</h1>
-            <p>Gracias por tu compra. Aquí está el resumen de tu pedido.</p>
+            <h1>Essential Force</h1>
+            <p>Confirmación de pedido</p>
         </div>
-        
+
         <!-- Content -->
         <div class="content">
-            <!-- Saludo -->
+            <!-- Greeting -->
             <div class="greeting">
                 <p>Hola <strong>{{customer_name}}</strong>,</p>
-                <p style="margin-top: 10px;">Tu pedido ha sido procesado exitosamente. A continuación encontrarás todos los detalles de tu compra.</p>
+                <p style="margin-top: 8px; color: #404040;">Gracias por tu compra. Tu pedido ha sido registrado correctamente.</p>
             </div>
-            
-            <!-- Información del Pedido -->
+
+            <!-- Order Info -->
             <div class="section">
-                <div class="section-title">Detalles del Pedido</div>
+                <div class="section-title">Información del pedido</div>
                 <div class="order-info">
                     <div class="info-row">
-                        <span class="info-label">Número de Pedido:</span>
+                        <span class="info-label">Nº Pedido</span>
                         <span class="info-value">#{{order_number}}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Fecha:</span>
+                        <span class="info-label">Fecha</span>
                         <span class="info-value">{{order_date}}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Estado:</span>
-                        <span class="info-value" style="color: #28a745; font-weight: bold;">{{order_status}}</span>
+                        <span class="info-label">Estado</span>
+                        <span class="info-value">{{order_status}}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Método de Pago:</span>
+                        <span class="info-label">Método de pago</span>
                         <span class="info-value">{{payment_method}}</span>
                     </div>
                 </div>
             </div>
-            
-            <!-- Productos -->
+
+            <!-- Products -->
             <div class="section">
-                <div class="section-title">Productos Pedidos</div>
+                <div class="section-title">Productos</div>
                 <table class="products-table">
                     <thead>
                         <tr>
+                            <th style="width:58px;"></th>
                             <th>Producto</th>
-                            <th>Cantidad</th>
-                            <th>Precio Unit.</th>
-                            <th style="text-align: right;">Total</th>
+                            <th style="text-align:center;">Cant.</th>
+                            <th style="text-align:right;">Precio</th>
+                            <th style="text-align:right;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {{#products}}
-                        <tr>
-                            <td><span class="product-name">{{product_name}}</span><br><small style="color: #999;">{{product_sku}}</small></td>
-                            <td>{{quantity}} {{unit}}</td>
-                            <td>${{unit_price}}</td>
-                            <td style="text-align: right;"><span class="price-total">${{total_price}}</span></td>
+                        <tr class="product-row">
+                            <td>
+                                {{#if product_image}}<img src="{{product_image}}" alt="{{product_name}}" class="product-img" />{{/if}}
+                            </td>
+                            <td>
+                                <span class="product-name">{{product_name}}</span>
+                                <div class="product-meta">{{product_details}}</div>
+                            </td>
+                            <td style="text-align:center;">{{quantity}}</td>
+                            <td style="text-align:right;">{{unit_price}} €</td>
+                            <td class="price-total">{{total_price}} €</td>
                         </tr>
                         {{/products}}
                     </tbody>
                 </table>
-                
-                <!-- Resumen de Costos -->
+
+                <!-- Summary -->
                 <div class="summary">
                     <div class="summary-row">
-                        <span>Subtotal:</span>
-                        <span>${{subtotal}}</span>
+                        <span>Base imponible</span>
+                        <span>{{base_amount}} €</span>
                     </div>
                     <div class="summary-row">
-                        <span>Impuestos ({{tax_rate}}%):</span>
-                        <span>${{tax_amount}}</span>
+                        <span>IVA (21%)</span>
+                        <span>{{tax_amount}} €</span>
                     </div>
                     <div class="summary-row">
-                        <span>Envío:</span>
-                        <span>${{shipping_cost}}</span>
+                        <span>Envío</span>
+                        <span>{{shipping_label}}</span>
                     </div>
-                    {{#if discount_applied}}{{#if discount_code}}
-                    <div class="summary-row" style="color: #28a745;">
-                        <span>Descuento ({{discount_code}}):</span>
-                        <span>-${{discount_amount}}</span>
+                    {{#if discount_applied}}
+                    <div class="summary-row discount">
+                        <span>Descuento{{#if discount_code}} ({{discount_code}}){{/if}}</span>
+                        <span>-{{discount_amount}} €</span>
                     </div>
-                    {{/if}}{{/if}}
+                    {{/if}}
+                    <div class="summary-divider"></div>
                     <div class="summary-row total">
-                        <span>TOTAL PAGADO:</span>
-                        <span>${{total_amount}}</span>
+                        <span>Total pagado</span>
+                        <span>{{total_amount}} €</span>
                     </div>
                 </div>
             </div>
-            
-            <!-- Ofertas Activas -->
+
+            <!-- Shipping Address -->
             <div class="section">
-                <div class="section-title">Ofertas Especiales para Ti</div>
-                <div class="offers-grid">
-                    {{#active_offers}}
-                    <div class="offer-card">
-                        <div class="offer-discount">{{discount_percentage}}% OFF</div>
-                        <div class="offer-text">{{offer_title}}</div>
-                        <div class="offer-code">Código: {{offer_code}}</div>
-                    </div>
-                    {{/active_offers}}
-                </div>
+                <div class="section-title">Dirección de envío</div>
+                <p style="font-size: 13px; color: #404040;">{{customer_address}}</p>
             </div>
-            
-            <!-- Recomendaciones Personalizadas -->
-            <div class="section">
-                <div class="section-title">Recomendaciones Personalizadas</div>
-                <div class="recommendations">
-                    {{#recommendations}}
-                    <div class="recommendation-item">
-                        <div class="recommendation-title">{{recommendation_title}}</div>
-                        <p>{{recommendation_description}}</p>
-                    </div>
-                    {{/recommendations}}
-                </div>
+
+            <!-- CTA -->
+            <div class="cta-section">
+                <a href="{{track_order_url}}" class="cta-button">Ver mi pedido</a>
             </div>
-            
-            <!-- Código Promocional Especial -->
-            {{#promo_code_available}}
-            <div class="section">
-                <div class="promo-section">
-                    <div class="promo-title">Código Promocional Exclusivo</div>
-                    <div class="promo-code">{{promo_code}}</div>
-                    <div class="promo-desc">{{promo_description}}</div>
-                </div>
-            </div>
-            {{/promo_code_available}}
-            
-            <!-- Botones de Acción -->
-            <div class="cta-buttons">
-                <a href="{{track_order_url}}" class="cta-button cta-primary">Rastrear Pedido</a>
-                <a href="{{continue_shopping_url}}" class="cta-button cta-secondary">Seguir Comprando</a>
-            </div>
+
+            <p style="text-align: center; font-size: 12px; color: #a3a3a3; margin-top: 16px;">
+                ¿Necesitas ayuda? Escríbenos a <strong>{{support_email}}</strong>
+            </p>
         </div>
-        
+
         <!-- Footer -->
         <div class="footer">
-            <div class="footer-text">
-                <p>Dirección de Envío:<br>
-                {{customer_address}}</p>
-            </div>
-            <div class="footer-text">
-                <p>¿Preguntas sobre tu pedido?<br>
-                Contáctanos en <strong>{{support_email}}</strong></p>
-            </div>
-            <div class="social-links">
-                <a href="{{facebook_url}}">Facebook</a> | 
-                <a href="{{instagram_url}}">Instagram</a> | 
-                <a href="{{twitter_url}}">Twitter</a>
-            </div>
+            <div class="footer-address">Essential Force S.L. · CIF B-12345678 · C/ Gran Vía 42, 28013 Madrid</div>
             <div class="footer-note">
-                Este es un correo automatizado. Por favor, no respondas a este mensaje.
-                <br>{{company_name}} © {{current_year}}
+                Los precios incluyen IVA. Este email es una confirmación automática.<br>
+                © {{current_year}} Essential Force. Todos los derechos reservados.
             </div>
         </div>
     </div>

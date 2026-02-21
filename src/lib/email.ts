@@ -18,38 +18,24 @@ interface CustomerEmailData {
     products: Array<{
         product_name: string;
         product_sku: string;
+        product_image?: string;
+        product_details?: string;
         quantity: number;
         unit: string;
-        unit_price: number;
-        total_price: number;
+        unit_price: string;
+        total_price: string;
     }>;
-    subtotal: number;
-    tax_rate: number;
-    tax_amount: number;
+    base_amount: string;
+    tax_amount: string;
     shipping_cost: number;
+    shipping_label: string;
     discount_applied?: boolean;
     discount_code?: string;
-    discount_amount?: number;
-    total_amount: number;
-    active_offers: Array<{
-        discount_percentage: number;
-        offer_title: string;
-        offer_code: string;
-    }>;
-    recommendations: Array<{
-        recommendation_title: string;
-        recommendation_description: string;
-    }>;
-    promo_code_available?: boolean;
-    promo_code?: string;
-    promo_description?: string;
+    discount_amount?: string;
+    total_amount: string;
     track_order_url: string;
-    continue_shopping_url: string;
     customer_address: string;
     support_email: string;
-    facebook_url: string;
-    instagram_url: string;
-    twitter_url: string;
     company_name: string;
     current_year: number;
 }
@@ -340,71 +326,71 @@ export const sendAdminNotificationEmail = async (
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px; }
-        .content { background: #f9f9f9; padding: 20px; margin: 20px 0; border-radius: 8px; }
-        .status-update { background: white; border-left: 4px solid #667eea; padding: 15px; margin: 15px 0; }
-        .order-details { background: white; padding: 15px; margin: 15px 0; border: 1px solid #ddd; border-radius: 4px; }
-        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-        .detail-row:last-child { border-bottom: none; }
-        .label { font-weight: bold; color: #667eea; }
-        .cta-button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 15px 0; }
-        .footer { text-align: center; color: #999; font-size: 12px; margin-top: 30px; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #404040; background-color: #f5f5f5; margin: 0; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+        .header { background-color: #171717; color: #ffffff; padding: 28px 40px; text-align: center; }
+        .header h1 { font-size: 12px; letter-spacing: 3px; font-weight: 600; text-transform: uppercase; margin: 0 0 4px; }
+        .header p { font-size: 11px; color: #a3a3a3; margin: 0; }
+        .content { padding: 36px 40px; }
+        .status-box { background-color: #fafafa; border: 1px solid #e5e5e5; padding: 20px; margin: 20px 0; }
+        .status-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+        .status-label { color: #737373; }
+        .status-value { color: #171717; font-weight: 600; }
+        .status-new { font-size: 18px; font-weight: 700; color: #171717; text-align: center; padding: 16px 0 8px; }
+        .order-details { border-top: 1px solid #e5e5e5; margin-top: 20px; padding-top: 16px; }
+        .detail-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+        .detail-label { color: #737373; }
+        .detail-val { color: #171717; font-weight: 500; }
+        .cta-section { text-align: center; margin: 24px 0; }
+        .cta-button { display: inline-block; background-color: #171717; color: #ffffff; padding: 12px 36px; text-decoration: none; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
+        .footer { background-color: #fafafa; padding: 20px 40px; text-align: center; border-top: 1px solid #e5e5e5; font-size: 11px; color: #a3a3a3; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>ACTUALIZACIÓN DE TU PEDIDO</h1>
+            <h1>Essential Force</h1>
+            <p>Actualización de pedido</p>
         </div>
-        
         <div class="content">
-            <p>¡Hola ${data.customer_name}!</p>
-            
-            <p>Tu pedido ha sido actualizado. Aquí te mostramos los cambios:</p>
-            
-            <div class="status-update">
-                <div class="detail-row">
-                    <span class="label">Estado anterior:</span>
-                    <span>${previousStatusLabel}</span>
+            <p style="font-size: 15px; color: #171717;">Hola <strong>${data.customer_name}</strong>,</p>
+            <p style="font-size: 14px; color: #404040; margin-top: 8px;">El estado de tu pedido ha sido actualizado:</p>
+
+            <div class="status-box">
+                <div class="status-row">
+                    <span class="status-label">Estado anterior</span>
+                    <span class="status-value">${previousStatusLabel}</span>
                 </div>
-                <div class="detail-row" style="border-bottom: none; font-weight: bold; color: #667eea;">
-                    <span>⬇️ CAMBIO A</span>
-                </div>
-                <div class="detail-row" style="border-bottom: none; font-weight: bold; color: #28a745; font-size: 16px;">
-                    <span>${newStatusLabel}</span>
-                </div>
+                <div style="text-align: center; padding: 4px 0; color: #a3a3a3; font-size: 16px;">↓</div>
+                <div class="status-new">${emoji} ${newStatusLabel}</div>
             </div>
 
             <div class="order-details">
-                <h3>Detalles del Pedido</h3>
                 <div class="detail-row">
-                    <span class="label">Número de Pedido:</span>
-                    <span>#${data.order_number}</span>
+                    <span class="detail-label">Nº Pedido</span>
+                    <span class="detail-val">#${data.order_number}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="label">Fecha del Pedido:</span>
-                    <span>${new Date(data.order_date).toLocaleDateString('es-ES')}</span>
+                    <span class="detail-label">Fecha</span>
+                    <span class="detail-val">${new Date(data.order_date).toLocaleDateString('es-ES')}</span>
                 </div>
                 <div class="detail-row">
-                    <span class="label">Total:</span>
-                    <span>${data.total_amount.toFixed(2)}€</span>
+                    <span class="detail-label">Total</span>
+                    <span class="detail-val">${data.total_amount.toFixed(2).replace('.', ',')} €</span>
                 </div>
             </div>
 
-            <div style="text-align: center;">
-                <a href="${data.tracking_url}" class="cta-button">Ver Detalles del Pedido</a>
+            <div class="cta-section">
+                <a href="${data.tracking_url}" class="cta-button">Ver mi pedido</a>
             </div>
 
-            <p style="margin-top: 20px; color: #666; font-size: 14px;">
-                Si tienes alguna pregunta sobre tu pedido, no dudes en contactarnos. Estamos aquí para ayudarte.
+            <p style="font-size: 12px; color: #a3a3a3; text-align: center;">
+                ¿Necesitas ayuda? Escríbenos a <strong>info@essentialforce.com</strong>
             </p>
         </div>
-
         <div class="footer">
-            <p>© ${new Date().getFullYear()} Tienda de Moda Premium. Todos los derechos reservados.</p>
-            <p>Este es un email automático, por favor no responder a este mensaje.</p>
+            © ${new Date().getFullYear()} Essential Force. Todos los derechos reservados.<br>
+            Este es un email automático, por favor no respondas a este mensaje.
         </div>
     </div>
 </body>
@@ -414,9 +400,9 @@ export const sendAdminNotificationEmail = async (
         const mailOptions = {
             from: process.env.GMAIL_USER || 'felixvr2005@gmail.com',
             to: customerEmail,
-            subject: `Tu pedido #${data.order_number} ahora está ${newStatusLabel}`,
+            subject: `Tu pedido #${data.order_number} ahora está ${newStatusLabel} — Essential Force`,
             html,
-            replyTo: 'soporte@tiendamoda.com',
+            replyTo: 'info@essentialforce.com',
         };
 
         const info = await transporter.sendMail(mailOptions);
