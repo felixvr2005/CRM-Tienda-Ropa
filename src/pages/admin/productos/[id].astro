@@ -27,6 +27,22 @@ const { data: categories } = await supabaseAdmin
   .from('categories')
   .select('id, name')
   .order('name');
+
+// Obtener tipos de producto con tallas disponibles
+const { data: productTypes } = await supabaseAdmin
+  .from('product_types')
+  .select('id, name, size_type, available_sizes')
+  .order('name');
+
+// Determinar tallas disponibles para el tipo actual del producto
+const currentType = productTypes?.find(t => t.id === product.product_type_id);
+const currentAvailableSizes = currentType?.available_sizes?.length > 0 
+  ? currentType.available_sizes 
+  : (currentType?.size_type === 'shoe' 
+    ? ['35','36','37','38','39','40','41','42','43','44','45','46'] 
+    : currentType?.size_type === 'unique' 
+      ? ['UNICA'] 
+      : ['XS', 'S', 'M', 'L', 'XL', 'XXL']);
 ---
 
 <AdminLayout title={`Editar: ${product.name}`}>
@@ -78,7 +94,15 @@ const { data: categories } = await supabaseAdmin
             value={product.name}
             class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
           />
-          <p class="text-xs text-primary-400 mt-1">SKU: {product.sku || 'Sin SKU'}</p>
+          <p class="text-xs text-primary-400 mt-1" id="skuDisplay">
+            SKU: <span id="skuValue" class={product.sku ? 'font-mono font-medium text-primary-700' : 'text-amber-600'}>{product.sku || 'Sin SKU'}</span>
+            {!product.sku && (
+              <button type="button" id="generateSkuBtn" class="ml-2 text-xs bg-primary-900 text-white px-2 py-0.5 rounded hover:bg-primary-800 transition-colors">Generar SKU</button>
+            )}
+            {product.sku && (
+              <button type="button" id="generateSkuBtn" class="ml-2 text-xs text-primary-500 hover:text-primary-900 underline transition-colors">Regenerar</button>
+            )}
+          </p>
         </div>
         
         <div>
@@ -105,6 +129,30 @@ const { data: categories } = await supabaseAdmin
               <option value={cat.id} selected={cat.id === product.category_id}>{cat.name}</option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+            Tipo de producto
+          </label>
+          <select 
+            name="product_type_id"
+            id="productTypeSelect"
+            class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
+          >
+            <option value="">Sin tipo</option>
+            {productTypes?.map((t) => (
+              <option 
+                value={t.id} 
+                selected={t.id === product.product_type_id}
+                data-size-type={t.size_type || 'standard'}
+                data-sizes={JSON.stringify(t.available_sizes || [])}
+              >{t.name}</option>
+            ))}
+          </select>
+          <p id="sizeTypeHint" class="text-xs text-primary-400 mt-1">
+            {currentType ? `Tallas: ${currentAvailableSizes.join(', ')}` : ''}
+          </p>
         </div>
       </div>
       
@@ -227,14 +275,26 @@ const { data: categories } = await supabaseAdmin
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
-              SKU
+              SKU <span class="normal-case text-primary-400">(generado automáticamente)</span>
             </label>
-            <input 
-              type="text" 
-              name="sku"
-              value={product.sku || ''}
-              class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
-            />
+            <div class="flex gap-2">
+              <input 
+                type="text" 
+                name="sku"
+                id="skuInput"
+                value={product.sku || ''}
+                readonly
+                class="flex-1 border border-primary-200 bg-primary-50 px-4 py-2 text-sm font-mono text-primary-700 cursor-default"
+              />
+              <button 
+                type="button"
+                id="generateSkuBtnDetails"
+                class="px-3 py-2 bg-primary-900 text-white text-xs font-medium hover:bg-primary-800 transition-colors whitespace-nowrap"
+              >
+                {product.sku ? '↻ Regenerar' : '+ Generar'}
+              </button>
+            </div>
+            <p class="text-xs text-primary-400 mt-1">El SKU se genera automáticamente al crear el producto</p>
           </div>
           
           <div>
@@ -378,7 +438,7 @@ const { data: categories } = await supabaseAdmin
     </form>
   </div>
   
-  <script is:inline define:vars={{ existingVariants: product.variants || [], productId: product.id }}>
+  <script is:inline define:vars={{ existingVariants: product.variants || [], productId: product.id, initialAvailableSizes: currentAvailableSizes, productTypesData: (productTypes || []).map(t => ({ id: t.id, name: t.name, size_type: t.size_type, available_sizes: t.available_sizes })) }}>
     // ═══════════════════════════════════════════════════════
     // PASO 1: REGISTRAR SUBMIT HANDLER PRIMERO (lo más crítico)
     // ═══════════════════════════════════════════════════════
@@ -431,6 +491,7 @@ const { data: categories } = await supabaseAdmin
             name: formData.get('name') || '',
             description: formData.get('description') || '',
             category_id: formData.get('category_id') || null,
+            product_type_id: formData.get('product_type_id') || null,
             price: parseFloat(formData.get('price')) || 0,
             compare_at_price: (formData.get('compare_at_price') && String(formData.get('compare_at_price')).trim())
               ? parseFloat(formData.get('compare_at_price'))
@@ -526,15 +587,101 @@ const { data: categories } = await supabaseAdmin
     // ═══════════════════════════════════════════════════════
     var variantIndex = 0;
     
+    // ── Tallas dinámicas según tipo de producto ──
+    var defaultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    window.currentAvailableSizes = initialAvailableSizes || defaultSizes;
+    
+    var sizeTypeLabels = {
+      'standard': 'Tallas de ropa',
+      'shoe': 'Tallas de calzado',
+      'unique': 'Talla única',
+      'numeric': 'Tallas numéricas',
+      'letter': 'Tallas por letra'
+    };
+    
+    // Listener para cuando cambie el tipo de producto
+    var typeSelect = document.getElementById('productTypeSelect');
+    var sizeHint = document.getElementById('sizeTypeHint');
+    
+    function updateAvailableSizes() {
+      if (!typeSelect) return;
+      var selected = typeSelect.options[typeSelect.selectedIndex];
+      if (!selected || !selected.value) {
+        window.currentAvailableSizes = defaultSizes;
+        if (sizeHint) sizeHint.textContent = '';
+        return;
+      }
+      
+      var sizeType = selected.getAttribute('data-size-type') || 'standard';
+      var sizesStr = selected.getAttribute('data-sizes') || '[]';
+      try {
+        var sizes = JSON.parse(sizesStr);
+        if (sizes && sizes.length > 0) {
+          window.currentAvailableSizes = sizes;
+        } else {
+          if (sizeType === 'shoe') {
+            window.currentAvailableSizes = ['35','36','37','38','39','40','41','42','43','44','45','46'];
+          } else if (sizeType === 'unique') {
+            window.currentAvailableSizes = ['UNICA'];
+          } else {
+            window.currentAvailableSizes = defaultSizes;
+          }
+        }
+      } catch (e) {
+        window.currentAvailableSizes = defaultSizes;
+      }
+      
+      if (sizeHint) {
+        sizeHint.textContent = (sizeTypeLabels[sizeType] || 'Tallas') + ': ' + window.currentAvailableSizes.join(', ');
+      }
+      
+      // Actualizar todos los selects de talla existentes
+      var allSizeSelects = document.querySelectorAll('select[name*="[size]"]');
+      allSizeSelects.forEach(function(sel) {
+        var currentVal = sel.value;
+        // Incluir el valor actual aunque no esté en las nuevas tallas (para no perder datos)
+        var newSizes = window.currentAvailableSizes.slice();
+        if (currentVal && newSizes.indexOf(currentVal) === -1) {
+          newSizes.unshift(currentVal);
+        }
+        sel.innerHTML = newSizes.map(function(s) {
+          return '<option value="' + s + '" ' + (s === currentVal ? 'selected' : '') + '>' + s + (s === currentVal && window.currentAvailableSizes.indexOf(s) === -1 ? ' (anterior)' : '') + '</option>';
+        }).join('');
+      });
+    }
+    
+    if (typeSelect) {
+      typeSelect.addEventListener('change', updateAvailableSizes);
+    }
+    console.log('[INIT] ✓ Size type system initialized. Available sizes:', window.currentAvailableSizes);
+    
     try {
       window.addVariant = function(size, color, stock, variantId) {
-        size = size || 'M';
+        size = size || '';
         color = color || '';
         stock = stock || 0;
         variantId = variantId || null;
         
         var container = document.getElementById('variantsContainer');
         if (!container) { console.error('[VARIANTS] Container not found'); return; }
+        
+        // Construir opciones de talla dinámicamente
+        var availSizes = window.currentAvailableSizes || defaultSizes;
+        // Si la variante tiene una talla que no está en las disponibles, incluirla
+        var sizesForSelect = availSizes.slice();
+        if (size && sizesForSelect.indexOf(size) === -1) {
+          sizesForSelect.unshift(size);
+        }
+        // Si no hay talla seleccionada, usar la del medio
+        if (!size) {
+          var midIdx = Math.floor(sizesForSelect.length / 2);
+          size = sizesForSelect[midIdx] || sizesForSelect[0] || 'M';
+        }
+        var sizeOptions = sizesForSelect.map(function(s) {
+          var label = s;
+          if (s !== '' && availSizes.indexOf(s) === -1) label = s + ' (anterior)';
+          return '<option value="' + s + '" ' + (s === size ? 'selected' : '') + '>' + label + '</option>';
+        }).join('');
         
         var stockBorder = stock === 0 ? 'border-red-400' : stock < 10 ? 'border-amber-400' : 'border-primary-300';
         var stockBg = stock === 0 ? 'bg-red-50' : stock < 10 ? 'bg-amber-50' : '';
@@ -544,9 +691,7 @@ const { data: categories } = await supabaseAdmin
           '<div class="flex-1">' +
             '<label class="block text-xs text-primary-500 mb-1">Talla</label>' +
             '<select name="variants[' + variantIndex + '][size]" class="w-full border border-primary-300 px-3 py-1.5 text-sm">' +
-              ['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(function(s) {
-                return '<option value="' + s + '" ' + (s === size ? 'selected' : '') + '>' + s + '</option>';
-              }).join('') +
+              sizeOptions +
             '</select>' +
           '</div>' +
           '<div class="flex-1">' +
@@ -658,6 +803,63 @@ const { data: categories } = await supabaseAdmin
       console.log('[INIT] ✓ Images loaded:', (window.currentProductImages || []).length);
     } catch (imgErr) {
       console.error('[INIT] ✗ Image init error:', imgErr);
+    }
+    
+    // ═══════════════════════════════════════════════════════
+    // PASO 4: SKU - Botones de generar/regenerar
+    // ═══════════════════════════════════════════════════════
+    try {
+      function handleGenerateSku(btn) {
+        if (!btn) return;
+        btn.addEventListener('click', async function() {
+          btn.disabled = true;
+          var origText = btn.textContent;
+          btn.textContent = 'Generando...';
+          
+          try {
+            var res = await fetch('/api/admin/products/' + productId, { method: 'PATCH' });
+            var data = await res.json();
+            
+            if (res.ok && data.sku) {
+              // Actualizar el input del formulario
+              var skuInput = document.getElementById('skuInput');
+              if (skuInput) skuInput.value = data.sku;
+              
+              // Actualizar el display en el header
+              var skuValue = document.getElementById('skuValue');
+              if (skuValue) {
+                skuValue.textContent = data.sku;
+                skuValue.className = 'font-mono font-medium text-primary-700';
+              }
+              
+              btn.textContent = '✓ Generado';
+              btn.className = btn.className.replace('bg-primary-900', 'bg-green-600').replace('hover:bg-primary-800', '');
+              setTimeout(function() {
+                btn.textContent = '↻ Regenerar';
+                btn.className = btn.className.replace('bg-green-600', 'bg-primary-900');
+                btn.disabled = false;
+              }, 2000);
+              
+              console.log('[SKU] Generated:', data.sku);
+            } else {
+              alert('Error: ' + (data.error || 'No se pudo generar el SKU'));
+              btn.textContent = origText;
+              btn.disabled = false;
+            }
+          } catch (err) {
+            alert('Error de conexión al generar SKU');
+            btn.textContent = origText;
+            btn.disabled = false;
+          }
+        });
+      }
+      
+      // Vincular ambos botones (header y detalles)
+      handleGenerateSku(document.getElementById('generateSkuBtn'));
+      handleGenerateSku(document.getElementById('generateSkuBtnDetails'));
+      console.log('[INIT] ✓ SKU handlers registered');
+    } catch (skuErr) {
+      console.error('[INIT] ✗ SKU init error:', skuErr);
     }
   </script>
   

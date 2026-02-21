@@ -74,7 +74,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
     
     // Campos que sí existen en la BD
     const allowedFields = [
-      'name', 'slug', 'description', 'category_id', 'price', 
+      'name', 'slug', 'description', 'category_id', 'product_type_id', 'price', 
       'compare_at_price', 'discount_percentage', 'images', 'image_url', 'brand',
       'material', 'care_instructions', 'is_active', 'is_featured',
       'is_new', 'is_flash_offer', 'tags', 'meta_title', 'meta_description',
@@ -192,6 +192,64 @@ export const PUT: APIRoute = async ({ params, request }) => {
     logger.error('Update product error:', error);
     return new Response(
       JSON.stringify({ error: 'Error al actualizar el producto', details: error?.message || String(error) }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+};
+
+// PATCH - Regenerate SKU
+export const PATCH: APIRoute = async ({ params }) => {
+  try {
+    const id = params.id;
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'ID requerido' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // Obtener nombre del producto para generar prefijo
+    const { data: product, error: fetchErr } = await supabaseAdmin
+      .from('products')
+      .select('name')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !product) {
+      return new Response(JSON.stringify({ error: 'Producto no encontrado' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    const prefix = product.name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X');
+    const timestamp = Date.now().toString(36).toUpperCase().slice(-4);
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    let sku = `${prefix}-${timestamp}-${random}`;
+
+    // Verificar unicidad
+    const { data: existing } = await supabaseAdmin
+      .from('products')
+      .select('sku')
+      .eq('sku', sku)
+      .neq('id', id)
+      .single();
+
+    if (existing) {
+      sku = `${prefix}-${Date.now().toString(36).toUpperCase().slice(-5)}-${random}`;
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from('products')
+      .update({ sku, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (updateErr) throw updateErr;
+
+    logger.info('SKU regenerated:', { id, sku });
+
+    return new Response(
+      JSON.stringify({ success: true, sku }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error: any) {
+    logger.error('SKU regeneration error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Error al generar SKU', details: error?.message || String(error) }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

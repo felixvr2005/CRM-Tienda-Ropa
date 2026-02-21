@@ -13,10 +13,10 @@ const { data: categories } = await supabaseAdmin
   .select('id, name')
   .order('name');
 
-// Obtener tipos de producto para el selector (requerido por la API)
+// Obtener tipos de producto con sus tallas disponibles
 const { data: productTypes } = await supabaseAdmin
   .from('product_types')
-  .select('id, name')
+  .select('id, name, size_type, available_sizes')
   .order('name');
 ---
 
@@ -82,14 +82,16 @@ const { data: productTypes } = await supabaseAdmin
           </label>
           <select
             name="product_type_id"
+            id="productTypeSelect"
             required
             class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
           >
             <option value="">Selecciona un tipo</option>
             {productTypes?.map((t) => (
-              <option value={t.id}>{t.name}</option>
+              <option value={t.id} data-size-type={t.size_type || 'standard'} data-sizes={JSON.stringify(t.available_sizes || [])}>{t.name}</option>
             ))}
           </select>
+          <p id="sizeTypeHint" class="text-xs text-primary-400 mt-1"></p>
         </div>
       </div>
       
@@ -214,45 +216,111 @@ const { data: productTypes } = await supabaseAdmin
   </div>
   
   <script is:inline>
-    let variantIndex = 0;
+    var variantIndex = 0;
+    
+    // ── Tallas dinámicas según tipo de producto ──
+    var defaultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    window.currentAvailableSizes = defaultSizes;
+    
+    var sizeTypeLabels = {
+      'standard': 'Tallas de ropa',
+      'shoe': 'Tallas de calzado',
+      'unique': 'Talla única',
+      'numeric': 'Tallas numéricas',
+      'letter': 'Tallas por letra'
+    };
+    
+    // Actualizar tallas cuando cambia el tipo de producto
+    var typeSelect = document.getElementById('productTypeSelect');
+    var sizeHint = document.getElementById('sizeTypeHint');
+    
+    function updateAvailableSizes() {
+      if (!typeSelect) return;
+      var selected = typeSelect.options[typeSelect.selectedIndex];
+      if (!selected || !selected.value) {
+        window.currentAvailableSizes = defaultSizes;
+        if (sizeHint) sizeHint.textContent = '';
+        return;
+      }
+      
+      var sizeType = selected.getAttribute('data-size-type') || 'standard';
+      var sizesStr = selected.getAttribute('data-sizes') || '[]';
+      try {
+        var sizes = JSON.parse(sizesStr);
+        if (sizes && sizes.length > 0) {
+          window.currentAvailableSizes = sizes;
+        } else {
+          // Fallback por tipo
+          if (sizeType === 'shoe') {
+            window.currentAvailableSizes = ['35','36','37','38','39','40','41','42','43','44','45','46'];
+          } else if (sizeType === 'unique') {
+            window.currentAvailableSizes = ['UNICA'];
+          } else {
+            window.currentAvailableSizes = defaultSizes;
+          }
+        }
+      } catch (e) {
+        window.currentAvailableSizes = defaultSizes;
+      }
+      
+      if (sizeHint) {
+        sizeHint.textContent = (sizeTypeLabels[sizeType] || 'Tallas') + ': ' + window.currentAvailableSizes.join(', ');
+      }
+      
+      // Actualizar selects de talla existentes
+      var allSizeSelects = document.querySelectorAll('select[name*="[size]"]');
+      allSizeSelects.forEach(function(sel) {
+        var currentVal = sel.value;
+        sel.innerHTML = window.currentAvailableSizes.map(function(s) {
+          return '<option value="' + s + '" ' + (s === currentVal ? 'selected' : '') + '>' + s + '</option>';
+        }).join('');
+      });
+    }
+    
+    if (typeSelect) {
+      typeSelect.addEventListener('change', updateAvailableSizes);
+    }
     
     // Exponer funciones globalmente
     window.addVariant = function() {
-      const container = document.getElementById('variantsContainer');
-      const variantHtml = `
-        <div class="flex items-center gap-4 p-4 border border-primary-200" data-variant="${variantIndex}">
-          <div class="flex-1">
-            <label class="block text-xs text-primary-500 mb-1">Talla</label>
-            <select name="variants[${variantIndex}][size]" class="w-full border border-primary-300 px-3 py-1.5 text-sm">
-              <option value="XS">XS</option>
-              <option value="S">S</option>
-              <option value="M" selected>M</option>
-              <option value="L">L</option>
-              <option value="XL">XL</option>
-              <option value="XXL">XXL</option>
-            </select>
-          </div>
-          <div class="flex-1">
-            <label class="block text-xs text-primary-500 mb-1">Color</label>
-            <input type="text" name="variants[${variantIndex}][color]" class="w-full border border-primary-300 px-3 py-1.5 text-sm" placeholder="Negro" />
-          </div>
-          <div class="w-24">
-            <label class="block text-xs text-primary-500 mb-1">Stock</label>
-            <input type="number" name="variants[${variantIndex}][stock]" min="0" value="0" class="w-full border border-primary-300 px-3 py-1.5 text-sm" />
-          </div>
-          <button type="button" onclick="window.removeVariant(${variantIndex})" class="text-red-600 hover:text-red-800 mt-5">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      `;
+      var container = document.getElementById('variantsContainer');
+      if (!container) return;
+      
+      var sizes = window.currentAvailableSizes || defaultSizes;
+      var midIndex = Math.floor(sizes.length / 2);
+      var defaultSize = sizes[midIndex] || sizes[0];
+      
+      var sizeOptions = sizes.map(function(s) {
+        return '<option value="' + s + '" ' + (s === defaultSize ? 'selected' : '') + '>' + s + '</option>';
+      }).join('');
+      
+      var variantHtml = '<div class="flex items-center gap-4 p-4 border border-primary-200" data-variant="' + variantIndex + '">' +
+        '<div class="flex-1">' +
+          '<label class="block text-xs text-primary-500 mb-1">Talla</label>' +
+          '<select name="variants[' + variantIndex + '][size]" class="w-full border border-primary-300 px-3 py-1.5 text-sm">' +
+            sizeOptions +
+          '</select>' +
+        '</div>' +
+        '<div class="flex-1">' +
+          '<label class="block text-xs text-primary-500 mb-1">Color</label>' +
+          '<input type="text" name="variants[' + variantIndex + '][color]" class="w-full border border-primary-300 px-3 py-1.5 text-sm" placeholder="Negro" />' +
+        '</div>' +
+        '<div class="w-24">' +
+          '<label class="block text-xs text-primary-500 mb-1">Stock</label>' +
+          '<input type="number" name="variants[' + variantIndex + '][stock]" min="0" value="0" class="w-full border border-primary-300 px-3 py-1.5 text-sm" />' +
+        '</div>' +
+        '<button type="button" onclick="window.removeVariant(' + variantIndex + ')" class="text-red-600 hover:text-red-800 mt-5">' +
+          '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />' +
+          '</svg>' +
+        '</button>' +
+      '</div>';
       container.insertAdjacentHTML('beforeend', variantHtml);
       variantIndex++;
     };
     
     window.removeVariant = function(index) {
-      const variant = document.querySelector(`[data-variant="${index}"]`);
+      var variant = document.querySelector('[data-variant="' + index + '"]');
       if (variant) variant.remove();
     };
     

@@ -57,7 +57,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-');
 
-    const productData = {
+    // Generar SKU automático para productos nuevos
+    let sku: string | null = null;
+    if (!id) {
+      const prefix = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X');
+      const timestamp = Date.now().toString(36).toUpperCase().slice(-4);
+      const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+      sku = `${prefix}-${timestamp}-${random}`;
+      // Verificar unicidad
+      const { data: existingSku } = await supabaseAdmin
+        .from('products')
+        .select('sku')
+        .eq('sku', sku)
+        .single();
+      if (existingSku) {
+        sku = `${prefix}-${Date.now().toString(36).toUpperCase().slice(-5)}-${random}`;
+      }
+    }
+
+    const productData: any = {
       name,
       slug,
       description,
@@ -76,6 +94,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       images: Array.isArray(images) ? images : [],
       image_url: Array.isArray(images) && images.length > 0 ? images[0] : null,
     };
+
+    // Solo añadir SKU en creación (no sobreescribir en actualización)
+    if (sku) {
+      productData.sku = sku;
+    }
 
     let productId: string;
 
