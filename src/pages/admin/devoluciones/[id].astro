@@ -418,6 +418,37 @@ if (!formattedReturn) {
 
         {/* Historial */}
         <div class="bg-white rounded-lg shadow p-6 border-l-4 border-gray-500">
+          <h2 class="text-lg font-bold text-gray-900 mb-4">Documentos</h2>
+          <div class="space-y-3">
+            {/* Factura del pedido original */}
+            {formattedReturn?.orders?.id && (
+              <button
+                id="download-invoice-btn"
+                data-order-id={formattedReturn.orders.id}
+                data-order-number={formattedReturn.orders.order_number}
+                class="w-full flex items-center justify-center gap-2 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg border border-gray-200 font-medium"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Descargar Factura del Pedido
+              </button>
+            )}
+            {/* Nota de crédito */}
+            {(formattedReturn?.status === 'received' || formattedReturn?.status === 'refunded') && (
+              <button
+                id="download-credit-note-btn"
+                data-return-id={formattedReturn.id}
+                data-order-id={formattedReturn.orders?.id || formattedReturn.order_id}
+                class="w-full flex items-center justify-center gap-2 px-4 py-3 text-green-700 hover:bg-green-50 transition-colors rounded-lg border border-green-200 font-medium"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>
+                Descargar Nota de Crédito
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Historial */}
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-gray-500">
           <h2 class="text-lg font-bold text-gray-900 mb-4">Historial</h2>
           <div class="space-y-2 text-sm">
             <div>
@@ -543,6 +574,72 @@ if (!formattedReturn) {
       } catch (error) {
         console.error('Error:', error);
         window.toast?.error('Error al procesar el reembolso');
+      }
+    });
+
+    // Descargar factura del pedido original
+    document.getElementById('download-invoice-btn')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      const orderId = btn.dataset.orderId;
+      const orderNumber = btn.dataset.orderNumber;
+      btn.disabled = true;
+      btn.textContent = 'Descargando...';
+      try {
+        const token = document.cookie.split(';').find(c => c.trim().startsWith('sb-access-token='))?.split('=')[1] || '';
+        const response = await fetch(`/api/invoices/generate?orderId=${orderId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Error descargando factura');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `factura-${orderNumber}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error(err);
+        window.toast?.error('Error al descargar la factura');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> Descargar Factura del Pedido';
+      }
+    });
+
+    // Descargar nota de crédito
+    document.getElementById('download-credit-note-btn')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      const returnRequestId = btn.dataset.returnId;
+      const originalOrderId = btn.dataset.orderId;
+      btn.disabled = true;
+      btn.textContent = 'Descargando...';
+      try {
+        const response = await fetch('/api/invoices/credit-note', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ returnRequestId, originalOrderId })
+        });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Error descargando nota de crédito');
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `nota-credito-${returnRequestId?.slice(0, 8)}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error(err);
+        window.toast?.error('Error al descargar la nota de crédito');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg> Descargar Nota de Crédito';
       }
     });
   </script>

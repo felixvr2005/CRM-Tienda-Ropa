@@ -238,6 +238,25 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
         </div>
       </div>
 
+      <!-- Acción: Marcar como enviado (solo si estado es label_sent o approved) -->
+      {(returnRequest.status === 'label_sent' || returnRequest.status === 'approved') && (
+        <div class="bg-blue-50 rounded-lg border border-blue-200 p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="flex-1">
+              <h3 class="font-bold text-blue-900 mb-1">¿Ya has enviado el paquete?</h3>
+              <p class="text-sm text-blue-700">Marca tu devolución como enviada para que podamos hacer seguimiento.</p>
+            </div>
+            <button
+              id="mark-shipped-btn"
+              data-return-id={returnRequest.id}
+              class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold whitespace-nowrap"
+            >
+              Marcar como enviado
+            </button>
+          </div>
+        </div>
+      )}
+
       <!-- Detalles de la Devolución -->
       <div class="bg-white rounded-lg border border-primary-200 p-6">
         <h2 class="font-bold text-primary-900 mb-4">Detalles de la Devolución</h2>
@@ -364,4 +383,40 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
       )}
     </div>
   </div>
+
+  <script>
+    document.getElementById('mark-shipped-btn')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      const returnId = btn.dataset.returnId;
+      
+      if (!confirm('¿Confirmas que ya has enviado el paquete de devolución?')) return;
+      
+      btn.disabled = true;
+      btn.textContent = 'Actualizando...';
+      
+      try {
+        const response = await fetch('/api/returns/mark-shipped', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ returnRequestId: returnId })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          alert('✅ Tu devolución ha sido marcada como enviada. Recibirás actualizaciones por email.');
+          window.location.reload();
+        } else {
+          alert('Error: ' + (result.error || 'No se pudo actualizar el estado'));
+          btn.disabled = false;
+          btn.textContent = 'Marcar como enviado';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar el estado de la devolución');
+        btn.disabled = false;
+        btn.textContent = 'Marcar como enviado';
+      }
+    });
+  </script>
 </AccountLayout>

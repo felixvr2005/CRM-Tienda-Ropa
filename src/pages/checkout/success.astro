@@ -191,7 +191,7 @@ if (sessionId) {
                   discount_code: couponCode || undefined,
                   discount_amount: discountAmount > 0 ? fmtNum(discountAmount) : undefined,
                   total_amount: fmtNum(totalAmount),
-                  track_order_url: `${Astro.site || ''}pedido/seguimiento?order=${orderNumber}`,
+                  track_order_url: `${Astro.site || '/'}cuenta/pedidos/${orderNumber}`,
                   customer_address: shippingAddress ? `${shippingAddress.address}, ${shippingAddress.city} (${shippingAddress.postal_code})` : '',
                   support_email: 'info@essentialforce.com',
                   company_name: 'Essential Force',
@@ -228,9 +228,11 @@ if (sessionId) {
 
               if (variant) {
                 const variantData = variant as any;
+                const productImage = variantData.product?.images?.[0] || null;
+                const lineTotal = item.price * item.quantity;
                 
-                // Crear order item (usando columnas correctas del esquema)
-                const orderItemData = {
+                // Crear order item (compatible con ambos esquemas: schema.sql y complete-schema.sql)
+                const orderItemData: Record<string, any> = {
                   order_id: (order as any).id,
                   product_id: variantData.product?.id || item.productId,
                   variant_id: item.variantId,
@@ -240,14 +242,41 @@ if (sessionId) {
                   quantity: item.quantity,
                   unit_price: item.price,
                   discount_percentage: 0,
-                  total_price: item.price * item.quantity
+                  line_total: lineTotal,
+                  total_price: lineTotal,
+                  product_image: productImage,
+                  product_slug: item.slug || null,
+                  product_sku: item.sku || null,
                 };
                 
                 logger.debug('Creating order item', { productId: orderItemData.product_id, quantity: orderItemData.quantity });
                 
-                const { error: itemError } = await supabaseAdmin
+                // Intentar insertar; si falla por columna desconocida, reintentar sin ella
+                let { error: itemError } = await supabaseAdmin
                   .from('order_items')
                   .insert(orderItemData as any);
+                  
+                if (itemError && itemError.message?.includes('column')) {
+                  logger.warn('Insert failed, retrying with minimal columns', { error: itemError.message });
+                  // Quitar columnas que pueden no existir según el esquema
+                  const { product_image: _pi, product_slug: _ps, product_sku: _pk, line_total: _lt, ...fallbackData } = orderItemData;
+                  const fallbackResult = await supabaseAdmin
+                    .from('order_items')
+                    .insert(fallbackData as any);
+                  itemError = fallbackResult.error;
+                  
+                  if (itemError) {
+                    // Último intento: quitar total_price e intentar con line_total
+                    const { total_price: _tp, ...lastFallback } = orderItemData;
+                    delete (lastFallback as any).product_image;
+                    delete (lastFallback as any).product_slug;
+                    delete (lastFallback as any).product_sku;
+                    const lastResult = await supabaseAdmin
+                      .from('order_items')
+                      .insert(lastFallback as any);
+                    itemError = lastResult.error;
+                  }
+                }
                   
                 if (itemError) {
                   logger.error('Error creating order item', { error: itemError });

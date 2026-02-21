@@ -141,48 +141,64 @@ const loadTemplate = (templateName: string): string => {
 const renderTemplate = (template: string, data: any): string => {
     let html = template;
 
-    // Reemplazar variables simples
+    // 1. Procesar bloques de array {{#variable}}...{{/variable}} PRIMERO
+    //    Esto itera sobre arrays y reemplaza variables + condicionales internos per-item
     Object.keys(data).forEach((key) => {
-        if (typeof data[key] !== 'object' && data[key] !== null) {
-            const regex = new RegExp(`{{${key}}}`, 'g');
-            html = html.replace(regex, data[key]?.toString() || '');
+        if (Array.isArray(data[key])) {
+            const arrayRegex = new RegExp(`{{#${key}}}([\\s\\S]*?){{/${key}}}`, 'g');
+            html = html.replace(arrayRegex, (match, content) => {
+                return data[key].map((item: any) => {
+                    let itemContent = content;
+                    // Procesar {{#if}} dentro del item
+                    let ifChanged = true;
+                    while (ifChanged) {
+                        const before = itemContent;
+                        itemContent = itemContent.replace(/{{#if\s+(\w+)}}((?:(?!{{#if)[\s\S])*?){{\/if}}/g, (_m: string, ifKey: string, ifContent: string) => {
+                            return item[ifKey] ? ifContent : '';
+                        });
+                        ifChanged = itemContent !== before;
+                    }
+                    // Reemplazar variables del item
+                    Object.keys(item).forEach((itemKey) => {
+                        const itemRegex = new RegExp(`{{${itemKey}}}`, 'g');
+                        itemContent = itemContent.replace(itemRegex, item[itemKey]?.toString() || '');
+                    });
+                    return itemContent;
+                }).join('');
+            });
         }
     });
 
-    // Procesar bloques condicionales {{#if variable}}...{{/if}} (de dentro hacia fuera para soportar anidamiento)
+    // 2. Procesar bloques condicionales {{#if variable}}...{{/if}} a nivel top-level
     let ifChanged = true;
     while (ifChanged) {
       const before = html;
-      // Solo matchea bloques que NO contienen otro {{#if dentro (innermost first)
       html = html.replace(/{{#if\s+(\w+)}}((?:(?!{{#if)[\s\S])*?){{\/if}}/g, (match, key, content) => {
         return data[key] ? content : '';
       });
       ifChanged = html !== before;
     }
 
-    // Procesar bloques condicionales {{#variable}}...{{/variable}} (legacy)
+    // 3. Procesar bloques booleanos legacy {{#variable}}...{{/variable}}
     Object.keys(data).forEach((key) => {
-        if (Array.isArray(data[key]) || typeof data[key] === 'boolean') {
-            const conditionalRegex = new RegExp(`{{#${key}}}([\\s\\S]*?){{/${key}}}`, 'g');
-            html = html.replace(conditionalRegex, (match, content) => {
-                if (Array.isArray(data[key])) {
-                    // Iterar sobre array
-                    return data[key].map((item: any) => {
-                        let itemContent = content;
-                        Object.keys(item).forEach((itemKey) => {
-                            const itemRegex = new RegExp(`{{${itemKey}}}`, 'g');
-                            itemContent = itemContent.replace(itemRegex, item[itemKey]?.toString() || '');
-                        });
-                        return itemContent;
-                    }).join('');
-                } else if (data[key]) {
-                    // Mostrar si es true
-                    return content;
-                }
-                return '';
+        if (typeof data[key] === 'boolean') {
+            const boolRegex = new RegExp(`{{#${key}}}([\\s\\S]*?){{/${key}}}`, 'g');
+            html = html.replace(boolRegex, (match, content) => {
+                return data[key] ? content : '';
             });
         }
     });
+
+    // 4. Reemplazar variables simples {{key}} con valores top-level
+    Object.keys(data).forEach((key) => {
+        if (typeof data[key] !== 'object' && data[key] !== null && data[key] !== undefined) {
+            const regex = new RegExp(`{{${key}}}`, 'g');
+            html = html.replace(regex, data[key]?.toString() || '');
+        }
+    });
+
+    // 5. Limpiar variables no reemplazadas (valores undefined/null)
+    html = html.replace(/{{[a-zA-Z_]+}}/g, '');
 
     return html;
 };
