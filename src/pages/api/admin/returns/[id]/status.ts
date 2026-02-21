@@ -25,14 +25,22 @@ export const PATCH: APIRoute = async ({ request, params }) => {
       return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
     }
 
-    await supabaseAdmin
+    // Actualizar estado — no incluir updated_at ya que puede no existir como columna
+    const updateObj: Record<string, any> = { status };
+    if (notes) updateObj.admin_notes = notes;
+    
+    const { error: updateErr } = await supabaseAdmin
       .from('return_requests')
-      .update({
-        status,
-        admin_notes: notes || currentReturn.admin_notes,
-        updated_at: new Date().toISOString()
-      } as any)
+      .update(updateObj as any)
       .eq('id', id);
+    
+    if (updateErr) {
+      // Fallback: intentar solo con status
+      await supabaseAdmin
+        .from('return_requests')
+        .update({ status } as any)
+        .eq('id', id);
+    }
 
     // Auto-create credit note on received
     if (status === 'received' && !currentReturn.credit_note_id) {

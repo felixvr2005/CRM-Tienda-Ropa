@@ -64,11 +64,55 @@ try {
     .eq('return_request_id', id);
 
   console.log('[Admin Devoluciones Detail] Items error:', itemsError?.message);
+  console.log('[Admin Devoluciones Detail] Items count:', items?.length || 0);
+
+  // Si no hay items de devolución, reconstruir desde order_items
+  let finalItems = items || [];
+  if (finalItems.length === 0 && returnRequest.order_id) {
+    console.log('[Admin Devoluciones Detail] No return items, reconstructing from order_items');
+    const { data: orderItems } = await supabaseAdmin
+      .from('order_items')
+      .select('product_id, product_name, product_sku, quantity, unit_price')
+      .eq('order_id', returnRequest.order_id);
+    
+    if (orderItems && orderItems.length > 0) {
+      // Intentar insertar los items de devolución que faltan
+      const returnItemsToInsert = orderItems.map((oi: any) => ({
+        return_request_id: id,
+        product_id: oi.product_id,
+        product_name: oi.product_name,
+        product_sku: oi.product_sku,
+        quantity: oi.quantity,
+        unit_price: oi.unit_price,
+        reason: returnRequest.reason || 'Devolución'
+      }));
+      
+      const { data: inserted, error: insertErr } = await supabaseAdmin
+        .from('return_request_items')
+        .insert(returnItemsToInsert)
+        .select();
+      
+      if (!insertErr && inserted) {
+        finalItems = inserted;
+        console.log('[Admin Devoluciones Detail] Reconstructed return items:', inserted.length);
+      } else {
+        // Al menos mostrar los order items como items de devolución
+        finalItems = orderItems.map((oi: any) => ({
+          product_id: oi.product_id,
+          product_name: oi.product_name,
+          product_sku: oi.product_sku,
+          quantity: oi.quantity,
+          unit_price: oi.unit_price,
+        }));
+        console.warn('[Admin Devoluciones Detail] Insert failed, using order items directly:', insertErr?.message);
+      }
+    }
+  }
 
   // Formatear datos
   // Obtener imágenes de productos para items de la devolución
-  const returnProductIds = [...new Set((items || []).filter((i: any) => i.product_id).map((i: any) => i.product_id))];
-  let enrichedItems = items || [];
+  const returnProductIds = [...new Set((finalItems || []).filter((i: any) => i.product_id).map((i: any) => i.product_id))];
+  let enrichedItems = finalItems || [];
   if (returnProductIds.length > 0) {
     const { data: productsImages } = await supabaseAdmin
       .from('products')

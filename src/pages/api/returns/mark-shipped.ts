@@ -63,18 +63,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }), { status: 400 });
     }
 
-    // Actualizar estado
+    // Actualizar estado — solo enviar 'status' para evitar errores por columnas inexistentes
     const { error: updateError } = await supabaseAdmin
       .from('return_requests')
-      .update({
-        status: 'shipped',
-        updated_at: new Date().toISOString()
-      } as any)
+      .update({ status: 'shipped' } as any)
       .eq('id', returnRequestId);
 
     if (updateError) {
-      logger.error('Error marking return as shipped', { error: updateError });
-      return new Response(JSON.stringify({ error: 'Error actualizando estado' }), { status: 500 });
+      logger.error('Error marking return as shipped', { error: updateError, returnRequestId });
+      return new Response(JSON.stringify({ error: `Error actualizando estado: ${updateError.message}` }), { status: 500 });
     }
 
     logger.info('Return marked as shipped by customer', { returnRequestId, userId: user.id });

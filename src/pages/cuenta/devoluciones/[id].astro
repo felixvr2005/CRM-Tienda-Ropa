@@ -145,6 +145,48 @@ const safeReturnRequest = {
   notes: returnRequest.notes || ''
 };
 
+// Si no hay return_request_items pero sí hay order_id, reconstruir desde order_items
+if (safeReturnRequest.return_request_items.length === 0 && returnRequest.order_id) {
+  logger.debug('Return has 0 items, trying to reconstruct from order_items', { returnId: id, orderId: returnRequest.order_id });
+  const { data: orderItems } = await supabaseAdmin
+    .from('order_items')
+    .select('product_id, product_name, product_sku, quantity, unit_price')
+    .eq('order_id', returnRequest.order_id);
+  
+  if (orderItems && orderItems.length > 0) {
+    // Insertar return_request_items que faltan
+    const returnItems = orderItems.map((oi: any) => ({
+      return_request_id: returnRequest.id,
+      product_id: oi.product_id,
+      product_name: oi.product_name,
+      product_sku: oi.product_sku,
+      quantity: oi.quantity,
+      unit_price: oi.unit_price,
+      reason: returnRequest.reason || 'Devolución'
+    }));
+    
+    const { data: inserted, error: insertErr } = await supabaseAdmin
+      .from('return_request_items')
+      .insert(returnItems)
+      .select();
+    
+    if (!insertErr && inserted) {
+      safeReturnRequest.return_request_items = inserted;
+      logger.info('Return items reconstructed from order_items', { count: inserted.length });
+    } else {
+      // Aunque no se inserten, mostrar los order items como si fueran return items
+      safeReturnRequest.return_request_items = orderItems.map((oi: any) => ({
+        product_id: oi.product_id,
+        product_name: oi.product_name,
+        product_sku: oi.product_sku,
+        quantity: oi.quantity,
+        unit_price: oi.unit_price,
+      }));
+      logger.warn('Could not insert return items, using order items directly', { error: insertErr?.message });
+    }
+  }
+}
+
 // Obtener imágenes de productos para los items de devolución
 const returnProductIds = [...new Set(safeReturnRequest.return_request_items.filter((i: any) => i.product_id).map((i: any) => i.product_id))];
 if (returnProductIds.length > 0) {

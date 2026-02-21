@@ -57,10 +57,69 @@ const { data: orderItems } = await supabaseAdmin
   .select('*')
   .eq('order_id', order.id);
 
-// Mapear datos usando los campos snapshot que ya están en order_items
-const itemsWithProducts = orderItems || [];
+// Si no hay items en order_items, intentar reconstruir desde la sesión de Stripe
+let itemsWithProducts: any[] = orderItems || [];
 
 import { logger } from '@lib/logger';
+
+if (itemsWithProducts.length === 0 && order.stripe_checkout_session_id) {
+  logger.warn('Order has 0 items, attempting Stripe session recovery', { orderNumber: order.order_number, sessionId: order.stripe_checkout_session_id });
+  try {
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(import.meta.env.STRIPE_SECRET_KEY);
+    const session = await stripe.checkout.sessions.retrieve(order.stripe_checkout_session_id, { expand: ['line_items'] });
+    
+    if (session.metadata?.items) {
+      const metaItems = JSON.parse(session.metadata.items);
+      
+      // Re-insertar items en order_items para que estén disponibles en el futuro
+      for (const item of metaItems) {
+        const { data: variant } = await supabaseAdmin
+          .from('product_variants')
+          .select('id, color, size, product:products(id, name, images)')
+          .eq('id', item.variantId)
+          .single();
+        
+        const variantData = variant as any;
+        const lineTotal = item.price * item.quantity;
+        const productImage = variantData?.product?.images?.[0] || null;
+        
+        const itemData: Record<string, any> = {
+          order_id: order.id,
+          product_id: variantData?.product?.id || item.productId,
+          variant_id: item.variantId,
+          product_name: item.name || variantData?.product?.name || 'Producto',
+          product_sku: item.sku || null,
+          size: variantData?.size || '',
+          color: variantData?.color || '',
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: lineTotal,
+          image_url: productImage,
+        };
+        
+        const { error: insertErr } = await supabaseAdmin.from('order_items').insert(itemData as any);
+        if (insertErr) {
+          // Reintentar sin opcionales
+          const { image_url: _iu, product_sku: _ps, ...minimal } = itemData;
+          await supabaseAdmin.from('order_items').insert(minimal as any);
+        }
+      }
+      
+      // Re-obtener los items recién insertados
+      const { data: recoveredItems } = await supabaseAdmin
+        .from('order_items')
+        .select('*')
+        .eq('order_id', order.id);
+      
+      itemsWithProducts = recoveredItems || [];
+      logger.info('Items recovered from Stripe session', { count: itemsWithProducts.length });
+    }
+  } catch (stripeErr) {
+    logger.error('Failed to recover items from Stripe', { error: String(stripeErr) });
+  }
+}
+
 logger.debug('Order detail', { orderNumber: order.order_number, items: itemsWithProducts.length });
 
 // Funciones de formato

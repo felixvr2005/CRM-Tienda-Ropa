@@ -231,55 +231,44 @@ if (sessionId) {
                 const productImage = variantData.product?.images?.[0] || null;
                 const lineTotal = item.price * item.quantity;
                 
-                // Crear order item (compatible con ambos esquemas: schema.sql y complete-schema.sql)
+                // Crear order item — columnas según schema real de la tabla order_items
+                // Columnas confirmadas: order_id, product_id, product_name, product_sku,
+                //   variant_id, size, color, quantity, unit_price, total_price, image_url
                 const orderItemData: Record<string, any> = {
                   order_id: (order as any).id,
                   product_id: variantData.product?.id || item.productId,
                   variant_id: item.variantId,
                   product_name: item.name || variantData.product?.name || 'Producto',
+                  product_sku: item.sku || null,
                   size: variantData.size || '',
                   color: variantData.color || '',
                   quantity: item.quantity,
                   unit_price: item.price,
-                  discount_percentage: 0,
-                  line_total: lineTotal,
                   total_price: lineTotal,
-                  product_image: productImage,
-                  product_slug: item.slug || null,
-                  product_sku: item.sku || null,
+                  image_url: productImage,
                 };
                 
-                logger.debug('Creating order item', { productId: orderItemData.product_id, quantity: orderItemData.quantity });
+                logger.debug('Creating order item', { productId: orderItemData.product_id, quantity: orderItemData.quantity, total: lineTotal });
                 
-                // Intentar insertar; si falla por columna desconocida, reintentar sin ella
+                // Insertar; si falla por columna, reintentar sin opcionales
                 let { error: itemError } = await supabaseAdmin
                   .from('order_items')
                   .insert(orderItemData as any);
                   
-                if (itemError && itemError.message?.includes('column')) {
-                  logger.warn('Insert failed, retrying with minimal columns', { error: itemError.message });
-                  // Quitar columnas que pueden no existir según el esquema
-                  const { product_image: _pi, product_slug: _ps, product_sku: _pk, line_total: _lt, ...fallbackData } = orderItemData;
-                  const fallbackResult = await supabaseAdmin
+                if (itemError) {
+                  logger.warn('Insert order_item failed, retrying with minimal columns', { error: itemError.message });
+                  // Quitar columnas opcionales que podrían no existir
+                  const { image_url: _iu, product_sku: _ps, ...minimalData } = orderItemData;
+                  const retryResult = await supabaseAdmin
                     .from('order_items')
-                    .insert(fallbackData as any);
-                  itemError = fallbackResult.error;
-                  
-                  if (itemError) {
-                    // Último intento: quitar total_price e intentar con line_total
-                    const { total_price: _tp, ...lastFallback } = orderItemData;
-                    delete (lastFallback as any).product_image;
-                    delete (lastFallback as any).product_slug;
-                    delete (lastFallback as any).product_sku;
-                    const lastResult = await supabaseAdmin
-                      .from('order_items')
-                      .insert(lastFallback as any);
-                    itemError = lastResult.error;
-                  }
+                    .insert(minimalData as any);
+                  itemError = retryResult.error;
                 }
                   
                 if (itemError) {
-                  logger.error('Error creating order item', { error: itemError });
+                  logger.error('Error creating order item (all attempts failed)', { error: itemError, data: JSON.stringify(orderItemData) });
+                } else {
+                  logger.info('Order item created successfully', { productId: orderItemData.product_id });
                 }
 
                 // El stock ya fue descontado cuando se añadió al carrito (reserva temporal)
