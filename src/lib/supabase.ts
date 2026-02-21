@@ -39,7 +39,7 @@ function getClient(): SupabaseClient<Database> {
         auth: {
           autoRefreshToken: true,
           persistSession: true,
-          flowType: 'pkce',
+          flowType: 'implicit',
         },
       }
     );
