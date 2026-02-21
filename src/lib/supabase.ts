@@ -189,27 +189,13 @@ export async function getProductsByCategory(categorySlug: string) {
 
 export async function getCategories() {
   const client = getClient();
-  
-  // Incluir categorías activas Y aquellas donde is_active es null (compatibilidad con esquemas anteriores)
   const { data, error } = await client
     .from('categories')
     .select('*')
-    .or('is_active.eq.true,is_active.is.null')
+    .eq('is_active', true)
     .order('sort_order', { ascending: true });
 
-  if (error) {
-    logger.error('Error fetching categories:', error);
-    // Fallback: intentar sin filtro de is_active por si la columna no existe
-    const { data: fallbackData, error: fallbackError } = await client
-      .from('categories')
-      .select('*');
-    
-    if (fallbackError) {
-      logger.error('Error fetching categories (fallback):', fallbackError);
-      return [];
-    }
-    return fallbackData || [];
-  }
+  if (error) return [];
   return data || [];
 }
 

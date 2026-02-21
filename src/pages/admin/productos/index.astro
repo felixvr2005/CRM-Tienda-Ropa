@@ -12,9 +12,15 @@ const { data: products } = await supabaseAdmin
   .from('products')
   .select(`
     *,
-    category:categories(name)
+    category:categories(id, name)
   `)
   .order('created_at', { ascending: false });
+
+// Obtener categorías para el filtro
+const { data: categories } = await supabaseAdmin
+  .from('categories')
+  .select('id, name')
+  .order('name');
 ---
 
 <AdminLayout title="Productos">
@@ -40,17 +46,22 @@ const { data: products } = await supabaseAdmin
     <div class="bg-white border border-primary-200 p-4 flex flex-wrap gap-4">
       <input 
         type="text"
+        id="searchInput"
         placeholder="Buscar productos..."
         class="flex-1 min-w-[200px] border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900"
       />
-      <select class="border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900">
-        <option>Todas las categorías</option>
+      <select id="categoryFilter" class="border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900">
+        <option value="">Todas las categorías</option>
+        {categories?.map((cat) => (
+          <option value={cat.id}>{cat.name}</option>
+        ))}
       </select>
-      <select class="border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900">
-        <option>Todos los estados</option>
-        <option>Activos</option>
-        <option>Destacados</option>
-        <option>Oferta</option>
+      <select id="statusFilter" class="border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900">
+        <option value="">Todos los estados</option>
+        <option value="active">Activos</option>
+        <option value="inactive">Inactivos</option>
+        <option value="featured">Destacados</option>
+        <option value="sale">En oferta</option>
       </select>
     </div>
     
@@ -69,7 +80,15 @@ const { data: products } = await supabaseAdmin
         <tbody class="divide-y divide-primary-100">
           {products && products.length > 0 ? (
             products.map((product) => (
-              <tr class="hover:bg-primary-50 transition-colors">
+              <tr 
+                class="product-row hover:bg-primary-50 transition-colors"
+                data-name={product.name.toLowerCase()}
+                data-sku={(product.sku || '').toLowerCase()}
+                data-category-id={product.category?.id || ''}
+                data-is-active={product.is_active ? 'true' : 'false'}
+                data-is-featured={product.is_featured ? 'true' : 'false'}
+                data-has-discount={product.discount_percentage > 0 ? 'true' : 'false'}
+              >
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
                     <div class="w-12 h-12 bg-primary-100 flex-shrink-0 overflow-hidden">
@@ -156,6 +175,54 @@ const { data: products } = await supabaseAdmin
   </div>
   
   <script is:inline>
+    // ── Filtros de productos ──
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const productRows = document.querySelectorAll('.product-row');
+
+    function applyFilters() {
+      const searchTerm = (searchInput?.value || '').toLowerCase().trim();
+      const selectedCategory = categoryFilter?.value || '';
+      const selectedStatus = statusFilter?.value || '';
+
+      productRows.forEach(row => {
+        const name = row.dataset.name || '';
+        const sku = row.dataset.sku || '';
+        const categoryId = row.dataset.categoryId || '';
+        const isActive = row.dataset.isActive === 'true';
+        const isFeatured = row.dataset.isFeatured === 'true';
+        const hasDiscount = row.dataset.hasDiscount === 'true';
+
+        let visible = true;
+
+        // Filtro de búsqueda
+        if (searchTerm && !name.includes(searchTerm) && !sku.includes(searchTerm)) {
+          visible = false;
+        }
+
+        // Filtro de categoría
+        if (selectedCategory && categoryId !== selectedCategory) {
+          visible = false;
+        }
+
+        // Filtro de estado
+        if (selectedStatus) {
+          if (selectedStatus === 'active' && !isActive) visible = false;
+          if (selectedStatus === 'inactive' && isActive) visible = false;
+          if (selectedStatus === 'featured' && !isFeatured) visible = false;
+          if (selectedStatus === 'sale' && !hasDiscount) visible = false;
+        }
+
+        row.style.display = visible ? '' : 'none';
+      });
+    }
+
+    searchInput?.addEventListener('input', applyFilters);
+    categoryFilter?.addEventListener('change', applyFilters);
+    statusFilter?.addEventListener('change', applyFilters);
+
+    // ── Eliminar producto ──
     async function deleteProduct(button) {
       if (!confirm('¿Estás seguro de eliminar este producto?')) return;
       
