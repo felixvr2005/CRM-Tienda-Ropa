@@ -70,6 +70,9 @@ export const prerender = false;
               name="phone"
               class="w-full px-4 py-3 border border-primary-300 focus:border-primary-900 focus:outline-none transition-colors"
               placeholder="+34 600 000 000"
+              pattern="[\+]?[0-9\s\-]{6,20}"
+              inputmode="tel"
+              title="Solo números, espacios, guiones y opcionalmente + al inicio"
             />
           </div>
           

@@ -30,40 +30,43 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Insertar mensaje de contacto
-    const { data: contact, error: insertError } = await (supabaseAdmin as any)
-      .from('contact_messages')
+    // Generar ticket number único
+    const ticketNumber = `TK-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    // Insertar en support_tickets (tabla real en la DB)
+    const { data: ticket, error: insertError } = await (supabaseAdmin as any)
+      .from('support_tickets')
       .insert({
-        name,
         email,
-        phone: phone || null,
         subject,
-        order_number: orderNumber || null,
         message,
-        status: 'new',
+        customer_name: name,
+        customer_phone: phone || null,
+        order_id: orderNumber || null,
+        ticket_number: ticketNumber,
+        status: 'open',
+        priority: 'normal',
         created_at: new Date().toISOString()
       })
       .select()
       .single();
 
     if (insertError) {
-      logger.error('Error inserting contact message:', insertError);
+      logger.error('Error inserting support ticket:', insertError);
       return new Response(
         JSON.stringify({ error: 'Error al guardar el mensaje' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Aquí se podría enviar un email de confirmación
-    // await sendConfirmationEmail(email, name);
-
-    logger.info('[Contact] Message received', { email, subject });
+    logger.info('[Contact] Ticket created', { email, subject, ticketNumber });
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Tu mensaje ha sido enviado correctamente',
-        id: contact.id
+        id: ticket.id,
+        ticketNumber
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );

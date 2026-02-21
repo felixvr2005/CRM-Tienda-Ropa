@@ -115,7 +115,13 @@ export default function CartPageContent() {
 
     try {
       const payload = {
-        items: cart,
+        items: cart.map(item => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+          price: item.price,
+          name: item.name,
+          productId: item.productId,
+        })),
         couponCode: appliedCoupon?.code || null,
         discountAmount: discountAmount || 0,
         subtotal,

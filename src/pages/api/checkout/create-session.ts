@@ -228,14 +228,50 @@ export const POST: APIRoute = async ({ request }) => {
       customer_email: email,
       metadata: {
         email,
-        phone,
-        shippingAddress: JSON.stringify(shippingAddress),
-        shippingMethod,
+        phone: phone || '',
+        shippingMethod: shippingMethod || 'standard',
         couponCode: couponCode || '',
         discountAmount: String(serverDiscountAmt || 0),
         subtotal: String(subtotal || 0),
         shippingCost: String(shippingCost || 0),
-        items: JSON.stringify(items),
+        // Stripe metadata limit: 500 chars per value
+        // Reduce items to minimal fields and split if needed
+        ...(() => {
+          const minItems = (items || []).map((i: any) => ({
+            v: i.variantId,
+            q: i.quantity,
+            p: i.price,
+          }));
+          const serialized = JSON.stringify(minItems);
+          if (serialized.length <= 500) {
+            return { items: serialized };
+          }
+          // Split into chunks of max 500 chars each
+          const result: Record<string, string> = {};
+          let chunkIndex = 0;
+          let currentChunk: any[] = [];
+          for (const item of minItems) {
+            currentChunk.push(item);
+            if (JSON.stringify(currentChunk).length > 480) {
+              // Last item pushed it over — save current chunk without it
+              if (currentChunk.length > 1) {
+                currentChunk.pop();
+                result[`items_${chunkIndex}`] = JSON.stringify(currentChunk);
+                chunkIndex++;
+                currentChunk = [item];
+              } else {
+                result[`items_${chunkIndex}`] = JSON.stringify(currentChunk);
+                chunkIndex++;
+                currentChunk = [];
+              }
+            }
+          }
+          if (currentChunk.length > 0) {
+            result[`items_${chunkIndex}`] = JSON.stringify(currentChunk);
+          }
+          result.items_chunks = String(chunkIndex + (currentChunk.length > 0 ? 1 : 0));
+          return result;
+        })(),
       },
       shipping_address_collection: {
         allowed_countries: ['ES', 'PT', 'FR', 'AD', 'DE', 'IT', 'BE', 'NL', 'AT', 'CH'],

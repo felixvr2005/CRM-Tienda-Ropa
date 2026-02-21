@@ -1,0 +1,6 @@
+# Security Policy — Essential Force
+# https://securitytxt.org/ — RFC 9116
+
+Contact: mailto:info@essentialforce.com
+Preferred-Languages: es, en
+Expires: 2027-02-21T00:00:00.000Z

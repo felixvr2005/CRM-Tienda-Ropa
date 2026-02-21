@@ -253,22 +253,35 @@ export async function removeFromCart(variantId: string) {
   saveCart(newCart);
 }
 
-// Limpiar carrito (libera todo el stock reservado)
+// Limpiar carrito (libera todo el stock reservado en batch)
 export async function clearCart(releaseStock: boolean = true) {
   const cart = $cart.get();
   
-  // Liberar todo el stock reservado
+  // Liberar todo el stock reservado en una sola petición batch
   if (releaseStock && cart.length > 0) {
-    for (const item of cart) {
+    try {
+      const items = cart.map(item => ({
+        variantId: item.variantId,
+        quantity: item.quantity
+      }));
+      await fetch('/api/stock/release', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      });
+    } catch (e) {
+      // Retry once on failure
       try {
+        const items = cart.map(item => ({
+          variantId: item.variantId,
+          quantity: item.quantity
+        }));
         await fetch('/api/stock/release', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variantId: item.variantId, quantity: item.quantity })
+          body: JSON.stringify({ items })
         });
-      } catch (e) {
-        console.error('Error liberando stock:', e);
-      }
+      } catch { /* give up silently */ }
     }
   }
   

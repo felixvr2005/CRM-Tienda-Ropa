@@ -139,6 +139,9 @@ const provinces = [
                   value={customer?.phone || ''}
                   required
                   placeholder="+34 600 000 000"
+                  pattern="[\+]?[0-9\s\-]{6,20}"
+                  inputmode="tel"
+                  title="Solo números, espacios, guiones y opcionalmente + al inicio"
                   class="w-full px-4 py-2 border border-primary-300 focus:border-primary-900 focus:ring-0 outline-none"
                 />
               </div>
@@ -584,9 +587,25 @@ const provinces = [
   let shippingCost = 4.95;
   let discount = 0;
   let appliedCoupon: any = null;
+  const FREE_SHIPPING_THRESHOLD = parseFloat(import.meta.env.PUBLIC_FREE_SHIPPING_THRESHOLD || '100');
+
+  // Helper: obtener subtotal con fallback a localStorage si el store aún no se inicializó
+  const getSubtotal = (): number => {
+    let subtotal = $cartSubtotal.get();
+    if (!subtotal || subtotal <= 0) {
+      try {
+        const raw = localStorage.getItem('fashionstore_cart');
+        if (raw) {
+          const cartItems = JSON.parse(raw);
+          subtotal = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+        }
+      } catch { /* ignore */ }
+    }
+    return subtotal || 0;
+  };
 
   const updateTotals = () => {
-    const subtotal = $cartSubtotal.get();
+    const subtotal = getSubtotal();
     const subtotalEl = document.getElementById('subtotal');
     const shippingEl = document.getElementById('shippingCost');
     const discountEl = document.getElementById('discount');
@@ -596,7 +615,6 @@ const provinces = [
     if (subtotalEl) subtotalEl.textContent = formatPrice(subtotal);
     
     // Envío gratis a partir del umbral configurable (por defecto 100€)
-    const FREE_SHIPPING_THRESHOLD = parseFloat(import.meta.env.PUBLIC_FREE_SHIPPING_THRESHOLD || '100');
     if (subtotal >= FREE_SHIPPING_THRESHOLD) {
       shippingCost = 0;
       const standardPrice = document.getElementById('standardPrice');
@@ -639,7 +657,7 @@ const provinces = [
       const method = (e.target as HTMLInputElement).value;
       if (method === 'express') shippingCost = 9.95;
       else if (method === 'store') shippingCost = 0;
-      else shippingCost = $cartSubtotal.get() >= FREE_SHIPPING_THRESHOLD ? 0 : 4.95;
+      else shippingCost = getSubtotal() >= FREE_SHIPPING_THRESHOLD ? 0 : 4.95;
       updateTotals();
     });
   });

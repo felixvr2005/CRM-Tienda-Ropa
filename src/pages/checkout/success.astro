@@ -51,7 +51,25 @@ if (sessionId) {
         try {
           const recoverSession = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['line_items'] });
           const recoverMeta = recoverSession.metadata || {};
-          const recoveryItems = recoverMeta.items ? JSON.parse(recoverMeta.items) : [];
+          // Parse items (support chunked format)
+          let recoveryItems: any[] = [];
+          if (recoverMeta.items) {
+            recoveryItems = JSON.parse(recoverMeta.items);
+          } else if (recoverMeta.items_chunks) {
+            const numChunks = parseInt(recoverMeta.items_chunks, 10) || 0;
+            for (let ci = 0; ci < numChunks; ci++) {
+              const chunk = recoverMeta[`items_${ci}`];
+              if (chunk) recoveryItems.push(...JSON.parse(chunk));
+            }
+          }
+          recoveryItems = recoveryItems.map((ri: any) => ({
+            variantId: ri.variantId || ri.v,
+            quantity: ri.quantity || ri.q,
+            price: ri.price || ri.p,
+            name: ri.name,
+            productId: ri.productId,
+            sku: ri.sku,
+          }));
 
           for (const rItem of recoveryItems) {
             const { data: rVariant } = await supabaseAdmin
@@ -103,7 +121,29 @@ if (sessionId) {
       if (session.payment_status === 'paid') {
         // Obtener metadata
         const metadata = session.metadata || {};
-        const items = metadata.items ? JSON.parse(metadata.items) : [];
+        
+        // Parse items: support both single 'items' key and chunked 'items_0', 'items_1', etc.
+        let items: any[] = [];
+        if (metadata.items) {
+          items = JSON.parse(metadata.items);
+        } else if (metadata.items_chunks) {
+          const numChunks = parseInt(metadata.items_chunks, 10) || 0;
+          for (let i = 0; i < numChunks; i++) {
+            const chunk = metadata[`items_${i}`];
+            if (chunk) {
+              items.push(...JSON.parse(chunk));
+            }
+          }
+        }
+        // Normalize item fields (support both full and minimal format)
+        items = items.map((item: any) => ({
+          variantId: item.variantId || item.v,
+          quantity: item.quantity || item.q,
+          price: item.price || item.p,
+          name: item.name,
+          productId: item.productId,
+          sku: item.sku,
+        }));
         
         logger.debug('Items from metadata (parsed)', { itemsCount: items.length });
 
@@ -368,9 +408,10 @@ if (sessionId) {
     </p>
     
     {sessionId && !order && (
-      <p class="text-sm text-primary-500 mb-8">
-        ID de transacción: <span class="font-mono">{sessionId}</span>
-      </p>
+      <div class="bg-primary-50 border border-primary-200 p-4 mb-6 text-left">
+        <p class="text-primary-700 text-sm">Tu pago ha sido procesado correctamente. Recibirás un email de confirmación con los detalles de tu pedido.</p>
+        <p class="text-xs text-primary-500 mt-2">ID de transacción: <span class="font-mono">{sessionId}</span></p>
+      </div>
     )}
     
     {orderError && (

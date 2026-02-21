@@ -55,18 +55,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 403 });
     }
 
-    // Solo permitir cambio de label_sent/approved → shipped
-    const allowedStatuses = ['label_sent', 'approved'];
+    // Solo permitir cambio de label_sent → in_return
+    // Valores válidos en DB CHECK: pending, label_sent, in_return, received, refunded, rejected
+    const allowedStatuses = ['label_sent'];
     if (!allowedStatuses.includes(returnRequest.status)) {
       return new Response(JSON.stringify({
         error: `No se puede marcar como enviado desde el estado "${returnRequest.status}"`
       }), { status: 400 });
     }
 
-    // Actualizar estado — solo enviar 'status' para evitar errores por columnas inexistentes
+    // Actualizar estado a 'in_return' (paquete en camino de vuelta)
     const { error: updateError } = await supabaseAdmin
       .from('return_requests')
-      .update({ status: 'shipped' } as any)
+      .update({ status: 'in_return', updated_at: new Date().toISOString() } as any)
       .eq('id', returnRequestId);
 
     if (updateError) {
