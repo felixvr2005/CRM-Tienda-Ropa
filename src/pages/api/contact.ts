@@ -30,23 +30,24 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Generar ticket number único
-    const ticketNumber = `TK-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    // Construir mensaje completo con metadatos del remitente
+    const fullMessage = [
+      `Nombre: ${name}`,
+      phone ? `Teléfono: ${phone}` : null,
+      orderNumber ? `Pedido: ${orderNumber}` : null,
+      `---`,
+      message,
+    ].filter(Boolean).join('\n');
 
-    // Insertar en support_tickets (tabla real en la DB)
-    const { data: ticket, error: insertError } = await (supabaseAdmin as any)
+    // Insertar en support_tickets — solo columnas que existen en la tabla
+    // (email, subject, message, status son las únicas columnas de Insert)
+    const { data: ticket, error: insertError } = await supabaseAdmin
       .from('support_tickets')
       .insert({
         email,
-        subject,
-        message,
-        customer_name: name,
-        customer_phone: phone || null,
-        order_id: orderNumber || null,
-        ticket_number: ticketNumber,
+        subject: orderNumber ? `[${orderNumber}] ${subject}` : subject,
+        message: fullMessage,
         status: 'open',
-        priority: 'normal',
-        created_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -59,14 +60,13 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    logger.info('[Contact] Ticket created', { email, subject, ticketNumber });
+    logger.info('[Contact] Ticket created', { email, subject, id: ticket.id });
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Tu mensaje ha sido enviado correctamente',
         id: ticket.id,
-        ticketNumber
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
