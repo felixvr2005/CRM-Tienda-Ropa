@@ -186,7 +186,9 @@ const flashOffers = await getFlashOffers();
         
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {flashOffers.map((product) => (
-            <ProductCard product={product} />
+            <div class="bg-white rounded-lg overflow-hidden">
+              <ProductCard product={product} />
+            </div>
           ))}
         </div>
       </div>

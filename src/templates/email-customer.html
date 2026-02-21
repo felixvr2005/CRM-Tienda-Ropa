@@ -77,22 +77,24 @@
             <div class="section">
                 <div class="section-title">Información del pedido</div>
                 <div class="order-info">
-                    <div class="info-row">
-                        <span class="info-label">Nº Pedido</span>
-                        <span class="info-value">#{{order_number}}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Fecha</span>
-                        <span class="info-value">{{order_date}}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Estado</span>
-                        <span class="info-value">{{order_status}}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Método de pago</span>
-                        <span class="info-value">{{payment_method}}</span>
-                    </div>
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td style="padding: 4px 0; color: #737373; font-size: 13px;">Nº Pedido</td>
+                            <td style="padding: 4px 0; color: #171717; font-weight: 500; font-size: 13px; text-align: right;">#{{order_number}}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 4px 0; color: #737373; font-size: 13px;">Fecha</td>
+                            <td style="padding: 4px 0; color: #171717; font-weight: 500; font-size: 13px; text-align: right;">{{order_date}}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 4px 0; color: #737373; font-size: 13px;">Estado</td>
+                            <td style="padding: 4px 0; color: #171717; font-weight: 500; font-size: 13px; text-align: right;">{{order_status}}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 4px 0; color: #737373; font-size: 13px;">Método de pago</td>
+                            <td style="padding: 4px 0; color: #171717; font-weight: 500; font-size: 13px; text-align: right;">{{payment_method}}</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
 
@@ -129,29 +131,33 @@
 
                 <!-- Summary -->
                 <div class="summary">
-                    <div class="summary-row">
-                        <span>Base imponible</span>
-                        <span>{{base_amount}} €</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>IVA (21%)</span>
-                        <span>{{tax_amount}} €</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>Envío</span>
-                        <span>{{shipping_label}}</span>
-                    </div>
-                    {{#if discount_applied}}
-                    <div class="summary-row discount">
-                        <span>Descuento{{#if discount_code}} ({{discount_code}}){{/if}}</span>
-                        <span>-{{discount_amount}} €</span>
-                    </div>
-                    {{/if}}
-                    <div class="summary-divider"></div>
-                    <div class="summary-row total">
-                        <span>Total pagado</span>
-                        <span>{{total_amount}} €</span>
-                    </div>
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td style="padding: 5px 0; font-size: 13px; color: #404040;">Base imponible</td>
+                            <td style="padding: 5px 0; font-size: 13px; color: #404040; text-align: right;">{{base_amount}} €</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px 0; font-size: 13px; color: #404040;">IVA (21%)</td>
+                            <td style="padding: 5px 0; font-size: 13px; color: #404040; text-align: right;">{{tax_amount}} €</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px 0; font-size: 13px; color: #404040;">Envío</td>
+                            <td style="padding: 5px 0; font-size: 13px; color: #404040; text-align: right;">{{shipping_label}}</td>
+                        </tr>
+                        {{#if discount_applied}}
+                        <tr>
+                            <td style="padding: 5px 0; font-size: 13px; color: #16a34a;">Descuento{{#if discount_code}} ({{discount_code}}){{/if}}</td>
+                            <td style="padding: 5px 0; font-size: 13px; color: #16a34a; text-align: right;">-{{discount_amount}} €</td>
+                        </tr>
+                        {{/if}}
+                        <tr>
+                            <td colspan="2" style="border-top: 1px solid #e5e5e5; padding: 0; height: 8px;"></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0 5px; font-size: 16px; font-weight: 700; color: #171717;">Total pagado</td>
+                            <td style="padding: 10px 0 5px; font-size: 16px; font-weight: 700; color: #171717; text-align: right;">{{total_amount}} €</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
 

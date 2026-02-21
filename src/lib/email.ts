@@ -149,11 +149,16 @@ const renderTemplate = (template: string, data: any): string => {
         }
     });
 
-    // Procesar bloques condicionales {{#if variable}}...{{/if}}
-    const ifRegex = /{{#if\s+(\w+)}}([\s\S]*?){{\/if}}/g;
-    html = html.replace(ifRegex, (match, key, content) => {
+    // Procesar bloques condicionales {{#if variable}}...{{/if}} (de dentro hacia fuera para soportar anidamiento)
+    let ifChanged = true;
+    while (ifChanged) {
+      const before = html;
+      // Solo matchea bloques que NO contienen otro {{#if dentro (innermost first)
+      html = html.replace(/{{#if\s+(\w+)}}((?:(?!{{#if)[\s\S])*?){{\/if}}/g, (match, key, content) => {
         return data[key] ? content : '';
-    });
+      });
+      ifChanged = html !== before;
+    }
 
     // Procesar bloques condicionales {{#variable}}...{{/variable}} (legacy)
     Object.keys(data).forEach((key) => {

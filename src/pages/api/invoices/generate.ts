@@ -89,11 +89,27 @@ export const GET: APIRoute = async ({ url, request }) => {
 
     const o = order as any;
 
+    // Obtener imágenes de productos desde tabla products (order_items no tiene columna product_image)
+    const productIds = [...new Set(orderItems.filter((i: any) => i.product_id).map((i: any) => i.product_id))];
+    const productImageMap = new Map<string, string>();
+    if (productIds.length > 0) {
+      const { data: productsData } = await supabaseAdmin
+        .from('products')
+        .select('id, image_url, images')
+        .in('id', productIds);
+      if (productsData) {
+        for (const p of productsData as any[]) {
+          const img = p.image_url || (Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : null);
+          if (img) productImageMap.set(p.id, img);
+        }
+      }
+    }
+
     // Pre-fetch product images in parallel
     const imageBuffers = new Map<number, Buffer>();
     await Promise.all(
       orderItems.map(async (item: any, idx: number) => {
-        const imgUrl = item.product_image || null;
+        const imgUrl = item.product_image || productImageMap.get(item.product_id) || null;
         if (imgUrl) {
           const buf = await fetchImageBuffer(imgUrl);
           if (buf) imageBuffers.set(idx, buf);

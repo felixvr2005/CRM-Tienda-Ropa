@@ -145,6 +145,26 @@ const safeReturnRequest = {
   notes: returnRequest.notes || ''
 };
 
+// Obtener imágenes de productos para los items de devolución
+const returnProductIds = [...new Set(safeReturnRequest.return_request_items.filter((i: any) => i.product_id).map((i: any) => i.product_id))];
+if (returnProductIds.length > 0) {
+  const { data: productsImages } = await supabaseAdmin
+    .from('products')
+    .select('id, image_url, images')
+    .in('id', returnProductIds);
+  if (productsImages) {
+    const imgMap = new Map<string, string>();
+    for (const p of productsImages as any[]) {
+      const img = p.image_url || (Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : null);
+      if (img) imgMap.set(p.id, img);
+    }
+    safeReturnRequest.return_request_items = safeReturnRequest.return_request_items.map((item: any) => ({
+      ...item,
+      _product_image: imgMap.get(item.product_id) || null
+    }));
+  }
+}
+
 
 // Funciones de formato
 const formatPrice = (price: number) => {
@@ -250,6 +270,15 @@ const currentStatus = statusMap[returnRequest.status] || { label: returnRequest.
           <div class="space-y-4">
             {safeReturnRequest.return_request_items.map((item: any) => (
               <div class="flex gap-4 pb-4 border-b border-primary-100 last:border-0 last:pb-0">
+                <div class="w-16 h-16 flex-shrink-0 bg-primary-100 rounded overflow-hidden">
+                  {item._product_image ? (
+                    <img src={item._product_image} alt={item.product_name} class="w-full h-full object-cover" />
+                  ) : (
+                    <div class="w-full h-full flex items-center justify-center text-primary-300">
+                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </div>
+                  )}
+                </div>
                 <div class="flex-1">
                   <p class="font-medium text-primary-900">{item.product_name}</p>
                   <p class="text-sm text-primary-500">Cantidad: {item.quantity}</p>
