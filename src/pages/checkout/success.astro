@@ -83,8 +83,8 @@ if (sessionId) {
               const r2 = await supabaseAdmin.from('order_items').insert(recMin as any);
               recErr = r2.error;
             }
-            if (recErr) { logger.error('Failed to recover item for existing order', { error: recErr.message }); console.error('[RECOVERY FAIL]', recErr.message); }
-            else { logger.info('Recovered item for existing order', { productId: recItemData.product_id }); console.log('[RECOVERY OK] item created'); }
+            if (recErr) { logger.error('Failed to recover item for existing order', { error: recErr.message }); }
+            else { logger.info('Recovered item for existing order', { productId: recItemData.product_id }); }
           }
         } catch (recoveryErr) {
           logger.error('Error recovering items for existing order', { error: String(recoveryErr) });
@@ -318,11 +318,9 @@ if (sessionId) {
                 }
                   
                 if (itemError) {
-                  logger.error('Error creating order item (all attempts failed)', { error: itemError, data: JSON.stringify(orderItemData) });
-                  console.error('[CRITICAL] order_item insert FAILED:', itemError.message, 'code:', itemError.code, 'cols:', Object.keys(orderItemData).join(','));
+                  logger.error('Error creating order item (all attempts failed)', { error: itemError, data: JSON.stringify(orderItemData), columns: Object.keys(orderItemData).join(',') });
                 } else {
-                  logger.info('Order item created successfully', { productId: orderItemData.product_id });
-                  console.log('[OK] order_item created for order', (order as any).order_number);
+                  logger.info('Order item created successfully', { productId: orderItemData.product_id, orderNumber: (order as any).order_number });
                 }
 
                 // El stock ya fue descontado cuando se añadió al carrito (reserva temporal)

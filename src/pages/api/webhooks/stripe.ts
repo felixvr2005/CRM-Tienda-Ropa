@@ -255,11 +255,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     if (itemError) {
-      logger.error('Webhook: Error creating order item (all attempts failed)', { error: itemError });
-      console.error('[WEBHOOK FAIL] order_item insert:', itemError.message, 'code:', itemError.code, 'cols:', Object.keys(orderItemInsert).join(','));
+      logger.error('Webhook: Error creating order item (all attempts failed)', { error: itemError, columns: Object.keys(orderItemInsert).join(',') });
     } else {
-      logger.info('Webhook: Order item created', { productId: orderItemInsert.product_id });
-      console.log('[WEBHOOK OK] order_item created for', orderNumber);
+      logger.info('Webhook: Order item created', { productId: orderItemInsert.product_id, orderNumber });
     }
 
     // El stock ya fue reservado al añadir al carrito (/api/stock/reserve).
