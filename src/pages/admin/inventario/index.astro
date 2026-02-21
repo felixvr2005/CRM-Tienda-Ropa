@@ -1,0 +1,664 @@
+---
+/**
+ * Admin Inventario - Gestión completa de stock
+ * - Tabla con todas las variantes
+ * - Filtros por estado (agotado, bajo, ok)
+ * - Restock inline y masivo
+ * - Búsqueda por nombre/SKU
+ */
+import AdminLayout from '@layouts/AdminLayout.astro';
+import { supabase, supabaseAdmin } from '@lib/supabase';
+
+export const prerender = false;
+
+// Verificar autenticación admin
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+if (!accessToken) return Astro.redirect('/admin/login');
+
+const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+if (authError || !user) return Astro.redirect('/admin/login');
+
+const { data: adminUser } = await supabaseAdmin
+  .from('admin_users')
+  .select('id, is_active')
+  .eq('auth_user_id', user.id)
+  .eq('is_active', true)
+  .single();
+
+if (!adminUser) {
+  Astro.cookies.delete('sb-access-token', { path: '/' });
+  Astro.cookies.delete('sb-refresh-token', { path: '/' });
+  return Astro.redirect('/cuenta/login?error=unauthorized');
+}
+
+const LOW_STOCK_THRESHOLD = 10;
+
+// Obtener categorías para el filtro
+const { data: categories } = await supabaseAdmin
+  .from('categories')
+  .select('id, name')
+  .eq('is_active', true)
+  .order('name');
+
+// Contadores de estado
+const { count: totalVariants } = await supabaseAdmin
+  .from('product_variants')
+  .select('*', { count: 'exact', head: true })
+  .eq('is_active', true);
+
+const { count: outOfStockCount } = await supabaseAdmin
+  .from('product_variants')
+  .select('*', { count: 'exact', head: true })
+  .eq('stock', 0)
+  .eq('is_active', true);
+
+const { count: lowStockCount } = await supabaseAdmin
+  .from('product_variants')
+  .select('*', { count: 'exact', head: true })
+  .lt('stock', LOW_STOCK_THRESHOLD)
+  .gt('stock', 0)
+  .eq('is_active', true);
+
+const okStockCount = (totalVariants || 0) - (outOfStockCount || 0) - (lowStockCount || 0);
+
+// Obtener todas las variantes con info de producto
+const { data: allVariants } = await supabaseAdmin
+  .from('product_variants')
+  .select(`
+    id,
+    product_id,
+    size,
+    color,
+    color_hex,
+    stock,
+    sku,
+    is_active,
+    updated_at,
+    product:products(id, name, slug, image_url, sku, category_id, is_active, category:categories(id, name))
+  `)
+  .eq('is_active', true)
+  .order('stock', { ascending: true });
+---
+
+<AdminLayout title="Inventario">
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-display">Inventario</h1>
+        <p class="text-primary-500 text-sm">Control de stock de todas las variantes</p>
+      </div>
+      <div class="flex gap-2">
+        <button
+          id="btnRestockSelected"
+          class="hidden items-center gap-2 bg-green-600 text-white px-4 py-2 text-sm hover:bg-green-700 transition-colors rounded"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Reabastecer seleccionados (<span id="selectedCount">0</span>)
+        </button>
+        <button
+          id="btnExport"
+          class="flex items-center gap-2 border border-primary-300 px-4 py-2 text-sm hover:bg-primary-50 transition-colors rounded"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Exportar CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-4 border border-primary-200 rounded">
+        <p class="text-xs text-primary-500 uppercase tracking-wider">Total variantes</p>
+        <p class="text-2xl font-display mt-1">{totalVariants || 0}</p>
+      </div>
+      <button data-filter="out" class="filter-card bg-white p-4 border border-primary-200 rounded text-left hover:border-red-300 transition-colors">
+        <p class="text-xs text-red-600 uppercase tracking-wider font-medium">Agotadas</p>
+        <p class="text-2xl font-display mt-1 text-red-600">{outOfStockCount || 0}</p>
+      </button>
+      <button data-filter="low" class="filter-card bg-white p-4 border border-primary-200 rounded text-left hover:border-amber-300 transition-colors">
+        <p class="text-xs text-amber-600 uppercase tracking-wider font-medium">Stock bajo (&lt;{LOW_STOCK_THRESHOLD})</p>
+        <p class="text-2xl font-display mt-1 text-amber-600">{lowStockCount || 0}</p>
+      </button>
+      <button data-filter="ok" class="filter-card bg-white p-4 border border-primary-200 rounded text-left hover:border-green-300 transition-colors">
+        <p class="text-xs text-green-600 uppercase tracking-wider font-medium">Stock OK</p>
+        <p class="text-2xl font-display mt-1 text-green-600">{okStockCount}</p>
+      </button>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="bg-white border border-primary-200 rounded p-4">
+      <div class="flex flex-col md:flex-row gap-4">
+        <!-- Search -->
+        <div class="flex-1">
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Buscar por nombre, SKU o color..."
+              class="w-full pl-10 pr-4 py-2 border border-primary-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+        </div>
+
+        <!-- Category Filter -->
+        <select id="categoryFilter" class="border border-primary-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+          <option value="">Todas las categorías</option>
+          {categories?.map(cat => (
+            <option value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
+
+        <!-- Stock Filter -->
+        <select id="stockFilter" class="border border-primary-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+          <option value="">Todo el stock</option>
+          <option value="out">Agotadas (0)</option>
+          <option value="low">Stock bajo (1-{LOW_STOCK_THRESHOLD - 1})</option>
+          <option value="ok">Stock OK (≥{LOW_STOCK_THRESHOLD})</option>
+        </select>
+
+        <!-- Reset -->
+        <button id="resetFilters" class="px-3 py-2 text-sm text-primary-500 hover:text-primary-900 transition-colors">
+          Limpiar
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white border border-primary-200 rounded overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-primary-50 border-b border-primary-200">
+            <tr>
+              <th class="w-10 px-4 py-3">
+                <input type="checkbox" id="selectAll" class="rounded border-primary-300" />
+              </th>
+              <th class="px-4 py-3 text-left font-medium text-primary-700">Producto</th>
+              <th class="px-4 py-3 text-left font-medium text-primary-700">SKU</th>
+              <th class="px-4 py-3 text-left font-medium text-primary-700">Talla</th>
+              <th class="px-4 py-3 text-left font-medium text-primary-700">Color</th>
+              <th class="px-4 py-3 text-left font-medium text-primary-700">Categoría</th>
+              <th class="px-4 py-3 text-center font-medium text-primary-700">Stock</th>
+              <th class="px-4 py-3 text-left font-medium text-primary-700">Estado</th>
+              <th class="px-4 py-3 text-center font-medium text-primary-700">Restock</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-primary-100" id="variantsTableBody">
+            {(allVariants || []).map((v: any) => {
+              const stockStatus = v.stock === 0 ? 'out' : v.stock < LOW_STOCK_THRESHOLD ? 'low' : 'ok';
+              const statusColors = {
+                out: 'bg-red-100 text-red-700',
+                low: 'bg-amber-100 text-amber-700',
+                ok: 'bg-green-100 text-green-700'
+              };
+              const statusLabels = {
+                out: 'Agotado',
+                low: 'Stock bajo',
+                ok: 'OK'
+              };
+              const borderColors = {
+                out: 'border-red-300',
+                low: 'border-amber-300',
+                ok: 'border-primary-300'
+              };
+              return (
+                <tr
+                  class="hover:bg-primary-50 transition-colors variant-row"
+                  data-name={v.product?.name?.toLowerCase() || ''}
+                  data-sku={(v.sku || v.product?.sku || '').toLowerCase()}
+                  data-color={(v.color || '').toLowerCase()}
+                  data-category={v.product?.category_id || ''}
+                  data-stock-status={stockStatus}
+                  data-stock={v.stock}
+                  data-variant-id={v.id}
+                >
+                  <td class="px-4 py-3">
+                    <input type="checkbox" class="variant-checkbox rounded border-primary-300" value={v.id} />
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-3">
+                      {v.product?.image_url ? (
+                        <img src={v.product.image_url} alt="" class="w-10 h-10 object-cover rounded" />
+                      ) : (
+                        <div class="w-10 h-10 bg-primary-100 rounded flex items-center justify-center">
+                          <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        </div>
+                      )}
+                      <div>
+                        <a href={`/admin/productos/${v.product?.id}`} class="font-medium text-primary-900 hover:underline">
+                          {v.product?.name || 'Sin nombre'}
+                        </a>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-primary-500 font-mono text-xs">{v.sku || v.product?.sku || '—'}</td>
+                  <td class="px-4 py-3">{v.size}</td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      {v.color_hex && (
+                        <div class="w-4 h-4 rounded-full border border-primary-200" style={`background-color: ${v.color_hex}`}></div>
+                      )}
+                      {v.color || '—'}
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-primary-500 text-xs">{v.product?.category?.name || '—'}</td>
+                  <td class="px-4 py-3 text-center">
+                    <span class={`font-bold text-lg ${v.stock === 0 ? 'text-red-600' : v.stock < LOW_STOCK_THRESHOLD ? 'text-amber-600' : 'text-green-600'}`} id={`stock-display-${v.id}`}>
+                      {v.stock}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusColors[stockStatus]}`} id={`status-badge-${v.id}`}>
+                      {statusLabels[stockStatus]}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-1 justify-center">
+                      <input
+                        type="number"
+                        min="0"
+                        value="10"
+                        class={`w-16 border ${borderColors[stockStatus]} rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500 restock-input`}
+                        data-variant-id={v.id}
+                      />
+                      <button
+                        class="restock-btn bg-green-600 text-white p-1.5 rounded hover:bg-green-700 transition-colors"
+                        data-variant-id={v.id}
+                        title="Añadir stock"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                      <button
+                        class="restock-set-btn border border-primary-300 text-primary-600 p-1.5 rounded hover:bg-primary-50 transition-colors"
+                        data-variant-id={v.id}
+                        title="Establecer stock a este valor"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {(!allVariants || allVariants.length === 0) && (
+        <div class="p-12 text-center text-primary-500">
+          <svg class="w-12 h-12 mx-auto mb-4 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+          <p>No hay variantes de producto registradas</p>
+          <a href="/admin/productos/nuevo" class="text-primary-600 hover:underline mt-2 inline-block">Crear un producto</a>
+        </div>
+      )}
+
+      <!-- Table Info -->
+      <div class="px-4 py-3 border-t border-primary-200 bg-primary-50 flex items-center justify-between text-xs text-primary-500" id="tableInfo">
+        <span>Mostrando <strong id="visibleCount">{allVariants?.length || 0}</strong> de <strong>{allVariants?.length || 0}</strong> variantes</span>
+        <span>Umbral de stock bajo: <strong>{LOW_STOCK_THRESHOLD}</strong> unidades</span>
+      </div>
+    </div>
+
+    <!-- Bulk Restock Modal -->
+    <div id="bulkRestockModal" class="fixed inset-0 z-50 hidden">
+      <div class="fixed inset-0 bg-black/50" id="bulkModalOverlay"></div>
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+          <h3 class="text-lg font-display mb-4">Reabastecer seleccionados</h3>
+          <p class="text-sm text-primary-500 mb-4">
+            Se actualizará el stock de <strong id="bulkItemCount">0</strong> variantes.
+          </p>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Cantidad a añadir</label>
+              <input
+                type="number"
+                id="bulkQuantity"
+                min="1"
+                value="10"
+                class="w-full border border-primary-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div class="flex gap-2">
+              <button
+                id="bulkRestockConfirm"
+                class="flex-1 bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 transition-colors font-medium"
+              >
+                Añadir stock
+              </button>
+              <button
+                id="bulkRestockCancel"
+                class="flex-1 border border-primary-300 px-4 py-2 rounded text-sm hover:bg-primary-50 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+  const LOW_STOCK_THRESHOLD = 10;
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Filtrado
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const searchInput = document.getElementById('searchInput');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const stockFilter = document.getElementById('stockFilter');
+  const resetBtn = document.getElementById('resetFilters');
+  const rows = document.querySelectorAll('.variant-row');
+  const visibleCountEl = document.getElementById('visibleCount');
+
+  // Aplicar el filtro de URL si existe
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlFilter = urlParams.get('filter');
+  if (urlFilter && stockFilter) {
+    stockFilter.value = urlFilter;
+  }
+
+  function applyFilters() {
+    const search = (searchInput?.value || '').toLowerCase().trim();
+    const category = categoryFilter?.value || '';
+    const stockState = stockFilter?.value || '';
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const name = row.dataset.name || '';
+      const sku = row.dataset.sku || '';
+      const color = row.dataset.color || '';
+      const cat = row.dataset.category || '';
+      const status = row.dataset.stockStatus || '';
+
+      let visible = true;
+
+      // Búsqueda
+      if (search && !name.includes(search) && !sku.includes(search) && !color.includes(search)) {
+        visible = false;
+      }
+      // Categoría
+      if (category && cat !== category) {
+        visible = false;
+      }
+      // Estado de stock
+      if (stockState && status !== stockState) {
+        visible = false;
+      }
+
+      row.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+
+    if (visibleCountEl) visibleCountEl.textContent = String(visibleCount);
+  }
+
+  searchInput?.addEventListener('input', applyFilters);
+  categoryFilter?.addEventListener('change', applyFilters);
+  stockFilter?.addEventListener('change', applyFilters);
+
+  resetBtn?.addEventListener('click', () => {
+    if (searchInput) searchInput.value = '';
+    if (categoryFilter) categoryFilter.value = '';
+    if (stockFilter) stockFilter.value = '';
+    applyFilters();
+    // Limpiar URL params
+    window.history.replaceState({}, '', window.location.pathname);
+  });
+
+  // Filter cards
+  document.querySelectorAll('.filter-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const filter = card.dataset.filter;
+      if (stockFilter) stockFilter.value = filter;
+      applyFilters();
+    });
+  });
+
+  // Aplicar filtros iniciales (por URL o por defecto)
+  applyFilters();
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Selección múltiple
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const selectAll = document.getElementById('selectAll');
+  const checkboxes = document.querySelectorAll('.variant-checkbox');
+  const btnRestockSelected = document.getElementById('btnRestockSelected');
+  const selectedCountEl = document.getElementById('selectedCount');
+
+  function updateSelectionUI() {
+    const checked = document.querySelectorAll('.variant-checkbox:checked');
+    const count = checked.length;
+    if (selectedCountEl) selectedCountEl.textContent = String(count);
+    if (btnRestockSelected) {
+      btnRestockSelected.style.display = count > 0 ? 'flex' : 'none';
+    }
+  }
+
+  selectAll?.addEventListener('change', () => {
+    const isChecked = selectAll.checked;
+    checkboxes.forEach(cb => {
+      const row = cb.closest('.variant-row');
+      if (row && row.style.display !== 'none') {
+        cb.checked = isChecked;
+      }
+    });
+    updateSelectionUI();
+  });
+
+  checkboxes.forEach(cb => cb.addEventListener('change', updateSelectionUI));
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Restock Individual
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  async function doRestock(variantId, quantity, mode) {
+    try {
+      const res = await fetch('/api/admin/stock/restock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variant_id: variantId, quantity, mode })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
+      return data;
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  function updateRowUI(variantId, newStock) {
+    const row = document.querySelector(`[data-variant-id="${variantId}"]`);
+    if (!row) return;
+
+    // Actualizar display de stock
+    const stockDisplay = document.getElementById(`stock-display-${variantId}`);
+    if (stockDisplay) {
+      stockDisplay.textContent = String(newStock);
+      stockDisplay.className = `font-bold text-lg ${newStock === 0 ? 'text-red-600' : newStock < LOW_STOCK_THRESHOLD ? 'text-amber-600' : 'text-green-600'}`;
+    }
+
+    // Actualizar badge de estado
+    const statusBadge = document.getElementById(`status-badge-${variantId}`);
+    if (statusBadge) {
+      const newStatus = newStock === 0 ? 'out' : newStock < LOW_STOCK_THRESHOLD ? 'low' : 'ok';
+      const statusColors = { out: 'bg-red-100 text-red-700', low: 'bg-amber-100 text-amber-700', ok: 'bg-green-100 text-green-700' };
+      const statusLabels = { out: 'Agotado', low: 'Stock bajo', ok: 'OK' };
+      statusBadge.className = `inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusColors[newStatus]}`;
+      statusBadge.textContent = statusLabels[newStatus];
+    }
+
+    // Actualizar data attributes
+    const newStatus = newStock === 0 ? 'out' : newStock < LOW_STOCK_THRESHOLD ? 'low' : 'ok';
+    row.dataset.stockStatus = newStatus;
+    row.dataset.stock = String(newStock);
+
+    // Flash de confirmación
+    row.style.transition = 'background-color 0.3s';
+    row.style.backgroundColor = '#dcfce7';
+    setTimeout(() => { row.style.backgroundColor = ''; }, 1500);
+  }
+
+  // Botones restock "+" (añadir)
+  document.querySelectorAll('.restock-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const variantId = btn.dataset.variantId;
+      const input = document.querySelector(`.restock-input[data-variant-id="${variantId}"]`);
+      const quantity = parseInt(input?.value) || 0;
+      if (quantity <= 0) return alert('Introduce una cantidad válida');
+
+      btn.disabled = true;
+      btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>';
+
+      try {
+        const data = await doRestock(variantId, quantity, 'add');
+        if (data.results?.[0]) {
+          updateRowUI(variantId, data.results[0].new_stock);
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>';
+      }
+    });
+  });
+
+  // Botones restock "→" (establecer)
+  document.querySelectorAll('.restock-set-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const variantId = btn.dataset.variantId;
+      const input = document.querySelector(`.restock-input[data-variant-id="${variantId}"]`);
+      const quantity = parseInt(input?.value);
+      if (isNaN(quantity) || quantity < 0) return alert('Introduce un valor válido');
+
+      if (!confirm(`¿Establecer el stock de esta variante a ${quantity}?`)) return;
+
+      btn.disabled = true;
+      try {
+        const data = await doRestock(variantId, quantity, 'set');
+        if (data.results?.[0]) {
+          updateRowUI(variantId, data.results[0].new_stock);
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Restock Masivo
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const bulkModal = document.getElementById('bulkRestockModal');
+  const bulkOverlay = document.getElementById('bulkModalOverlay');
+  const bulkQuantityInput = document.getElementById('bulkQuantity');
+  const bulkItemCountEl = document.getElementById('bulkItemCount');
+  const bulkConfirm = document.getElementById('bulkRestockConfirm');
+  const bulkCancel = document.getElementById('bulkRestockCancel');
+
+  function openBulkModal() {
+    const checked = document.querySelectorAll('.variant-checkbox:checked');
+    if (checked.length === 0) return;
+    if (bulkItemCountEl) bulkItemCountEl.textContent = String(checked.length);
+    bulkModal?.classList.remove('hidden');
+  }
+
+  function closeBulkModal() {
+    bulkModal?.classList.add('hidden');
+  }
+
+  btnRestockSelected?.addEventListener('click', openBulkModal);
+  bulkCancel?.addEventListener('click', closeBulkModal);
+  bulkOverlay?.addEventListener('click', closeBulkModal);
+
+  bulkConfirm?.addEventListener('click', async () => {
+    const quantity = parseInt(bulkQuantityInput?.value) || 0;
+    if (quantity <= 0) return alert('Introduce una cantidad válida');
+
+    const checked = document.querySelectorAll('.variant-checkbox:checked');
+    const items = Array.from(checked).map(cb => ({
+      variant_id: cb.value,
+      quantity,
+      mode: 'add'
+    }));
+
+    bulkConfirm.disabled = true;
+    bulkConfirm.textContent = 'Procesando...';
+
+    try {
+      const res = await fetch('/api/admin/stock/restock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      });
+      const data = await res.json();
+
+      if (data.results) {
+        data.results.forEach(r => {
+          if (r.success) updateRowUI(r.variant_id, r.new_stock);
+        });
+      }
+
+      closeBulkModal();
+      // Deseleccionar todos
+      checkboxes.forEach(cb => { cb.checked = false; });
+      if (selectAll) selectAll.checked = false;
+      updateSelectionUI();
+
+      const successCount = data.results?.filter(r => r.success).length || 0;
+      alert(`Stock actualizado para ${successCount} de ${items.length} variantes`);
+    } catch (e) {
+      alert('Error: ' + e.message);
+    } finally {
+      bulkConfirm.disabled = false;
+      bulkConfirm.textContent = 'Añadir stock';
+    }
+  });
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Export CSV
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  document.getElementById('btnExport')?.addEventListener('click', () => {
+    const visibleRows = Array.from(rows).filter(r => r.style.display !== 'none');
+    const csvRows = [['Producto', 'SKU', 'Talla', 'Color', 'Categoría', 'Stock', 'Estado'].join(',')];
+
+    visibleRows.forEach(row => {
+      const name = row.querySelector('a')?.textContent?.trim() || '';
+      const cells = row.querySelectorAll('td');
+      const sku = cells[2]?.textContent?.trim() || '';
+      const size = cells[3]?.textContent?.trim() || '';
+      const color = cells[4]?.textContent?.trim() || '';
+      const category = cells[5]?.textContent?.trim() || '';
+      const stock = row.dataset.stock || '0';
+      const status = row.dataset.stockStatus === 'out' ? 'Agotado' :
+                     row.dataset.stockStatus === 'low' ? 'Stock bajo' : 'OK';
+      csvRows.push([`"${name}"`, `"${sku}"`, `"${size}"`, `"${color}"`, `"${category}"`, stock, status].join(','));
+    });
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventario-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>

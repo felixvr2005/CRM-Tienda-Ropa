@@ -374,8 +374,11 @@ const { data: categories } = await supabaseAdmin
       variantId = variantId || null;
       
       const container = document.getElementById('variantsContainer');
+      const stockBorder = stock === 0 ? 'border-red-400' : stock < 10 ? 'border-amber-400' : 'border-primary-300';
+      const stockBg = stock === 0 ? 'bg-red-50' : stock < 10 ? 'bg-amber-50' : '';
+      const stockLabel = stock === 0 ? '<span class="text-red-600 text-xs font-medium">AGOTADO</span>' : stock < 10 ? '<span class="text-amber-600 text-xs font-medium">Stock bajo</span>' : '';
       const variantHtml = `
-        <div class="flex items-center gap-4 p-4 border border-primary-200" data-variant="${variantIndex}">
+        <div class="flex items-center gap-4 p-4 border ${stockBorder} ${stockBg} rounded" data-variant="${variantIndex}">
           <input type="hidden" name="variants[${variantIndex}][id]" value="${variantId || ''}" />
           <div class="flex-1">
             <label class="block text-xs text-primary-500 mb-1">Talla</label>
@@ -390,9 +393,18 @@ const { data: categories } = await supabaseAdmin
             <input type="text" name="variants[${variantIndex}][color]" value="${color || ''}" class="w-full border border-primary-300 px-3 py-1.5 text-sm" placeholder="Negro" />
           </div>
           <div class="w-24">
-            <label class="block text-xs text-primary-500 mb-1">Stock</label>
-            <input type="number" name="variants[${variantIndex}][stock]" min="0" value="${stock || 0}" class="w-full border border-primary-300 px-3 py-1.5 text-sm" />
+            <label class="block text-xs text-primary-500 mb-1">Stock ${stockLabel}</label>
+            <input type="number" name="variants[${variantIndex}][stock]" min="0" value="${stock || 0}" class="w-full border ${stockBorder} px-3 py-1.5 text-sm" />
           </div>
+          ${variantId ? `
+          <div class="w-20">
+            <label class="block text-xs text-green-600 mb-1 font-medium">+ Restock</label>
+            <div class="flex gap-1">
+              <input type="number" min="1" value="10" class="w-12 border border-green-300 px-1 py-1.5 text-xs text-center rounded quick-restock-qty" data-variant-id="${variantId}" />
+              <button type="button" class="quick-restock-btn bg-green-600 text-white px-1.5 py-1.5 rounded hover:bg-green-700 text-xs" data-variant-id="${variantId}" data-variant-idx="${variantIndex}" title="Añadir stock rápido">+</button>
+            </div>
+          </div>
+          ` : ''}
           <button type="button" onclick="window.removeVariant(${variantIndex})" class="text-red-600 hover:text-red-800 mt-5">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -581,6 +593,54 @@ const { data: categories } = await supabaseAdmin
         if (import.meta.env.DEV) console.error('Error:', error);
         errorDiv.textContent = 'Error de conexión: ' + error.message;
         errorDiv.classList.remove('hidden');
+      }
+    });
+  </script>
+  
+  <script is:inline>
+    // Quick restock from product edit page
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.quick-restock-btn');
+      if (!btn) return;
+      
+      e.preventDefault();
+      const variantId = btn.dataset.variantId;
+      const variantIdx = btn.dataset.variantIdx;
+      const input = document.querySelector(`.quick-restock-qty[data-variant-id="${variantId}"]`);
+      const quantity = parseInt(input?.value) || 0;
+      if (quantity <= 0) return;
+
+      btn.disabled = true;
+      const origText = btn.textContent;
+      btn.textContent = '...';
+
+      try {
+        const res = await fetch('/api/admin/stock/restock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variant_id: variantId, quantity, mode: 'add' })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error');
+
+        if (data.results?.[0]?.success) {
+          const newStock = data.results[0].new_stock;
+          // Update the stock input in the form
+          const stockInput = document.querySelector(`[name="variants[${variantIdx}][stock]"]`);
+          if (stockInput) stockInput.value = newStock;
+          // Flash
+          const row = btn.closest('[data-variant]');
+          if (row) {
+            row.style.transition = 'background 0.3s';
+            row.style.background = '#dcfce7';
+            setTimeout(() => { row.style.background = ''; }, 1500);
+          }
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = origText;
       }
     });
   </script>

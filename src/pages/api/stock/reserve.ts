@@ -9,7 +9,7 @@ import { logger } from '@lib/logger';
 
 export const prerender = false;
 
-const LOW_STOCK_THRESHOLD = 5;
+const LOW_STOCK_THRESHOLD = 10;
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -161,7 +161,7 @@ async function notifyLowStock(variantData: any, currentStock: number) {
             <p><strong>Producto:</strong> ${productName}</p>
             <p><strong>Variante:</strong> ${detail || 'N/A'}</p>
             <p><strong>Stock actual:</strong> <span style="color: ${isOutOfStock ? '#dc2626' : '#f59e0b'}; font-weight: bold;">${stockText}</span></p>
-            <p style="margin-top: 15px;"><a href="${import.meta.env.PUBLIC_APP_URL || process.env.PUBLIC_APP_URL || ''}/admin/productos" style="background: #1f2937; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Gestionar Stock</a></p>
+            <p style="margin-top: 15px;"><a href="${import.meta.env.PUBLIC_APP_URL || process.env.PUBLIC_APP_URL || ''}/admin/inventario?filter=${isOutOfStock ? 'out' : 'low'}" style="background: #1f2937; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Reabastecer ahora</a></p>
           </div>
         </div>
       `,

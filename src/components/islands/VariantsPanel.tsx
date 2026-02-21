@@ -347,7 +347,24 @@ export default function VariantsPanel({ productId, productName, productSlug, var
                       {variant.color || 'Sin color'}
                     </h3>
                     <p className="text-sm text-slate-500">
-                      {variant.size} • {variant.images?.length || 0} imagen(es) • Stock: {variant.stock}
+                      {variant.size} • {variant.images?.length || 0} imagen(es) • Stock:{' '}
+                      <span className={`font-bold ${
+                        variant.stock === 0 ? 'text-red-600' :
+                        variant.stock < 10 ? 'text-amber-600' :
+                        'text-green-600'
+                      }`}>
+                        {variant.stock}
+                      </span>
+                      {variant.stock === 0 && (
+                        <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                          AGOTADO
+                        </span>
+                      )}
+                      {variant.stock > 0 && variant.stock < 10 && (
+                        <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                          Bajo
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -380,6 +397,74 @@ export default function VariantsPanel({ productId, productName, productSlug, var
                       {message[variant.id].text}
                     </div>
                   )}
+
+                  {/* SECCIÓN: RESTOCK RÁPIDO */}
+                  <div className={`p-4 rounded-lg border ${
+                    variant.stock === 0 ? 'border-red-200 bg-red-50' :
+                    variant.stock < 10 ? 'border-amber-200 bg-amber-50' :
+                    'border-green-200 bg-green-50'
+                  }`}>
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div>
+                        <p className="text-sm font-semibold">
+                          Stock actual:{' '}
+                          <span className={`text-lg ${
+                            variant.stock === 0 ? 'text-red-600' :
+                            variant.stock < 10 ? 'text-amber-600' :
+                            'text-green-600'
+                          }`}>{variant.stock} uds</span>
+                        </p>
+                        {variant.stock === 0 && <p className="text-xs text-red-600 mt-1">Este producto está agotado — reabastece ahora</p>}
+                        {variant.stock > 0 && variant.stock < 10 && <p className="text-xs text-amber-600 mt-1">Stock bajo — considera reabastecer</p>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          defaultValue={10}
+                          className="w-20 border border-slate-300 rounded px-2 py-1.5 text-sm text-center"
+                          id={`restock-qty-${variant.id}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const input = document.getElementById(`restock-qty-${variant.id}`) as HTMLInputElement;
+                            const qty = parseInt(input?.value) || 0;
+                            if (qty <= 0) return;
+                            try {
+                              const res = await fetch('/api/admin/stock/restock', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ variant_id: variant.id, quantity: qty, mode: 'add' })
+                              });
+                              const data = await res.json();
+                              if (!res.ok) throw new Error(data.error || 'Error');
+                              if (data.results?.[0]?.success) {
+                                const newStock = data.results[0].new_stock;
+                                setVariantsList(prev => prev.map(v =>
+                                  v.id === variant.id ? { ...v, stock: newStock } : v
+                                ));
+                                setMessage(prev => ({
+                                  ...prev,
+                                  [variant.id]: { type: 'success', text: `Stock actualizado: ${variant.stock} → ${newStock} (+${qty})` }
+                                }));
+                                setTimeout(() => setMessage(prev => { const n = {...prev}; delete n[variant.id]; return n; }), 3000);
+                              }
+                            } catch (e: any) {
+                              setMessage(prev => ({
+                                ...prev,
+                                [variant.id]: { type: 'error', text: 'Error al reabastecer: ' + e.message }
+                              }));
+                            }
+                          }}
+                          className="bg-green-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-green-700 transition-colors flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                          Reabastecer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* SECCIÓN 1: COLOR */}
                   <div>

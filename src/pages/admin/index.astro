@@ -114,7 +114,7 @@ const { data: lowStockProducts } = await supabaseAdmin
     *,
     product:products(id, name, slug)
   `)
-  .lt('stock', 5)
+  .lt('stock', 10)
   .order('stock', { ascending: true })
   .limit(5);
 ---
@@ -253,27 +253,41 @@ const { data: lowStockProducts } = await supabaseAdmin
       <!-- Low Stock -->
       <div class="bg-white border border-primary-200">
         <div class="p-4 border-b border-primary-200 flex items-center justify-between">
-          <h2 class="font-medium">Stock bajo</h2>
-          <a href="/admin/productos" class="text-sm text-primary-500 hover:text-primary-900">Ver productos</a>
+          <h2 class="font-medium flex items-center gap-2">
+            Stock bajo
+            {lowStockProducts && lowStockProducts.length > 0 && (
+              <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">{lowStockProducts.length}</span>
+            )}
+          </h2>
+          <a href="/admin/inventario" class="text-sm text-primary-500 hover:text-primary-900">Ver inventario →</a>
         </div>
         <div class="divide-y divide-primary-100">
           {lowStockProducts && lowStockProducts.length > 0 ? (
             lowStockProducts.map((variant) => (
-              <div class="p-4 flex items-center justify-between">
-                <div>
-                  <p class="font-medium">{variant.product?.name}</p>
+              <div class="p-4 flex items-center justify-between gap-3" data-variant-row={variant.id}>
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium truncate">{variant.product?.name}</p>
                   <p class="text-sm text-primary-500">
                     Talla: {variant.size} | Color: {variant.color}
                   </p>
                 </div>
-                <span class={`text-sm font-medium ${variant.stock === 0 ? 'text-red-600' : 'text-yellow-600'}`}>
-                  {variant.stock} uds
-                </span>
+                <div class="flex items-center gap-2">
+                  <span class={`text-sm font-bold ${variant.stock === 0 ? 'text-red-600' : 'text-amber-600'}`} id={`dash-stock-${variant.id}`}>
+                    {variant.stock} uds
+                  </span>
+                  <div class="flex items-center gap-1">
+                    <input type="number" min="1" value="10" class="w-14 border border-primary-300 rounded px-2 py-1 text-xs text-center dash-restock-qty" data-variant-id={variant.id} />
+                    <button class="dash-restock-btn bg-green-600 text-white p-1 rounded hover:bg-green-700 transition-colors" data-variant-id={variant.id} title="Añadir stock">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             ))
           ) : (
-            <div class="p-8 text-center text-primary-500">
-              No hay productos con stock bajo
+            <div class="p-8 text-center text-green-600">
+              <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7" /></svg>
+              Todo el stock está en orden
             </div>
           )}
         </div>
@@ -322,3 +336,50 @@ const { data: lowStockProducts } = await supabaseAdmin
     </div>
   </div>
 </AdminLayout>
+
+<script is:inline>
+  // Dashboard restock rápido
+  document.querySelectorAll('.dash-restock-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const variantId = btn.dataset.variantId;
+      const input = document.querySelector(`.dash-restock-qty[data-variant-id="${variantId}"]`);
+      const quantity = parseInt(input?.value) || 0;
+      if (quantity <= 0) return;
+
+      btn.disabled = true;
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>';
+
+      try {
+        const res = await fetch('/api/admin/stock/restock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variant_id: variantId, quantity, mode: 'add' })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error');
+
+        if (data.results?.[0]?.success) {
+          const newStock = data.results[0].new_stock;
+          const stockEl = document.getElementById(`dash-stock-${variantId}`);
+          if (stockEl) {
+            stockEl.textContent = `${newStock} uds`;
+            stockEl.className = `text-sm font-bold ${newStock === 0 ? 'text-red-600' : newStock < 10 ? 'text-amber-600' : 'text-green-600'}`;
+          }
+          // Flash
+          const row = btn.closest('[data-variant-row]');
+          if (row) {
+            row.style.transition = 'background 0.3s';
+            row.style.background = '#dcfce7';
+            setTimeout(() => { row.style.background = ''; }, 1500);
+          }
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+      }
+    });
+  });
+</script>

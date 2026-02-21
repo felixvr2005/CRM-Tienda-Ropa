@@ -15,6 +15,7 @@ const currentPath = Astro.url.pathname;
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: 'home' },
   { href: '/admin/productos', label: 'Productos', icon: 'box' },
+  { href: '/admin/inventario', label: 'Inventario', icon: 'package' },
   { href: '/admin/pedidos', label: 'Pedidos', icon: 'shopping-bag' },
   { href: '/admin/devoluciones', label: 'Devoluciones', icon: 'undo-2' },
   { href: '/admin/categorias', label: 'Categorías', icon: 'folder' },
@@ -53,6 +54,12 @@ const navItems = [
             {item.icon === 'box' && (
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            )}
+            {item.icon === 'package' && (
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 22V12" />
               </svg>
             )}
             {item.icon === 'shopping-bag' && (
@@ -109,6 +116,25 @@ const navItems = [
         </div>
         
         <div class="flex items-center gap-4">
+          <!-- Notification Bell -->
+          <div class="relative" id="notif-container">
+            <button id="notif-bell" class="relative p-2 text-primary-500 hover:text-primary-900 transition-colors" title="Alertas de stock">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
+            </button>
+            <!-- Dropdown -->
+            <div id="notif-dropdown" class="hidden absolute right-0 top-full mt-2 w-80 bg-white border border-primary-200 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
+              <div class="p-3 border-b border-primary-200 flex items-center justify-between">
+                <h3 class="font-medium text-sm">Alertas de Stock</h3>
+                <a href="/admin/inventario?filter=out" class="text-xs text-primary-500 hover:text-primary-900">Ver todo</a>
+              </div>
+              <div id="notif-list" class="divide-y divide-primary-100">
+                <div class="p-4 text-center text-primary-400 text-sm">Cargando...</div>
+              </div>
+            </div>
+          </div>
           <a href="/" class="px-3 py-2 text-xs tracking-widest uppercase font-medium rounded-full bg-primary-900 text-white hover:bg-primary-800 transition-all" title="Ir a la tienda">Tienda</a>
           <span class="text-sm text-primary-500">Admin</span>
         </div>
@@ -141,4 +167,96 @@ const navItems = [
   openBtn?.addEventListener('click', openSidebar);
   closeBtn?.addEventListener('click', closeSidebar);
   overlay?.addEventListener('click', closeSidebar);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Notification Bell - Stock Alerts
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const bellBtn = document.getElementById('notif-bell');
+  const dropdown = document.getElementById('notif-dropdown');
+  const badge = document.getElementById('notif-badge');
+  const notifList = document.getElementById('notif-list');
+  let notifOpen = false;
+
+  // Toggle dropdown
+  bellBtn?.addEventListener('click', () => {
+    notifOpen = !notifOpen;
+    dropdown?.classList.toggle('hidden', !notifOpen);
+    if (notifOpen) loadAlerts();
+  });
+
+  // Close on click outside
+  document.addEventListener('click', (e) => {
+    const container = document.getElementById('notif-container');
+    if (notifOpen && container && !container.contains(e.target as Node)) {
+      notifOpen = false;
+      dropdown?.classList.add('hidden');
+    }
+  });
+
+  // Load alert count (badge)
+  async function loadAlertCount() {
+    try {
+      const res = await fetch('/api/admin/stock/alerts?summary=true');
+      if (!res.ok) return;
+      const data = await res.json();
+      const count = data.total_alerts || 0;
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+    } catch {}
+  }
+
+  // Load alerts list
+  async function loadAlerts() {
+    if (!notifList) return;
+    notifList.innerHTML = '<div class="p-4 text-center text-primary-400 text-sm">Cargando...</div>';
+    try {
+      const res = await fetch('/api/admin/stock/alerts?limit=10');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const variants = data.variants || [];
+
+      if (variants.length === 0) {
+        notifList.innerHTML = '<div class="p-6 text-center"><svg class="w-8 h-8 mx-auto mb-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"/></svg><p class="text-sm text-green-600 font-medium">Todo el stock está en orden</p></div>';
+        return;
+      }
+
+      notifList.innerHTML = variants.map((v: any) => {
+        const isOut = v.stock === 0;
+        const icon = isOut
+          ? '<span class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></span>'
+          : '<span class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></span>';
+        const label = isOut ? 'Agotado' : `${v.stock} uds`;
+        const labelClass = isOut ? 'text-red-600 font-bold' : 'text-amber-600 font-medium';
+        return `
+          <div class="px-3 py-2.5 hover:bg-primary-50 flex items-center gap-3 text-sm">
+            ${icon}
+            <div class="flex-1 min-w-0">
+              <p class="font-medium truncate">${v.product?.name || 'Producto'}</p>
+              <p class="text-xs text-primary-400">${v.size} / ${v.color}</p>
+            </div>
+            <span class="${labelClass} text-xs whitespace-nowrap">${label}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Footer
+      notifList.innerHTML += `
+        <a href="/admin/inventario" class="block p-3 text-center text-xs font-medium text-primary-600 hover:bg-primary-50 border-t border-primary-200">
+          Ver inventario completo →
+        </a>
+      `;
+    } catch {
+      notifList.innerHTML = '<div class="p-4 text-center text-red-500 text-sm">Error al cargar alertas</div>';
+    }
+  }
+
+  // Initial load + auto-refresh every 60s
+  loadAlertCount();
+  setInterval(loadAlertCount, 60000);
 </script>
