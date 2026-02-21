@@ -224,21 +224,23 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     const variantData = variant as any;
 
-    // Crear order item — columnas según supabase/schema.sql real:
-    // order_id, product_id, variant_id, product_name, product_sku,
-    // size, color, quantity, unit_price (DECIMAL), discount_percentage (INT DEFAULT 0), total_price (DECIMAL)
+    // Crear order item — columnas según supabase/complete-schema.sql (DB real):
+    // order_id, product_id, variant_id, product_name, product_slug, product_image, product_sku,
+    // size, color, quantity, unit_price (DECIMAL), discount_percentage (INT DEFAULT 0), line_total (DECIMAL)
     const orderItemInsert: Record<string, any> = {
       order_id: order.id,
       product_id: variantData.product?.id,
       variant_id: item.variantId,
       product_name: variantData.product?.name || item.name || 'Producto',
+      product_slug: variantData.product?.slug || null,
+      product_image: variantData.product?.images?.[0] || null,
       product_sku: item.sku || null,
       color: variantData.color || item.color || null,
       size: variantData.size || item.size || null,
       quantity: item.quantity,
       unit_price: item.price,
       discount_percentage: item.discount || 0,
-      total_price: item.price * item.quantity,
+      line_total: item.price * item.quantity,
     };
 
     let { error: itemError } = await supabaseAdmin
@@ -247,15 +249,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     if (itemError) {
       logger.warn('Webhook: order_item insert failed, retrying without optional cols', { error: itemError.message });
-      const { product_sku: _sk, discount_percentage: _dp, ...minimalItem } = orderItemInsert;
+      const { product_sku: _sk, ...minimalItem } = orderItemInsert;
       const retryRes = await supabaseAdmin.from('order_items').insert(minimalItem as any);
       itemError = retryRes.error;
     }
 
     if (itemError) {
       logger.error('Webhook: Error creating order item (all attempts failed)', { error: itemError });
+      console.error('[WEBHOOK FAIL] order_item insert:', itemError.message, 'code:', itemError.code, 'cols:', Object.keys(orderItemInsert).join(','));
     } else {
       logger.info('Webhook: Order item created', { productId: orderItemInsert.product_id });
+      console.log('[WEBHOOK OK] order_item created for', orderNumber);
     }
 
     // El stock ya fue reservado al añadir al carrito (/api/stock/reserve).

@@ -76,33 +76,40 @@ if (itemsWithProducts.length === 0 && order.stripe_checkout_session_id) {
       for (const item of metaItems) {
         const { data: variant } = await supabaseAdmin
           .from('product_variants')
-          .select('id, color, size, product:products(id, name, images)')
+          .select('id, color, size, product:products(id, name, slug, images)')
           .eq('id', item.variantId)
           .single();
         
         const variantData = variant as any;
         const lineTotal = item.price * item.quantity;
         
-        // Columnas según supabase/schema.sql (NO tiene image_url ni line_total)
+        // Columnas según supabase/complete-schema.sql (DB real)
         const itemData: Record<string, any> = {
           order_id: order.id,
           product_id: variantData?.product?.id || item.productId,
           variant_id: item.variantId,
           product_name: item.name || variantData?.product?.name || 'Producto',
+          product_slug: variantData?.product?.slug || null,
+          product_image: variantData?.product?.images?.[0] || null,
           product_sku: item.sku || null,
           size: variantData?.size || '',
           color: variantData?.color || '',
           quantity: item.quantity,
           unit_price: item.price,
           discount_percentage: 0,
-          total_price: lineTotal,
+          line_total: lineTotal,
         };
         
         const { error: insertErr } = await supabaseAdmin.from('order_items').insert(itemData as any);
         if (insertErr) {
           logger.warn('Recovery insert failed, retrying minimal', { error: insertErr.message });
-          const { product_sku: _ps, discount_percentage: _dp, ...minimal } = itemData;
-          await supabaseAdmin.from('order_items').insert(minimal as any);
+          console.error('[ORDER RECOVERY FAIL]', insertErr.message, 'code:', insertErr.code, 'cols:', Object.keys(itemData).join(','));
+          const { product_sku: _ps, ...minimal } = itemData;
+          const { error: rErr } = await supabaseAdmin.from('order_items').insert(minimal as any);
+          if (rErr) console.error('[ORDER RECOVERY RETRY FAIL]', rErr.message);
+          else console.log('[ORDER RECOVERY RETRY OK]');
+        } else {
+          console.log('[ORDER RECOVERY OK] item inserted');
         }
       }
       

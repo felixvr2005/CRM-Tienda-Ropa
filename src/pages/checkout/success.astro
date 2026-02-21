@@ -56,7 +56,7 @@ if (sessionId) {
           for (const rItem of recoveryItems) {
             const { data: rVariant } = await supabaseAdmin
               .from('product_variants')
-              .select('id, color, size, product:products(id, name, images)')
+              .select('id, color, size, product:products(id, name, slug, images)')
               .eq('id', rItem.variantId)
               .single();
 
@@ -66,23 +66,25 @@ if (sessionId) {
               product_id: rvd?.product?.id || rItem.productId,
               variant_id: rItem.variantId,
               product_name: rItem.name || rvd?.product?.name || 'Producto',
+              product_slug: rvd?.product?.slug || null,
+              product_image: rvd?.product?.images?.[0] || null,
               product_sku: rItem.sku || null,
               size: rvd?.size || '',
               color: rvd?.color || '',
               quantity: rItem.quantity,
               unit_price: rItem.price,
               discount_percentage: 0,
-              total_price: rItem.price * rItem.quantity,
+              line_total: rItem.price * rItem.quantity,
             };
 
             let { error: recErr } = await supabaseAdmin.from('order_items').insert(recItemData as any);
             if (recErr) {
-              const { product_sku: _s, discount_percentage: _d, ...recMin } = recItemData;
+              const { product_sku: _s, ...recMin } = recItemData;
               const r2 = await supabaseAdmin.from('order_items').insert(recMin as any);
               recErr = r2.error;
             }
-            if (recErr) logger.error('Failed to recover item for existing order', { error: recErr.message });
-            else logger.info('Recovered item for existing order', { productId: recItemData.product_id });
+            if (recErr) { logger.error('Failed to recover item for existing order', { error: recErr.message }); console.error('[RECOVERY FAIL]', recErr.message); }
+            else { logger.info('Recovered item for existing order', { productId: recItemData.product_id }); console.log('[RECOVERY OK] item created'); }
           }
         } catch (recoveryErr) {
           logger.error('Error recovering items for existing order', { error: String(recoveryErr) });
@@ -266,7 +268,7 @@ if (sessionId) {
                 .from('product_variants')
                 .select(`
                   id, color, size, price_modifier, stock,
-                  product:products(id, name, price, images)
+                  product:products(id, name, slug, price, images)
                 `)
                 .eq('id', item.variantId)
                 .single();
@@ -280,21 +282,23 @@ if (sessionId) {
                 const variantData = variant as any;
                 const lineTotal = item.price * item.quantity;
                 
-                // Crear order item — columnas según supabase/schema.sql:
-                // order_id, product_id, variant_id, product_name, product_sku,
-                // size, color, quantity, unit_price (DECIMAL), discount_percentage (INT), total_price (DECIMAL)
+                // Crear order item — columnas según supabase/complete-schema.sql (DB real):
+                // order_id, product_id, variant_id, product_name, product_slug, product_image, product_sku,
+                // size, color, quantity, unit_price (DECIMAL), discount_percentage (INT), line_total (DECIMAL)
                 const orderItemData: Record<string, any> = {
                   order_id: (order as any).id,
                   product_id: variantData.product?.id || item.productId,
                   variant_id: item.variantId,
                   product_name: item.name || variantData.product?.name || 'Producto',
+                  product_slug: variantData.product?.slug || null,
+                  product_image: variantData.product?.images?.[0] || null,
                   product_sku: item.sku || null,
                   size: variantData.size || '',
                   color: variantData.color || '',
                   quantity: item.quantity,
                   unit_price: item.price,
                   discount_percentage: 0,
-                  total_price: lineTotal,
+                  line_total: lineTotal,
                 };
                 
                 logger.debug('Creating order item', { productId: orderItemData.product_id, quantity: orderItemData.quantity, total: lineTotal });
@@ -306,7 +310,7 @@ if (sessionId) {
                   
                 if (itemError) {
                   logger.warn('Insert order_item failed, retrying minimal', { error: itemError.message });
-                  const { product_sku: _ps, discount_percentage: _dp, ...minimalData } = orderItemData;
+                  const { product_sku: _ps, ...minimalData } = orderItemData;
                   const retryResult = await supabaseAdmin
                     .from('order_items')
                     .insert(minimalData as any);
@@ -315,8 +319,10 @@ if (sessionId) {
                   
                 if (itemError) {
                   logger.error('Error creating order item (all attempts failed)', { error: itemError, data: JSON.stringify(orderItemData) });
+                  console.error('[CRITICAL] order_item insert FAILED:', itemError.message, 'code:', itemError.code, 'cols:', Object.keys(orderItemData).join(','));
                 } else {
                   logger.info('Order item created successfully', { productId: orderItemData.product_id });
+                  console.log('[OK] order_item created for order', (order as any).order_number);
                 }
 
                 // El stock ya fue descontado cuando se añadió al carrito (reserva temporal)
