@@ -55,6 +55,18 @@ export async function POST({ request }: any) {
       );
     }
 
+    // Calcular monto de devolución: solo productos (subtotal - descuento), SIN envío
+    const subtotal = Number(order.subtotal) || 0;
+    const discount = Number(order.discount_amount) || 0;
+    const productRefund = Math.max(subtotal - discount, 0);
+
+    if (productRefund <= 0) {
+      return new Response(
+        JSON.stringify({ message: 'El monto de devolución no puede ser 0' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Crear solicitud de devolución
     const { data: returnRequest, error: createError } = await supabaseAdmin
       .from('return_requests')
@@ -63,7 +75,7 @@ export async function POST({ request }: any) {
         customer_id: order.customer_id!,
         status: 'pending',
         reason,
-        refund_amount: order.total_amount ?? order.subtotal ?? 0
+        refund_amount: productRefund
       })
       .select()
       .single();

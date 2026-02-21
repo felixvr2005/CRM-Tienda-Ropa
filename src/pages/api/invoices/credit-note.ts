@@ -90,19 +90,27 @@ export const POST: APIRoute = async ({ request }) => {
     const returnedItems = itemsRes.data as any[];
 
     // ── Cálculos fiscales (precios YA incluyen IVA) ──
-    // refund_amount está en céntimos en la BD
-    const itemsRefund = returnedItems.reduce((sum, item) => sum + (item.refund_amount || 0) / 100, 0);
-    const shippingRefund = ret.refund_shipping_cost ? (order.shipping_cost || 0) : 0;
-    const totalRefund = itemsRefund + shippingRefund;
+    // Usar unit_price × quantity de cada item (en euros)
+    const itemsRefund = returnedItems.reduce((sum, item) => {
+      const lineTotal = (Number(item.unit_price) || 0) * (item.quantity || 1);
+      return sum + lineTotal;
+    }, 0);
+
+    // Solo se devuelve el coste de los productos, NO el envío
+    const totalRefund = Math.max(itemsRefund, 0);
+
+    if (totalRefund <= 0) {
+      return new Response(
+        JSON.stringify({ error: 'El monto de devolución no puede ser 0. Verifica los items.' }),
+        { status: 400 }
+      );
+    }
 
     const itemsBase = +(itemsRefund / (1 + IVA_RATE)).toFixed(2);
     const itemsIva = +(itemsRefund - itemsBase).toFixed(2);
 
-    const shippingBase = +(shippingRefund / (1 + IVA_RATE)).toFixed(2);
-    const shippingIva = +(shippingRefund - shippingBase).toFixed(2);
-
-    const totalBase = +(itemsBase + shippingBase).toFixed(2);
-    const totalIva = +(itemsIva + shippingIva).toFixed(2);
+    const totalBase = itemsBase;
+    const totalIva = itemsIva;
 
     // ── PDF ──
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -167,8 +175,8 @@ export const POST: APIRoute = async ({ request }) => {
 
     for (let i = 0; i < returnedItems.length; i++) {
       const item = returnedItems[i];
-      const refundEur = (item.refund_amount || 0) / 100;
-      const unitRefund = item.quantity > 0 ? refundEur / item.quantity : refundEur;
+      const unitRefund = Number(item.unit_price) || 0;
+      const refundEur = unitRefund * (item.quantity || 1);
       const rowH = 30;
 
       if (i % 2 === 0) {
@@ -205,12 +213,6 @@ export const POST: APIRoute = async ({ request }) => {
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.dark);
     doc.text('Base imponible productos:', tX, y);
     doc.text(`-${fmt(itemsBase)}`, tV, y, { width: tW, align: 'right' });
-
-    if (shippingRefund > 0) {
-      y += 16;
-      doc.text('Gastos de envío abonados (base):', tX, y);
-      doc.text(`-${fmt(shippingBase)}`, tV, y, { width: tW, align: 'right' });
-    }
 
     y += 20;
     hLine(doc, y, tX, 545);
