@@ -49,13 +49,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    // Generar slug
-    const slug = name
+    // Generar slug (soportar caracteres acentuados)
+    let slug = name
       .toLowerCase()
       .trim()
-      .replace(/[^\w\s-]/g, '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // quitar acentos
+      .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    // Verificar slug único (solo en creación)
+    if (!id) {
+      const { data: existingSlug } = await supabaseAdmin
+        .from('products')
+        .select('slug')
+        .eq('slug', slug)
+        .single();
+      if (existingSlug) {
+        slug = `${slug}-${Date.now().toString(36)}`;
+      }
+    }
 
     // Generar SKU automático para productos nuevos
     let sku: string | null = null;
@@ -151,11 +166,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error en POST /api/admin/products/save:', error);
+    
+    // Extraer mensaje de error - soportar Error nativo, errores de Supabase y objetos genéricos
+    let errorMessage = 'Error desconocido al guardar el producto';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (error && typeof error === 'object' && error.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+
+    // Añadir detalles extra si existen (errores de PostgreSQL)
+    if (error?.details) {
+      errorMessage += ` — ${error.details}`;
+    }
+
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Error desconocido'
+      error: errorMessage
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
