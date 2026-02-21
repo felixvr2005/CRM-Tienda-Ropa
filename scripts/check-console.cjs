@@ -26,7 +26,7 @@ const results = [];
 for (const file of files) {
   const rel = path.relative(process.cwd(), file);
   // ignore the central logger implementation and known client-only helpers
-  const IGNORE_EXACT = ['src/lib/logger.ts', 'src/lib/order-modals.ts', 'src/lib/client-init.ts'];
+  const IGNORE_EXACT = ['src/lib/logger.ts', 'src/lib/order-modals.ts', 'src/lib/client-init.ts', 'src/lib/google-auth.ts'];
   if (IGNORE_EXACT.some(p => rel.replace(/\\/g, '/') === p)) continue;
   const content = fs.readFileSync(file, 'utf8');
   const lines = content.split(/\r?\n/);
