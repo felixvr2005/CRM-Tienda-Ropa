@@ -82,8 +82,8 @@ if (itemsWithProducts.length === 0 && order.stripe_checkout_session_id) {
         
         const variantData = variant as any;
         const lineTotal = item.price * item.quantity;
-        const productImage = variantData?.product?.images?.[0] || null;
         
+        // Columnas según supabase/schema.sql (NO tiene image_url ni line_total)
         const itemData: Record<string, any> = {
           order_id: order.id,
           product_id: variantData?.product?.id || item.productId,
@@ -94,14 +94,14 @@ if (itemsWithProducts.length === 0 && order.stripe_checkout_session_id) {
           color: variantData?.color || '',
           quantity: item.quantity,
           unit_price: item.price,
+          discount_percentage: 0,
           total_price: lineTotal,
-          image_url: productImage,
         };
         
         const { error: insertErr } = await supabaseAdmin.from('order_items').insert(itemData as any);
         if (insertErr) {
-          // Reintentar sin opcionales
-          const { image_url: _iu, product_sku: _ps, ...minimal } = itemData;
+          logger.warn('Recovery insert failed, retrying minimal', { error: insertErr.message });
+          const { product_sku: _ps, discount_percentage: _dp, ...minimal } = itemData;
           await supabaseAdmin.from('order_items').insert(minimal as any);
         }
       }

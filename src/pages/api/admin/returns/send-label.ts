@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
       .from('return_requests')
       .update({ 
         label_code: labelCode,
-        status: 'shipped'
+        status: 'label_sent'
       } as any)
       .eq('id', returnRequestId);
 

@@ -38,6 +38,56 @@ if (sessionId) {
     if (existingOrder) {
       logger.info('Order already exists for session', { orderNumber: existingOrder.order_number });
       order = existingOrder;
+
+      // Verificar si el pedido existente tiene items — si no, crearlos ahora
+      const { data: existingItems } = await supabaseAdmin
+        .from('order_items')
+        .select('id')
+        .eq('order_id', existingOrder.id)
+        .limit(1);
+
+      if (!existingItems || existingItems.length === 0) {
+        logger.warn('Existing order has 0 items, creating them now', { orderNumber: existingOrder.order_number });
+        try {
+          const recoverSession = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['line_items'] });
+          const recoverMeta = recoverSession.metadata || {};
+          const recoveryItems = recoverMeta.items ? JSON.parse(recoverMeta.items) : [];
+
+          for (const rItem of recoveryItems) {
+            const { data: rVariant } = await supabaseAdmin
+              .from('product_variants')
+              .select('id, color, size, product:products(id, name, images)')
+              .eq('id', rItem.variantId)
+              .single();
+
+            const rvd = rVariant as any;
+            const recItemData: Record<string, any> = {
+              order_id: existingOrder.id,
+              product_id: rvd?.product?.id || rItem.productId,
+              variant_id: rItem.variantId,
+              product_name: rItem.name || rvd?.product?.name || 'Producto',
+              product_sku: rItem.sku || null,
+              size: rvd?.size || '',
+              color: rvd?.color || '',
+              quantity: rItem.quantity,
+              unit_price: rItem.price,
+              discount_percentage: 0,
+              total_price: rItem.price * rItem.quantity,
+            };
+
+            let { error: recErr } = await supabaseAdmin.from('order_items').insert(recItemData as any);
+            if (recErr) {
+              const { product_sku: _s, discount_percentage: _d, ...recMin } = recItemData;
+              const r2 = await supabaseAdmin.from('order_items').insert(recMin as any);
+              recErr = r2.error;
+            }
+            if (recErr) logger.error('Failed to recover item for existing order', { error: recErr.message });
+            else logger.info('Recovered item for existing order', { productId: recItemData.product_id });
+          }
+        } catch (recoveryErr) {
+          logger.error('Error recovering items for existing order', { error: String(recoveryErr) });
+        }
+      }
     } else {
       // Obtener la sesión de Stripe con detalles expandidos
       const session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -228,12 +278,11 @@ if (sessionId) {
 
               if (variant) {
                 const variantData = variant as any;
-                const productImage = variantData.product?.images?.[0] || null;
                 const lineTotal = item.price * item.quantity;
                 
-                // Crear order item — columnas según schema real de la tabla order_items
-                // Columnas confirmadas: order_id, product_id, product_name, product_sku,
-                //   variant_id, size, color, quantity, unit_price, total_price, image_url
+                // Crear order item — columnas según supabase/schema.sql:
+                // order_id, product_id, variant_id, product_name, product_sku,
+                // size, color, quantity, unit_price (DECIMAL), discount_percentage (INT), total_price (DECIMAL)
                 const orderItemData: Record<string, any> = {
                   order_id: (order as any).id,
                   product_id: variantData.product?.id || item.productId,
@@ -244,21 +293,20 @@ if (sessionId) {
                   color: variantData.color || '',
                   quantity: item.quantity,
                   unit_price: item.price,
+                  discount_percentage: 0,
                   total_price: lineTotal,
-                  image_url: productImage,
                 };
                 
                 logger.debug('Creating order item', { productId: orderItemData.product_id, quantity: orderItemData.quantity, total: lineTotal });
                 
-                // Insertar; si falla por columna, reintentar sin opcionales
+                // Insertar; si falla, reintentar sin opcionales
                 let { error: itemError } = await supabaseAdmin
                   .from('order_items')
                   .insert(orderItemData as any);
                   
                 if (itemError) {
-                  logger.warn('Insert order_item failed, retrying with minimal columns', { error: itemError.message });
-                  // Quitar columnas opcionales que podrían no existir
-                  const { image_url: _iu, product_sku: _ps, ...minimalData } = orderItemData;
+                  logger.warn('Insert order_item failed, retrying minimal', { error: itemError.message });
+                  const { product_sku: _ps, discount_percentage: _dp, ...minimalData } = orderItemData;
                   const retryResult = await supabaseAdmin
                     .from('order_items')
                     .insert(minimalData as any);
