@@ -75,7 +75,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
     // Campos que sí existen en la BD
     const allowedFields = [
       'name', 'slug', 'description', 'category_id', 'price', 
-      'compare_at_price', 'discount_percentage', 'images', 'brand',
+      'compare_at_price', 'discount_percentage', 'images', 'image_url', 'brand',
       'material', 'care_instructions', 'is_active', 'is_featured',
       'is_new', 'is_flash_offer', 'tags', 'meta_title', 'meta_description',
       'sku', 'cost_price'
@@ -89,6 +89,9 @@ export const PUT: APIRoute = async ({ params, request }) => {
         // Para el campo images, permitir arrays vacíos (significa eliminar todas las imágenes)
         if (field === 'images' && Array.isArray(value)) {
           updateData[field] = value;
+          // Sincronizar image_url con la primera imagen del array
+          updateData['image_url'] = value.length > 0 ? value[0] : null;
+          logger.info('Images update:', { count: value.length, image_url: updateData['image_url'] });
           return;
         }
         

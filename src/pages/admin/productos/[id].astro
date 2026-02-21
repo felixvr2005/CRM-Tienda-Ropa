@@ -157,42 +157,46 @@ const { data: categories } = await supabaseAdmin
       <div class="bg-white border border-primary-200 p-6 space-y-4">
         <h2 class="font-medium mb-4">Imágenes</h2>
         
-        <!-- Imágenes existentes -->
-        {product.images && product.images.length > 0 && (
-          <div>
-            <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
-              Imágenes actuales
-            </label>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {product.images.map((imageUrl, idx) => (
-                <div class="relative group">
-                  <img 
-                    src={imageUrl} 
-                    alt={`Producto ${idx + 1}`}
-                    class="w-full h-32 object-cover border border-primary-200"
-                  />
-                  <button 
-                    type="button"
-                    data-image-url={imageUrl}
-                    onclick="window.removeImage(this)"
-                    class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                  >
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+        <!-- Imágenes (grid dinámico - se actualiza con JS) -->
+        <div id="imageGridContainer">
+          {product.images && product.images.length > 0 ? (
+            <div>
+              <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
+                Imágenes actuales ({product.images.length})
+              </label>
+              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {product.images.map((imageUrl, idx) => (
+                  <div class="relative group">
+                    <img 
+                      src={imageUrl} 
+                      alt={`Producto ${idx + 1}`}
+                      class="w-full h-32 object-cover border border-primary-200"
+                    />
+                    <button 
+                      type="button"
+                      data-image-url={imageUrl}
+                      onclick="window.removeImage(this)"
+                      class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                    >
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p class="text-xs text-primary-400 mt-2">Pasa el cursor sobre una imagen y haz click para eliminarla</p>
             </div>
-            <p class="text-xs text-primary-400 mt-2">Pasa el cursor sobre una imagen y haz click para eliminarla</p>
-          </div>
-        )}
+          ) : (
+            <p class="text-sm text-primary-400">No hay imágenes. Usa el cargador para añadir.</p>
+          )}
+        </div>
         
         <ImageUploader client:load />
         
         <div>
           <label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">
-            URLs de imágenes
+            URLs de imágenes (fuente de datos)
           </label>
           <textarea 
             id="imagesInput"
@@ -201,7 +205,7 @@ const { data: categories } = await supabaseAdmin
             placeholder="Las imágenes se añadirán automáticamente cuando las subas"
             class="w-full border border-primary-300 px-4 py-2 text-sm focus:outline-none focus:border-primary-900 font-mono text-xs"
           >{product.images?.join('\n') || ''}</textarea>
-          <p class="text-xs text-primary-400 mt-1">Las URLs se añaden automáticamente desde el cargador de imágenes</p>
+          <p class="text-xs text-primary-400 mt-1">Las URLs se sincronizan automáticamente. También puedes pegar URLs directamente aquí.</p>
         </div>
       </div>
       
@@ -431,52 +435,75 @@ const { data: categories } = await supabaseAdmin
       window.addVariant();
     }
     
-    // Store uploaded images from ImageUploader
-    window.uploadedImages = [];
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // IMAGES: Source of truth as JS array (not textarea)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const imagesTextarea = document.getElementById('imagesInput');
+    window.currentProductImages = imagesTextarea
+      ? imagesTextarea.value.split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u.length > 0; })
+      : [];
     
-    // Function to be called by ImageUploader component
+    // Sync textarea from JS array
+    function syncImagesTextarea() {
+      const ta = document.getElementById('imagesInput');
+      if (ta) ta.value = window.currentProductImages.join('\n');
+    }
+    
+    // Update the visual image grid
+    function refreshImageGrid() {
+      const gridContainer = document.getElementById('imageGridContainer');
+      if (!gridContainer) return;
+      
+      if (window.currentProductImages.length === 0) {
+        gridContainer.innerHTML = '<p class="text-sm text-primary-400">No hay imágenes. Usa el cargador para añadir.</p>';
+        return;
+      }
+      
+      gridContainer.innerHTML = '<label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">Imágenes actuales (' + window.currentProductImages.length + ')</label>' +
+        '<div class="grid grid-cols-2 md:grid-cols-3 gap-4">' +
+        window.currentProductImages.map(function(url, idx) {
+          return '<div class="relative group">' +
+            '<img src="' + url + '" alt="Imagen ' + (idx + 1) + '" class="w-full h-32 object-cover border border-primary-200" />' +
+            '<button type="button" data-image-url="' + url + '" onclick="window.removeImage(this)" ' +
+            'class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">' +
+            '<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />' +
+            '</svg></button></div>';
+        }).join('') +
+        '</div>' +
+        '<p class="text-xs text-primary-400 mt-2">Pasa el cursor sobre una imagen y haz click para eliminarla</p>';
+    }
+    
+    // Called by ImageUploader component on each successful upload
     window.handleImagesUpload = function(images) {
-      if (import.meta.env.DEV) console.debug('Images uploaded to component:', images);
-      window.uploadedImages = images.map(img => img.secure_url);
+      var newUrls = images.map(function(img) { return img.secure_url; });
       
-      // Update textarea by ADDING new images to existing ones
-      const imagesInput = document.getElementById('imagesInput');
-      if (imagesInput && window.uploadedImages.length > 0) {
-        // Get current URLs from textarea
-        const currentUrls = imagesInput.value
-          .split('\n')
-          .map(url => url.trim())
-          .filter(url => url.length > 0);
-        
-        // Add only new URLs (avoid duplicates)
-        const newUrls = window.uploadedImages.filter(url => !currentUrls.includes(url));
-        
-        if (newUrls.length > 0) {
-          // Combine and update textarea
-          const allUrls = [...currentUrls, ...newUrls];
-          imagesInput.value = allUrls.join('\n');
-          if (import.meta.env.DEV) console.debug('Textarea updated with', newUrls.length, 'new images. Total:', allUrls.length);
+      newUrls.forEach(function(url) {
+        if (window.currentProductImages.indexOf(url) === -1) {
+          window.currentProductImages.push(url);
         }
-      }
+      });
+      
+      syncImagesTextarea();
+      refreshImageGrid();
+      console.log('[Images] Added ' + newUrls.length + ' images. Total: ' + window.currentProductImages.length);
     };
     
-    // Function to remove an image from the textarea
+    // Remove an image
     window.removeImage = function(button) {
-      const imageUrl = button.dataset.imageUrl;
-      const imagesInput = document.getElementById('imagesInput');
-      
-      if (imagesInput) {
-        const images = imagesInput.value
-          .split('\n')
-          .map(url => url.trim())
-          .filter(url => url.length > 0 && url !== imageUrl);
-        
-        imagesInput.value = images.join('\n');
-      }
-      
-      // Remover visualmente la imagen
-      button.closest('.group').remove();
+      var imageUrl = button.dataset.imageUrl;
+      window.currentProductImages = window.currentProductImages.filter(function(u) { return u !== imageUrl; });
+      syncImagesTextarea();
+      refreshImageGrid();
     };
+    
+    // Sync JS array if user manually edits the textarea
+    if (imagesTextarea) {
+      imagesTextarea.addEventListener('input', function() {
+        window.currentProductImages = imagesTextarea.value
+          .split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u.length > 0; });
+      });
+    }
     
     // Form submission
     const form = document.getElementById('productForm');
@@ -488,24 +515,16 @@ const { data: categories } = await supabaseAdmin
       
       const formData = new FormData(form);
       
-      // Obtener imágenes del textarea (que se actualiza automáticamente por ImageUploader)
-      const imagesTextarea = document.getElementById('imagesInput');
-      let images = [];
+      // Use the JS array as source of truth (more reliable than textarea DOM)
+      let images = (window.currentProductImages || []).filter(function(u) { return u && u.trim().length > 0; });
       
-      if (imagesTextarea && imagesTextarea.value.trim()) {
-        images = imagesTextarea.value
-          .split('\n')
-          .map(url => url.trim())
-          .filter(url => url.length > 0);
+      // Fallback: also check textarea in case JS array was lost somehow
+      if (images.length === 0 && imagesTextarea && imagesTextarea.value.trim()) {
+        images = imagesTextarea.value.split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u.length > 0; });
+        console.warn('[Images] Fallback: read from textarea instead of JS array');
       }
       
-      if (import.meta.env.DEV) console.debug('Images from textarea:', images);
-      if (import.meta.env.DEV) console.debug('Form data:', {
-        name: formData.get('name'),
-        price: formData.get('price'),
-        images: images,
-        description: formData.get('description'),
-      });
+      console.log('[Images] Sending', images.length, 'images:', images);
       
       // Construir el objeto producto asegurando que TODOS los campos se incluyan
       const product = {

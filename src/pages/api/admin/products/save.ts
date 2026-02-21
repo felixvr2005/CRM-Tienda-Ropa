@@ -34,6 +34,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       is_new,
       is_flash_offer,
       is_active,
+      images,
       variants
     } = data;
 
@@ -71,7 +72,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       is_featured,
       is_new,
       is_flash_offer,
-      is_active
+      is_active,
+      images: Array.isArray(images) ? images : [],
+      image_url: Array.isArray(images) && images.length > 0 ? images[0] : null,
     };
 
     let productId: string;
