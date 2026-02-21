@@ -24,7 +24,7 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendNewsletterWelcomeEmail(email: string, discountCode: string) {
-  const baseUrl = process.env.PUBLIC_APP_URL || 'https://essentialforce.com';
+  const baseUrl = process.env.PUBLIC_APP_URL || 'https://essentialforce.victoriafp.online';
   const htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
