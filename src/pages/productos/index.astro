@@ -170,15 +170,55 @@ const colorHex: Record<string, string> = {
           {availableFilters.sizes.length > 0 && (
             <div>
               <h3 class="text-xs uppercase tracking-wider text-primary-500 mb-3">Talla</h3>
-              <div class="flex flex-wrap gap-2" id="sizeFilters">
-                {availableFilters.sizes.map((size) => (
-                  <button
-                    data-size={size}
-                    class:list={['size-filter min-w-[40px] px-3 py-2 border text-sm transition-colors', sizes.includes(size) ? 'border-primary-900 bg-primary-900 text-white' : 'border-primary-300 hover:border-primary-500']}
-                  >
-                    {size}
-                  </button>
-                ))}
+              <div class="space-y-4" id="sizeFilters">
+                {/* Tallas de ropa */}
+                {availableFilters.sizeGroups?.clothing?.length > 0 && (
+                  <div>
+                    <p class="text-xs text-primary-400 mb-2">Ropa</p>
+                    <div class="flex flex-wrap gap-2">
+                      {availableFilters.sizeGroups.clothing.map((size: string) => (
+                        <button
+                          data-size={size}
+                          class:list={['size-filter min-w-[40px] px-3 py-2 border text-sm transition-colors', sizes.includes(size) ? 'border-primary-900 bg-primary-900 text-white' : 'border-primary-300 hover:border-primary-500']}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Tallas de calzado */}
+                {availableFilters.sizeGroups?.shoes?.length > 0 && (
+                  <div>
+                    <p class="text-xs text-primary-400 mb-2">Calzado</p>
+                    <div class="flex flex-wrap gap-2">
+                      {availableFilters.sizeGroups.shoes.map((size: string) => (
+                        <button
+                          data-size={size}
+                          class:list={['size-filter min-w-[40px] px-3 py-2 border text-sm transition-colors', sizes.includes(size) ? 'border-primary-900 bg-primary-900 text-white' : 'border-primary-300 hover:border-primary-500']}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Tallas de accesorios */}
+                {availableFilters.sizeGroups?.accessories?.length > 0 && (
+                  <div>
+                    <p class="text-xs text-primary-400 mb-2">Accesorios</p>
+                    <div class="flex flex-wrap gap-2">
+                      {availableFilters.sizeGroups.accessories.map((size: string) => (
+                        <button
+                          data-size={size}
+                          class:list={['size-filter min-w-[40px] px-3 py-2 border text-sm transition-colors', sizes.includes(size) ? 'border-primary-900 bg-primary-900 text-white' : 'border-primary-300 hover:border-primary-500']}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

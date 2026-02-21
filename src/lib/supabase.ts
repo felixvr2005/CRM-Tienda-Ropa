@@ -388,7 +388,7 @@ export async function getFilteredProducts(filters: ProductFilters) {
 export async function getAvailableFilters(categorySlug?: string) {
   const client = getClient();
   
-  // Obtener todos los productos activos (o de una categoría)
+  // Obtener todos los productos activos (o de una categoría) con su tipo
   let query = client
     .from('products')
     .select(`
@@ -396,6 +396,7 @@ export async function getAvailableFilters(categorySlug?: string) {
       discount_percentage,
       is_new,
       product_type_id,
+      product_type:product_types(size_type),
       variants:product_variants(size, color)
     `)
     .eq('is_active', true);
@@ -414,11 +415,14 @@ export async function getAvailableFilters(categorySlug?: string) {
 
   const { data } = await query;
 
-  if (!data) return { colors: [], sizes: [], priceRange: { min: 0, max: 1000 } };
+  if (!data) return { colors: [], sizes: [], sizeGroups: { clothing: [], shoes: [], accessories: [] }, priceRange: { min: 0, max: 1000 } };
 
-  // Extraer valores únicos
+  // Extraer valores únicos, agrupando tallas por tipo
   const colors = new Set<string>();
   const sizes = new Set<string>();
+  const clothingSizes = new Set<string>();
+  const shoeSizes = new Set<string>();
+  const accessorySizes = new Set<string>();
   let minPrice = Infinity;
   let maxPrice = 0;
 
@@ -432,54 +436,71 @@ export async function getAvailableFilters(categorySlug?: string) {
     minPrice = Math.min(minPrice, price);
     maxPrice = Math.max(maxPrice, price);
 
+    // Determinar tipo de talla del producto
+    const sizeType = (product.product_type as any)?.size_type || 'standard';
+
     product.variants?.forEach((v: any) => {
       // Solo añadir colores que no sean códigos hex
       if (v.color && !v.color.startsWith('#')) {
         colors.add(v.color);
       }
-      sizes.add(v.size);
+      if (v.size) {
+        sizes.add(v.size);
+        if (sizeType === 'shoe') {
+          shoeSizes.add(v.size);
+        } else if (sizeType === 'unique') {
+          accessorySizes.add(v.size);
+        } else {
+          clothingSizes.add(v.size);
+        }
+      }
     });
   });
 
-  // Ordenar tallas
-  const allSizes = Array.from(sizes);
-  const isNumericOnly = allSizes.every(s => /^\d+$/.test(s));
-
-  let sortedSizes: string[];
-  if (isNumericOnly) {
-    // Orden numérico ascendente para tallas de calzado (35,36,37...)
-    sortedSizes = allSizes.sort((a, b) => Number(a) - Number(b));
-  } else {
-    const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '85', '90', '95', '100', 'UNICA'];
-    sortedSizes = allSizes.sort((a, b) => {
-      const aIndex = sizeOrder.indexOf(a);
-      const bIndex = sizeOrder.indexOf(b);
-      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-      return aIndex - bIndex;
-    });
-  }
-
-  // Intentar inferir sizeType a partir de los product_types en la categoría (cuando se proporciona categorySlug)
-  let inferredSizeType: 'standard' | 'shoe' | 'unique' = 'standard';
-  try {
-    const { data: pt } = await client
-      .from('product_types')
-      .select('size_type')
-      .in('id', (data || []).map((p: any) => p.product_type_id).filter(Boolean))
-      .limit(1);
-    if (pt && pt.length > 0 && pt[0].size_type) {
-      inferredSizeType = pt[0].size_type as 'standard' | 'shoe' | 'unique';
+  // Función para ordenar tallas
+  const clothingOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  
+  function sortSizes(sizesSet: Set<string>, type: 'clothing' | 'shoes' | 'accessories'): string[] {
+    const arr = Array.from(sizesSet);
+    if (type === 'shoes') {
+      return arr.sort((a, b) => Number(a) - Number(b));
     }
-  } catch (e) {
-    // noop - inference best-effort only
+    if (type === 'clothing') {
+      return arr.sort((a, b) => {
+        const aIdx = clothingOrder.indexOf(a);
+        const bIdx = clothingOrder.indexOf(b);
+        if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+        if (aIdx === -1) return 1;
+        if (bIdx === -1) return -1;
+        return aIdx - bIdx;
+      });
+    }
+    return arr.sort();
   }
+
+  // Ordenar todas las tallas juntas (compatibilidad)
+  const allSizes = Array.from(sizes);
+  const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Único', 'UNICA'];
+  const sortedSizes = allSizes.sort((a, b) => {
+    const aNum = Number(a);
+    const bNum = Number(b);
+    if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+    const aIdx = sizeOrder.indexOf(a);
+    const bIdx = sizeOrder.indexOf(b);
+    if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+    if (aIdx === -1) return 1;
+    if (bIdx === -1) return -1;
+    return aIdx - bIdx;
+  });
 
   return {
     colors: Array.from(colors).sort(),
     sizes: sortedSizes,
-    sizeType: inferredSizeType,
+    sizeGroups: {
+      clothing: sortSizes(clothingSizes, 'clothing'),
+      shoes: sortSizes(shoeSizes, 'shoes'),
+      accessories: sortSizes(accessorySizes, 'accessories'),
+    },
     priceRange: {
       min: minPrice === Infinity ? 0 : Math.floor(minPrice),
       max: maxPrice === 0 ? 1000 : Math.ceil(maxPrice)
