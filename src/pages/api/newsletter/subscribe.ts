@@ -24,55 +24,76 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendNewsletterWelcomeEmail(email: string, discountCode: string) {
+  const baseUrl = process.env.PUBLIC_APP_URL || 'https://essentialforce.com';
   const htmlContent = `
 <!DOCTYPE html>
-<html>
+<html lang="es">
   <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-      .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-      .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-      .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-      .code-box { background: white; border: 2px solid #667eea; padding: 20px; text-align: center; margin: 20px 0; border-radius: 5px; }
-      .code { font-size: 32px; font-weight: bold; color: #667eea; font-family: monospace; letter-spacing: 2px; }
-      .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-      .footer { text-align: center; font-size: 12px; color: #999; margin-top: 30px; }
+      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #404040; background-color: #f5f5f5; margin: 0; -webkit-font-smoothing: antialiased; }
+      .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+      .header { background-color: #171717; color: #ffffff; padding: 32px 40px; text-align: center; }
+      .header h1 { font-size: 13px; letter-spacing: 4px; font-weight: 600; text-transform: uppercase; margin: 0 0 4px; }
+      .header p { font-size: 12px; color: #a3a3a3; font-weight: 300; margin: 0; }
+      .content { padding: 40px; }
+      .section-title { font-size: 11px; letter-spacing: 2px; font-weight: 600; text-transform: uppercase; color: #737373; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e5e5; }
+      .code-box { background-color: #fafafa; border: 1px solid #e5e5e5; padding: 24px; text-align: center; margin: 20px 0; }
+      .code { font-size: 28px; font-weight: 700; color: #171717; font-family: monospace; letter-spacing: 4px; }
+      .cta-section { text-align: center; margin: 28px 0; }
+      .cta-button { display: inline-block; background-color: #ffffff; color: #171717; padding: 14px 40px; text-decoration: none; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; border: 2px solid #171717; }
+      .footer { background-color: #fafafa; padding: 28px 40px; text-align: center; border-top: 1px solid #e5e5e5; }
+      .footer-note { font-size: 11px; color: #a3a3a3; line-height: 1.6; }
+      @media (max-width: 600px) { .content { padding: 24px 20px; } .header { padding: 24px 20px; } .footer { padding: 20px; } }
     </style>
   </head>
   <body>
     <div class="container">
+      <!-- Header -->
       <div class="header">
-        <h1>¡Bienvenido a Essential Force!</h1>
-        <p>Tu código de descuento especial te espera</p>
+        <h1>Essential Force</h1>
+        <p>Bienvenido a la comunidad</p>
       </div>
+
+      <!-- Content -->
       <div class="content">
-        <h2>Hola,</h2>
-        <p>Gracias por suscribirte a nuestro newsletter. Te damos la bienvenida a la comunidad Essential Force.</p>
-        
-        <p>Como regalo especial, te ofrecemos un <strong>20% de descuento</strong> en tu próxima compra usando el siguiente código:</p>
-        
+        <p style="font-size: 15px; color: #171717; margin: 0 0 8px;">Hola,</p>
+        <p style="font-size: 14px; color: #404040; margin: 0 0 28px;">
+          Gracias por suscribirte a nuestro newsletter. Te damos la bienvenida a la comunidad Essential Force.
+        </p>
+
+        <p style="font-size: 14px; color: #404040; margin: 0 0 16px;">
+          Como regalo especial, te ofrecemos un <strong>20% de descuento</strong> en tu próxima compra usando el siguiente código:
+        </p>
+
+        <!-- Código de descuento -->
+        <div class="section-title">Tu código de descuento</div>
         <div class="code-box">
           <div class="code">${discountCode}</div>
+          <p style="margin: 8px 0 0; font-size: 12px; color: #a3a3a3;">Sin fecha de vencimiento</p>
         </div>
-        
-        <p>Puedes usar este código en cualquier momento durante el proceso de compra. <strong>No tiene fecha de vencimiento.</strong></p>
-        
-        <a href="${process.env.PUBLIC_APP_URL || 'https://tienda.com'}/productos" class="button">Explora nuestros productos</a>
-        
-        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-        
-        <h3>¿Qué esperar de nosotros?</h3>
-        <ul>
+
+        <!-- CTA -->
+        <div class="cta-section">
+          <a href="${baseUrl}/productos" class="cta-button" style="display: inline-block; background-color: #ffffff; color: #171717; padding: 14px 40px; text-decoration: none; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; border: 2px solid #171717;">Explorar productos</a>
+        </div>
+
+        <!-- Qué esperar -->
+        <div class="section-title" style="margin-top: 32px;">Qué esperar de nosotros</div>
+        <ul style="margin: 0; padding-left: 20px; color: #404040; font-size: 13px; line-height: 1.8;">
           <li>Promociones exclusivas solo para suscriptores</li>
           <li>Nuevas colecciones y lanzamientos</li>
           <li>Consejos de moda y tendencias</li>
           <li>Ofertas especiales en tu cumpleaños</li>
         </ul>
-        
-        <div class="footer">
-          <p>Essential Force - Tu tienda de moda online</p>
-          <p>Si deseas dejar de recibir emails, <a href="${(process.env.PUBLIC_APP_URL || 'https://tienda.com')}/unsubscribe?email=${encodeURIComponent(email)}&code=${discountCode}">haz clic aquí para darte de baja</a></p>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <div class="footer-note">
+          © ${new Date().getFullYear()} Essential Force. Todos los derechos reservados.<br>
+          <a href="${baseUrl}/unsubscribe?email=${encodeURIComponent(email)}&code=${discountCode}" style="color: #a3a3a3; text-decoration: underline;">Darte de baja</a>
         </div>
       </div>
     </div>

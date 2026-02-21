@@ -209,7 +209,7 @@ async function sendReturnEmail({
   }
 }
 
-// Función para generar HTML
+// Función para generar HTML — diseño minimalista Essential Force
 function generateEmailHTML({
   name,
   orderNumber,
@@ -231,98 +231,101 @@ function generateEmailHTML({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #404040; background-color: #f5f5f5; margin: 0; -webkit-font-smoothing: antialiased; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+    .header { background-color: #171717; color: #ffffff; padding: 32px 40px; text-align: center; }
+    .header h1 { font-size: 13px; letter-spacing: 4px; font-weight: 600; text-transform: uppercase; margin: 0 0 4px; }
+    .header p { font-size: 12px; color: #a3a3a3; font-weight: 300; margin: 0; }
+    .content { padding: 40px; }
+    .section-title { font-size: 11px; letter-spacing: 2px; font-weight: 600; text-transform: uppercase; color: #737373; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e5e5; }
+    .info-box { background-color: #fafafa; border: 1px solid #e5e5e5; padding: 16px 20px; margin-bottom: 24px; }
+    .cta-section { text-align: center; margin: 28px 0; }
+    .cta-button { display: inline-block; background-color: #ffffff; color: #171717; padding: 14px 40px; text-decoration: none; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; border: 2px solid #171717; }
+    .footer { background-color: #fafafa; padding: 28px 40px; text-align: center; border-top: 1px solid #e5e5e5; }
+    .footer-note { font-size: 11px; color: #a3a3a3; line-height: 1.6; }
+    @media (max-width: 600px) { .content { padding: 24px 20px; } .header { padding: 24px 20px; } .footer { padding: 20px; } }
+  </style>
 </head>
-<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background: #f5f5f5;">
-    <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table width="100%" max-width="600px" cellpadding="0" cellspacing="0" style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-          
-          <!-- Header -->
-          <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <td style="padding: 40px 20px; text-align: center;">
-              <h1 style="margin: 0; color: white; font-size: 28px;">Devolución Aprobada</h1>
-            </td>
-          </tr>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>Essential Force</h1>
+      <p>Devolución aprobada</p>
+    </div>
 
-          <!-- Content -->
+    <!-- Content -->
+    <div class="content">
+      <p style="font-size: 15px; color: #171717; margin: 0 0 8px;">Hola <strong>${name}</strong>,</p>
+      <p style="font-size: 14px; color: #404040; margin: 0 0 28px;">
+        Tu solicitud de devolución ha sido <strong>aprobada</strong>. Descarga la etiqueta de envío y sigue los pasos indicados para completar el proceso.
+      </p>
+
+      <!-- Detalles -->
+      <div class="section-title">Detalles de la devolución</div>
+      <div class="info-box">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="padding: 40px 30px;">
-              <p style="margin: 0 0 20px 0; font-size: 16px;">Hola <strong>${name}</strong>,</p>
-              
-              <p style="margin: 0 0 30px 0; font-size: 14px; color: #666;">
-                Tu solicitud de devolución ha sido <strong>aprobada</strong>. Por favor descarga la etiqueta de envío y sigue los pasos indicados para completar el proceso de devolución.
-              </p>
-
-              <!-- Details Box -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background: #f0f8ff; border-left: 4px solid #667eea; margin: 30px 0; border-radius: 4px;">
-                <tr>
-                  <td style="padding: 20px;">
-                    <p style="margin: 0 0 15px 0; color: #667eea; font-weight: bold; font-size: 14px;">DETALLES DE TU DEVOLUCIÓN</p>
-                    <p style="margin: 5px 0; font-size: 13px;"><span style="color: #666;">Número de Pedido:</span> <strong>#${orderNumber}</strong></p>
-                    <p style="margin: 5px 0; font-size: 13px;"><span style="color: #666;">ID de Devolución:</span> <strong>${returnId.slice(0, 8).toUpperCase()}</strong></p>
-                    <p style="margin: 5px 0; font-size: 13px;"><span style="color: #666;">Monto a Reembolsar:</span> <strong style="color: #28a745; font-size: 18px;">€${amount.toFixed(2)}</strong></p>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- CTA Button -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 35px 0;">
-                <tr>
-                  <td align="center">
-                    <a href="${labelUrl}" style="display: inline-block; background: #28a745; color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
-                      Descargar Etiqueta de Envío
-                    </a>
-                  </td>
-                </tr>
-              </table>
-
-              ${trackingNumber ? `
-              <p style="text-align: center; margin: 20px 0 0 0; font-size: 13px; color: #666;">
-                <strong>Número de Seguimiento:</strong><br>
-                <code style="background: #f0f0f0; padding: 8px 12px; border-radius: 4px; display: inline-block; margin-top: 5px; font-family: monospace;">${trackingNumber}</code>
-              </p>
-              ` : ''}
-
-              <!-- Steps -->
-              <h3 style="margin: 35px 0 15px 0; color: #333; font-size: 16px;">Próximos Pasos</h3>
-              <ol style="margin: 0; padding-left: 20px; color: #666; font-size: 14px;">
-                <li style="margin-bottom: 8px;">Descarga e imprime la etiqueta de envío</li>
-                <li style="margin-bottom: 8px;">Prepara el artículo devuelto en su empaque original</li>
-                <li style="margin-bottom: 8px;">Adhiere la etiqueta de envío en un lugar visible del paquete</li>
-                <li style="margin-bottom: 8px;">Entrega el paquete en la oficina de correo indicada</li>
-              </ol>
-
-              <!-- Important Info -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background: #fff3cd; border-left: 4px solid #ffc107; margin: 30px 0; border-radius: 4px;">
-                <tr>
-                  <td style="padding: 15px 20px;">
-                    <p style="margin: 0; color: #856404; font-size: 13px;">
-                      <strong>⏱️ Reembolso:</strong> Una vez recibamos y procesemos tu devolución, el reembolso se acreditará en tu cuenta en 5-7 días hábiles.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
-            </td>
+            <td style="padding: 4px 0; color: #737373; font-size: 13px;">Nº Pedido</td>
+            <td style="padding: 4px 0; color: #171717; font-weight: 500; font-size: 13px; text-align: right;">#${orderNumber}</td>
           </tr>
-
-          <!-- Footer -->
           <tr>
-            <td style="background: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #eee;">
-              <p style="margin: 0 0 10px 0; font-size: 12px; color: #999;">
-                Si tienes preguntas o problemas, contáctanos a través de nuestro sitio web.
-              </p>
-              <p style="margin: 0; font-size: 11px; color: #bbb;">
-                © 2025 Essential Force. Todos los derechos reservados.
-              </p>
-            </td>
+            <td style="padding: 4px 0; color: #737373; font-size: 13px;">ID Devolución</td>
+            <td style="padding: 4px 0; color: #171717; font-weight: 500; font-size: 13px; text-align: right;">${returnId.slice(0, 8).toUpperCase()}</td>
           </tr>
-
+          <tr>
+            <td style="padding: 4px 0; color: #737373; font-size: 13px;">Reembolso</td>
+            <td style="padding: 4px 0; color: #171717; font-weight: 700; font-size: 16px; text-align: right;">${amount.toFixed(2).replace('.', ',')} €</td>
+          </tr>
         </table>
-      </td>
-    </tr>
-  </table>
+      </div>
+
+      ${trackingNumber ? `
+      <div class="info-box" style="margin-bottom: 24px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding: 4px 0; color: #737373; font-size: 13px;">Nº Seguimiento</td>
+            <td style="padding: 4px 0; color: #171717; font-weight: 500; font-size: 13px; text-align: right; font-family: monospace;">${trackingNumber}</td>
+          </tr>
+        </table>
+      </div>
+      ` : ''}
+
+      <!-- CTA -->
+      <div class="cta-section">
+        <a href="${labelUrl}" class="cta-button" style="display: inline-block; background-color: #ffffff; color: #171717; padding: 14px 40px; text-decoration: none; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; border: 2px solid #171717;">Descargar etiqueta de envío</a>
+      </div>
+
+      <!-- Próximos pasos -->
+      <div class="section-title" style="margin-top: 32px;">Próximos pasos</div>
+      <ol style="margin: 0; padding-left: 20px; color: #404040; font-size: 13px; line-height: 1.8;">
+        <li>Descarga e imprime la etiqueta de envío</li>
+        <li>Prepara el artículo en su empaque original</li>
+        <li>Adhiere la etiqueta en un lugar visible del paquete</li>
+        <li>Entrega el paquete en la oficina de correo indicada</li>
+      </ol>
+
+      <!-- Nota de reembolso -->
+      <div class="info-box" style="margin-top: 24px;">
+        <p style="margin: 0; color: #404040; font-size: 13px;">
+          <strong>Plazo de reembolso:</strong> Una vez recibamos y procesemos tu devolución, el reembolso se acreditará en tu cuenta en 5-7 días hábiles.
+        </p>
+      </div>
+
+      <p style="text-align: center; font-size: 12px; color: #a3a3a3; margin-top: 24px;">
+        ¿Necesitas ayuda? Escríbenos a <strong>info@essentialforce.com</strong>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-note">
+        © ${new Date().getFullYear()} Essential Force. Todos los derechos reservados.<br>
+        Este es un email automático, por favor no respondas a este mensaje.
+      </div>
+    </div>
+  </div>
 </body>
 </html>
   `;
