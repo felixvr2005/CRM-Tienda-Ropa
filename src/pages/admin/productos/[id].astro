@@ -31,6 +31,17 @@ const { data: categories } = await supabaseAdmin
 
 <AdminLayout title={`Editar: ${product.name}`}>
   <div class="max-w-4xl">
+    <!-- Success banner when redirected after save -->
+    {Astro.url.searchParams.get('saved') === '1' && (
+      <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6 flex items-center gap-2">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+        <span class="font-medium">Producto guardado correctamente</span>
+      </div>
+    )}
+    
+    <!-- Save status banner (hidden, shown by JS) -->
+    <div id="saveStatus" class="hidden mb-6 px-4 py-3 rounded flex items-center gap-2 text-sm font-medium"></div>
+    
     <!-- Header -->
     <div class="flex items-center justify-between gap-4 mb-8">
       <div class="flex items-center gap-4">
@@ -368,252 +379,286 @@ const { data: categories } = await supabaseAdmin
   </div>
   
   <script is:inline define:vars={{ existingVariants: product.variants || [], productId: product.id }}>
-    let variantIndex = 0;
+    // ═══════════════════════════════════════════════════════
+    // PASO 1: REGISTRAR SUBMIT HANDLER PRIMERO (lo más crítico)
+    // ═══════════════════════════════════════════════════════
+    var form = document.getElementById('productForm');
+    var errorDiv = document.getElementById('errorMessage');
+    var saveStatus = document.getElementById('saveStatus');
+    var submitBtn = form ? form.querySelector('button[type="submit"]') : null;
     
-    // Exponer funciones globalmente para que onclick funcione
-    window.addVariant = function(size, color, stock, variantId) {
-      size = size || 'M';
-      color = color || '';
-      stock = stock || 0;
-      variantId = variantId || null;
-      
-      const container = document.getElementById('variantsContainer');
-      const stockBorder = stock === 0 ? 'border-red-400' : stock < 10 ? 'border-amber-400' : 'border-primary-300';
-      const stockBg = stock === 0 ? 'bg-red-50' : stock < 10 ? 'bg-amber-50' : '';
-      const stockLabel = stock === 0 ? '<span class="text-red-600 text-xs font-medium">AGOTADO</span>' : stock < 10 ? '<span class="text-amber-600 text-xs font-medium">Stock bajo</span>' : '';
-      const variantHtml = `
-        <div class="flex items-center gap-4 p-4 border ${stockBorder} ${stockBg} rounded" data-variant="${variantIndex}">
-          <input type="hidden" name="variants[${variantIndex}][id]" value="${variantId || ''}" />
-          <div class="flex-1">
-            <label class="block text-xs text-primary-500 mb-1">Talla</label>
-            <select name="variants[${variantIndex}][size]" class="w-full border border-primary-300 px-3 py-1.5 text-sm">
-              ${['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => 
-                `<option value="${s}" ${s === size ? 'selected' : ''}>${s}</option>`
-              ).join('')}
-            </select>
-          </div>
-          <div class="flex-1">
-            <label class="block text-xs text-primary-500 mb-1">Color</label>
-            <input type="text" name="variants[${variantIndex}][color]" value="${color || ''}" class="w-full border border-primary-300 px-3 py-1.5 text-sm" placeholder="Negro" />
-          </div>
-          <div class="w-24">
-            <label class="block text-xs text-primary-500 mb-1">Stock ${stockLabel}</label>
-            <input type="number" name="variants[${variantIndex}][stock]" min="0" value="${stock || 0}" class="w-full border ${stockBorder} px-3 py-1.5 text-sm" />
-          </div>
-          ${variantId ? `
-          <div class="w-20">
-            <label class="block text-xs text-green-600 mb-1 font-medium">+ Restock</label>
-            <div class="flex gap-1">
-              <input type="number" min="1" value="10" class="w-12 border border-green-300 px-1 py-1.5 text-xs text-center rounded quick-restock-qty" data-variant-id="${variantId}" />
-              <button type="button" class="quick-restock-btn bg-green-600 text-white px-1.5 py-1.5 rounded hover:bg-green-700 text-xs" data-variant-id="${variantId}" data-variant-idx="${variantIndex}" title="Añadir stock rápido">+</button>
-            </div>
-          </div>
-          ` : ''}
-          <button type="button" onclick="window.removeVariant(${variantIndex})" class="text-red-600 hover:text-red-800 mt-5">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      `;
-      container.insertAdjacentHTML('beforeend', variantHtml);
-      variantIndex++;
-    };
-    
-    window.removeVariant = function(index) {
-      const variant = document.querySelector(`[data-variant="${index}"]`);
-      if (variant) variant.remove();
-    };
-    
-    // Load existing variants
-    existingVariants.forEach(v => {
-      window.addVariant(v.size, v.color, v.stock, v.id);
-    });
-    
-    // If no variants, add one empty
-    if (existingVariants.length === 0) {
-      window.addVariant();
+    function showStatus(type, msg) {
+      if (!saveStatus) return;
+      saveStatus.className = 'mb-6 px-4 py-3 rounded flex items-center gap-2 text-sm font-medium ' +
+        (type === 'saving' ? 'bg-blue-100 border border-blue-300 text-blue-700' :
+         type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+         'bg-red-100 border border-red-400 text-red-700');
+      saveStatus.textContent = msg;
+      saveStatus.classList.remove('hidden');
+      saveStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // IMAGES: Source of truth as JS array (not textarea)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const imagesTextarea = document.getElementById('imagesInput');
-    window.currentProductImages = imagesTextarea
-      ? imagesTextarea.value.split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u.length > 0; })
-      : [];
-    
-    // Sync textarea from JS array
-    function syncImagesTextarea() {
-      const ta = document.getElementById('imagesInput');
-      if (ta) ta.value = window.currentProductImages.join('\n');
-    }
-    
-    // Update the visual image grid
-    function refreshImageGrid() {
-      const gridContainer = document.getElementById('imageGridContainer');
-      if (!gridContainer) return;
-      
-      if (window.currentProductImages.length === 0) {
-        gridContainer.innerHTML = '<p class="text-sm text-primary-400">No hay imágenes. Usa el cargador para añadir.</p>';
-        return;
-      }
-      
-      gridContainer.innerHTML = '<label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">Imágenes actuales (' + window.currentProductImages.length + ')</label>' +
-        '<div class="grid grid-cols-2 md:grid-cols-3 gap-4">' +
-        window.currentProductImages.map(function(url, idx) {
-          return '<div class="relative group">' +
-            '<img src="' + url + '" alt="Imagen ' + (idx + 1) + '" class="w-full h-32 object-cover border border-primary-200" />' +
-            '<button type="button" data-image-url="' + url + '" onclick="window.removeImage(this)" ' +
-            'class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">' +
-            '<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />' +
-            '</svg></button></div>';
-        }).join('') +
-        '</div>' +
-        '<p class="text-xs text-primary-400 mt-2">Pasa el cursor sobre una imagen y haz click para eliminarla</p>';
-    }
-    
-    // Called by ImageUploader component on each successful upload
-    window.handleImagesUpload = function(images) {
-      var newUrls = images.map(function(img) { return img.secure_url; });
-      
-      newUrls.forEach(function(url) {
-        if (window.currentProductImages.indexOf(url) === -1) {
-          window.currentProductImages.push(url);
+    if (form) {
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        console.log('[SAVE] Form submit intercepted');
+        
+        if (errorDiv) errorDiv.classList.add('hidden');
+        showStatus('saving', '⏳ Guardando cambios...');
+        
+        var origBtnText = submitBtn ? submitBtn.textContent : '';
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Guardando...'; }
+        
+        try {
+          var formData = new FormData(form);
+          
+          // ── Imágenes: leer de JS array (principal) o textarea (fallback) ──
+          var images = [];
+          if (window.currentProductImages && window.currentProductImages.length > 0) {
+            images = window.currentProductImages.filter(function(u) { return u && u.trim().length > 0; });
+          }
+          if (images.length === 0) {
+            var ta = document.getElementById('imagesInput');
+            if (ta && ta.value.trim()) {
+              images = ta.value.split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u.length > 0; });
+              console.log('[SAVE] Images from textarea fallback:', images.length);
+            }
+          }
+          console.log('[SAVE] Images to send:', images.length, images);
+          
+          // ── Construir objeto producto ──
+          var productData = {
+            name: formData.get('name') || '',
+            description: formData.get('description') || '',
+            category_id: formData.get('category_id') || null,
+            price: parseFloat(formData.get('price')) || 0,
+            compare_at_price: (formData.get('compare_at_price') && String(formData.get('compare_at_price')).trim())
+              ? parseFloat(formData.get('compare_at_price'))
+              : null,
+            discount_percentage: parseInt(formData.get('discount_percentage')) || 0,
+            images: images,
+            brand: (formData.get('brand') && String(formData.get('brand')).trim()) ? String(formData.get('brand')).trim() : null,
+            material: (formData.get('material') && String(formData.get('material')).trim()) ? String(formData.get('material')).trim() : null,
+            care_instructions: (formData.get('care_instructions') && String(formData.get('care_instructions')).trim()) 
+              ? String(formData.get('care_instructions')).trim() : null,
+            is_active: formData.get('is_active') !== null,
+            is_featured: formData.get('is_featured') !== null,
+            is_new: formData.get('is_new') !== null,
+            is_flash_offer: formData.get('is_flash_offer') !== null,
+            tags: (formData.get('tags') && String(formData.get('tags')).trim())
+              ? String(formData.get('tags')).split(',').map(function(t) { return t.trim(); }).filter(function(t) { return t; })
+              : [],
+            meta_title: (formData.get('meta_title') && String(formData.get('meta_title')).trim()) ? String(formData.get('meta_title')).trim() : null,
+            meta_description: (formData.get('meta_description') && String(formData.get('meta_description')).trim()) ? String(formData.get('meta_description')).trim() : null,
+            sku: (formData.get('sku') && String(formData.get('sku')).trim()) ? String(formData.get('sku')).trim() : null,
+          };
+          console.log('[SAVE] Product data:', JSON.stringify(productData));
+          
+          // ── Construir array de variantes ──
+          var variants = [];
+          var variantEls = document.querySelectorAll('[data-variant]');
+          variantEls.forEach(function(el) {
+            var idInput = el.querySelector('[name*="[id]"]');
+            var sizeInput = el.querySelector('[name*="[size]"]');
+            var colorInput = el.querySelector('[name*="[color]"]');
+            var stockInput = el.querySelector('[name*="[stock]"]');
+            
+            if (sizeInput && sizeInput.value) {
+              var vid = idInput ? idInput.value : null;
+              variants.push({
+                id: vid || undefined,
+                size: sizeInput.value,
+                color: colorInput ? colorInput.value : '',
+                stock: parseInt(stockInput ? stockInput.value : '0') || 0,
+              });
+            }
+          });
+          console.log('[SAVE] Variants:', JSON.stringify(variants));
+          
+          // ── Enviar al API ──
+          var apiUrl = '/api/admin/products/' + productId;
+          console.log('[SAVE] PUT ' + apiUrl);
+          
+          var response = await fetch(apiUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product: productData, variants: variants }),
+          });
+          
+          var data = await response.json();
+          console.log('[SAVE] Response:', response.status, JSON.stringify(data));
+          
+          if (response.ok) {
+            showStatus('success', '✅ Producto guardado correctamente. Recargando...');
+            // Redirigir a la MISMA página para verificar que los cambios se guardaron
+            setTimeout(function() {
+              window.location.href = '/admin/productos/' + productId + '?saved=1';
+            }, 600);
+          } else {
+            var errMsg = data.error || data.details || 'Error desconocido (status ' + response.status + ')';
+            console.error('[SAVE] API error:', errMsg);
+            showStatus('error', '❌ Error: ' + errMsg);
+            if (errorDiv) {
+              errorDiv.textContent = errMsg;
+              errorDiv.classList.remove('hidden');
+            }
+          }
+          
+        } catch (err) {
+          console.error('[SAVE] Exception:', err);
+          var errText = err && err.message ? err.message : String(err);
+          showStatus('error', '❌ Error de conexión: ' + errText);
+          if (errorDiv) {
+            errorDiv.textContent = 'Error: ' + errText;
+            errorDiv.classList.remove('hidden');
+          }
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = origBtnText; }
         }
       });
-      
-      syncImagesTextarea();
-      refreshImageGrid();
-      console.log('[Images] Added ' + newUrls.length + ' images. Total: ' + window.currentProductImages.length);
-    };
-    
-    // Remove an image
-    window.removeImage = function(button) {
-      var imageUrl = button.dataset.imageUrl;
-      window.currentProductImages = window.currentProductImages.filter(function(u) { return u !== imageUrl; });
-      syncImagesTextarea();
-      refreshImageGrid();
-    };
-    
-    // Sync JS array if user manually edits the textarea
-    if (imagesTextarea) {
-      imagesTextarea.addEventListener('input', function() {
-        window.currentProductImages = imagesTextarea.value
-          .split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u.length > 0; });
-      });
+      console.log('[INIT] ✓ Submit handler registered');
+    } else {
+      console.error('[INIT] ✗ Form #productForm not found!');
     }
     
-    // Form submission
-    const form = document.getElementById('productForm');
-    const errorDiv = document.getElementById('errorMessage');
+    // ═══════════════════════════════════════════════════════
+    // PASO 2: CARGAR VARIANTES (en try-catch para no romper el submit)
+    // ═══════════════════════════════════════════════════════
+    var variantIndex = 0;
     
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      errorDiv.classList.add('hidden');
-      
-      const formData = new FormData(form);
-      
-      // Use the JS array as source of truth (more reliable than textarea DOM)
-      let images = (window.currentProductImages || []).filter(function(u) { return u && u.trim().length > 0; });
-      
-      // Fallback: also check textarea in case JS array was lost somehow
-      if (images.length === 0 && imagesTextarea && imagesTextarea.value.trim()) {
-        images = imagesTextarea.value.split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u.length > 0; });
-        console.warn('[Images] Fallback: read from textarea instead of JS array');
-      }
-      
-      console.log('[Images] Sending', images.length, 'images:', images);
-      
-      // Construir el objeto producto asegurando que TODOS los campos se incluyan
-      const product = {
-        name: formData.get('name') || '',
-        description: formData.get('description') || '',
-        category_id: formData.get('category_id') || null,
-        price: parseFloat(formData.get('price') || '0'),
-        compare_at_price: formData.get('compare_at_price') && formData.get('compare_at_price').trim() 
-          ? parseFloat(formData.get('compare_at_price'))
-          : null,
-        discount_percentage: parseInt(formData.get('discount_percentage') || '0') || 0,
-        images: images,
-        brand: formData.get('brand') && formData.get('brand').trim() ? formData.get('brand') : null,
-        material: formData.get('material') && formData.get('material').trim() ? formData.get('material') : null,
-        care_instructions: formData.get('care_instructions') && formData.get('care_instructions').trim() 
-          ? formData.get('care_instructions') 
-          : null,
-        is_active: formData.get('is_active') !== null,
-        is_featured: formData.get('is_featured') !== null,
-        is_new: formData.get('is_new') !== null,
-        is_flash_offer: formData.get('is_flash_offer') !== null,
-        tags: formData.get('tags') && formData.get('tags').trim()
-          ? formData.get('tags').split(',').map((t) => t.trim()).filter((t) => t)
-          : [],
-        meta_title: formData.get('meta_title') && formData.get('meta_title').trim() 
-          ? formData.get('meta_title')
-          : null,
-        meta_description: formData.get('meta_description') && formData.get('meta_description').trim()
-          ? formData.get('meta_description')
-          : null,
-        sku: formData.get('sku') && formData.get('sku').trim() ? formData.get('sku') : null,
+    try {
+      window.addVariant = function(size, color, stock, variantId) {
+        size = size || 'M';
+        color = color || '';
+        stock = stock || 0;
+        variantId = variantId || null;
+        
+        var container = document.getElementById('variantsContainer');
+        if (!container) { console.error('[VARIANTS] Container not found'); return; }
+        
+        var stockBorder = stock === 0 ? 'border-red-400' : stock < 10 ? 'border-amber-400' : 'border-primary-300';
+        var stockBg = stock === 0 ? 'bg-red-50' : stock < 10 ? 'bg-amber-50' : '';
+        var stockLabel = stock === 0 ? '<span class="text-red-600 text-xs font-medium">AGOTADO</span>' : stock < 10 ? '<span class="text-amber-600 text-xs font-medium">Stock bajo</span>' : '';
+        var variantHtml = '<div class="flex items-center gap-4 p-4 border ' + stockBorder + ' ' + stockBg + ' rounded" data-variant="' + variantIndex + '">' +
+          '<input type="hidden" name="variants[' + variantIndex + '][id]" value="' + (variantId || '') + '" />' +
+          '<div class="flex-1">' +
+            '<label class="block text-xs text-primary-500 mb-1">Talla</label>' +
+            '<select name="variants[' + variantIndex + '][size]" class="w-full border border-primary-300 px-3 py-1.5 text-sm">' +
+              ['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(function(s) {
+                return '<option value="' + s + '" ' + (s === size ? 'selected' : '') + '>' + s + '</option>';
+              }).join('') +
+            '</select>' +
+          '</div>' +
+          '<div class="flex-1">' +
+            '<label class="block text-xs text-primary-500 mb-1">Color</label>' +
+            '<input type="text" name="variants[' + variantIndex + '][color]" value="' + (color || '') + '" class="w-full border border-primary-300 px-3 py-1.5 text-sm" placeholder="Negro" />' +
+          '</div>' +
+          '<div class="w-24">' +
+            '<label class="block text-xs text-primary-500 mb-1">Stock ' + stockLabel + '</label>' +
+            '<input type="number" name="variants[' + variantIndex + '][stock]" min="0" value="' + (stock || 0) + '" class="w-full border ' + stockBorder + ' px-3 py-1.5 text-sm" />' +
+          '</div>' +
+          (variantId ? 
+            '<div class="w-20">' +
+              '<label class="block text-xs text-green-600 mb-1 font-medium">+ Restock</label>' +
+              '<div class="flex gap-1">' +
+                '<input type="number" min="1" value="10" class="w-12 border border-green-300 px-1 py-1.5 text-xs text-center rounded quick-restock-qty" data-variant-id="' + variantId + '" />' +
+                '<button type="button" class="quick-restock-btn bg-green-600 text-white px-1.5 py-1.5 rounded hover:bg-green-700 text-xs" data-variant-id="' + variantId + '" data-variant-idx="' + variantIndex + '" title="Añadir stock rápido">+</button>' +
+              '</div>' +
+            '</div>' : '') +
+          '<button type="button" onclick="window.removeVariant(' + variantIndex + ')" class="text-red-600 hover:text-red-800 mt-5">' +
+            '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>' +
+          '</button>' +
+        '</div>';
+        container.insertAdjacentHTML('beforeend', variantHtml);
+        variantIndex++;
       };
       
-      if (import.meta.env.DEV) console.debug('Product object:', product);
+      window.removeVariant = function(index) {
+        var variant = document.querySelector('[data-variant="' + index + '"]');
+        if (variant) variant.remove();
+      };
       
-      // Parse variants
-      const variants = [];
-      const variantElements = document.querySelectorAll('[data-variant]');
-      variantElements.forEach((el) => {
-        const idInput = el.querySelector(`[name*="[id]"]`);
-        const sizeInput = el.querySelector(`[name*="[size]"]`);
-        const colorInput = el.querySelector(`[name*="[color]"]`);
-        const stockInput = el.querySelector(`[name*="[stock]"]`);
-        
-        if (sizeInput && sizeInput.value) {
-          const id = idInput ? idInput.value : null;
-          variants.push({
-            id: id || undefined,
-            size: sizeInput.value,
-            color: colorInput ? colorInput.value : '',
-            stock: parseInt(stockInput ? stockInput.value : '0') || 0,
-          });
-        }
+      // Cargar variantes existentes
+      existingVariants.forEach(function(v) {
+        window.addVariant(v.size, v.color, v.stock, v.id);
       });
       
-      if (import.meta.env.DEV) console.debug('Variants:', variants);
-      
-      try {
-        const response = await fetch(`/api/admin/products/${productId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product, variants }),
-        });
-        
-        const data = await response.json();
-        
-        if (import.meta.env.DEV) console.debug('Response:', response.status, data);
-        
-        if (response.ok) {
-          // Mostrar mensaje de éxito antes de redireccionar
-          const successMsg = document.createElement('div');
-          successMsg.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4';
-          successMsg.textContent = 'Producto actualizado correctamente. Redirigiendo...';
-          form.parentElement.insertBefore(successMsg, form);
-          
-          // Esperar 1 segundo antes de redireccionar para que se vea el mensaje
-          setTimeout(() => {
-            window.location.href = '/admin/productos';
-          }, 1000);
-        } else {
-          errorDiv.textContent = data.error || 'Error al actualizar: ' + data.details;
-          errorDiv.classList.remove('hidden');
-        }
-      } catch (error) {
-        if (import.meta.env.DEV) console.error('Error:', error);
-        errorDiv.textContent = 'Error de conexión: ' + error.message;
-        errorDiv.classList.remove('hidden');
+      if (existingVariants.length === 0) {
+        window.addVariant();
       }
-    });
+      console.log('[INIT] ✓ Variants loaded:', existingVariants.length);
+    } catch (variantErr) {
+      console.error('[INIT] ✗ Variant init error:', variantErr);
+    }
+    
+    // ═══════════════════════════════════════════════════════
+    // PASO 3: IMÁGENES (en try-catch para no romper el submit)
+    // ═══════════════════════════════════════════════════════
+    try {
+      var imagesTA = document.getElementById('imagesInput');
+      window.currentProductImages = imagesTA
+        ? imagesTA.value.split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u.length > 0; })
+        : [];
+      
+      function syncImagesTextarea() {
+        var ta = document.getElementById('imagesInput');
+        if (ta) ta.value = (window.currentProductImages || []).join('\n');
+      }
+      
+      function refreshImageGrid() {
+        var gridContainer = document.getElementById('imageGridContainer');
+        if (!gridContainer) return;
+        
+        if (!window.currentProductImages || window.currentProductImages.length === 0) {
+          gridContainer.innerHTML = '<p class="text-sm text-primary-400">No hay imágenes. Usa el cargador para añadir.</p>';
+          return;
+        }
+        
+        gridContainer.innerHTML = '<label class="block text-xs uppercase tracking-wider text-primary-500 mb-2">Imágenes actuales (' + window.currentProductImages.length + ')</label>' +
+          '<div class="grid grid-cols-2 md:grid-cols-3 gap-4">' +
+          window.currentProductImages.map(function(url, idx) {
+            return '<div class="relative group">' +
+              '<img src="' + url + '" alt="Imagen ' + (idx + 1) + '" class="w-full h-32 object-cover border border-primary-200" />' +
+              '<button type="button" data-image-url="' + url + '" onclick="window.removeImage(this)" ' +
+              'class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">' +
+              '<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+              '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />' +
+              '</svg></button></div>';
+          }).join('') +
+          '</div>' +
+          '<p class="text-xs text-primary-400 mt-2">Pasa el cursor sobre una imagen y haz click para eliminarla</p>';
+      }
+      
+      window.handleImagesUpload = function(images) {
+        var newUrls = images.map(function(img) { return img.secure_url; });
+        newUrls.forEach(function(url) {
+          if (window.currentProductImages.indexOf(url) === -1) {
+            window.currentProductImages.push(url);
+          }
+        });
+        syncImagesTextarea();
+        refreshImageGrid();
+        console.log('[Images] Added', newUrls.length, 'Total:', window.currentProductImages.length);
+      };
+      
+      window.removeImage = function(button) {
+        var imageUrl = button.dataset.imageUrl;
+        window.currentProductImages = window.currentProductImages.filter(function(u) { return u !== imageUrl; });
+        syncImagesTextarea();
+        refreshImageGrid();
+      };
+      
+      // Sincronizar si el usuario edita el textarea manualmente
+      if (imagesTA) {
+        imagesTA.addEventListener('input', function() {
+          window.currentProductImages = imagesTA.value
+            .split('\n').map(function(u) { return u.trim(); }).filter(function(u) { return u.length > 0; });
+        });
+      }
+      console.log('[INIT] ✓ Images loaded:', (window.currentProductImages || []).length);
+    } catch (imgErr) {
+      console.error('[INIT] ✗ Image init error:', imgErr);
+    }
   </script>
   
   <script is:inline>

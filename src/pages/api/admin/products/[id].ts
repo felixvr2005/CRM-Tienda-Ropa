@@ -114,7 +114,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
     // Asegurar que updated_at se actualice
     updateData.updated_at = new Date().toISOString();
     
-    logger.info('Updating product:', id, 'with data:', updateData);
+    logger.info('Updating product:', id, 'with data:', JSON.stringify(updateData));
     
     // Update product
     const { error: productError, data: updatedProduct } = await supabaseAdmin
@@ -125,9 +125,18 @@ export const PUT: APIRoute = async ({ params, request }) => {
       .single();
     
     if (productError) {
-      logger.error('Product update error:', productError);
-      throw productError;
+      logger.error('Product update error:', JSON.stringify(productError));
+      return new Response(
+        JSON.stringify({ 
+          error: 'Error al actualizar producto en BD: ' + productError.message,
+          details: productError.details || productError.hint || '',
+          code: productError.code
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
+    
+    logger.info('Product updated successfully:', updatedProduct?.id, 'images:', updatedProduct?.images?.length);
     
     // Update variants
     if (variants && Array.isArray(variants)) {
@@ -171,14 +180,19 @@ export const PUT: APIRoute = async ({ params, request }) => {
     }
     
     return new Response(
-      JSON.stringify({ success: true, message: 'Producto actualizado correctamente' }),
-      { status: 200 }
+      JSON.stringify({ 
+        success: true, 
+        message: 'Producto actualizado correctamente',
+        updated_fields: Object.keys(updateData).filter(k => k !== 'updated_at'),
+        images_count: updatedProduct?.images?.length || 0
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Update product error:', error);
     return new Response(
-      JSON.stringify({ error: 'Error al actualizar el producto', details: String(error) }),
-      { status: 500 }
+      JSON.stringify({ error: 'Error al actualizar el producto', details: error?.message || String(error) }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };
