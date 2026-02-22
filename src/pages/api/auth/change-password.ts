@@ -1,3 +1,5 @@
+
+export const prerender = false;
 import { logger } from '@lib/logger';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 

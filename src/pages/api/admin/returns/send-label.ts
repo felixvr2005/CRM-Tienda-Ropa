@@ -1,3 +1,5 @@
+
+export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '@lib/supabase';
 import { logger } from '@lib/logger';

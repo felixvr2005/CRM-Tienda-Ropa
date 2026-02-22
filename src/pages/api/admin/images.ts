@@ -3,6 +3,8 @@
  * POST: Generar firma para upload seguro
  * DELETE: Eliminar imagen
  */
+export const prerender = false;
+
 import type { APIRoute } from 'astro';
 import { generateUploadSignature, deleteImage } from '../../../lib/cloudinary';
 import { logger } from '@lib/logger';

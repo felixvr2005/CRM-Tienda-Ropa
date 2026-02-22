@@ -3,6 +3,8 @@
  * POST /api/wishlist/remove
  * Body: { wishlistId: string }
  */
+export const prerender = false;
+
 import type { APIRoute } from 'astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 

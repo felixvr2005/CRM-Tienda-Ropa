@@ -119,8 +119,8 @@ export const PUT: APIRoute = async ({ request }) => {
       logger.warn(`No hay email de cliente para el pedido ${order.order_number}`);
     }
 
-    // Si el estado es "refunded", restaurar stock y procesar reembolso
-    if (status === 'refunded') {
+    // Si el estado es "refunded" o "cancelled", restaurar stock y (si refunded) procesar reembolso
+    if (status === 'refunded' || status === 'cancelled') {
       const { data: items } = await supabaseAdmin
         .from('order_items')
         .select('*')
@@ -141,8 +141,8 @@ export const PUT: APIRoute = async ({ request }) => {
         }
       }
 
-      // Procesar reembolso en Stripe si pagó con Stripe
-      if (order.payment_method === 'stripe' && order.stripe_payment_intent_id) {
+      // Procesar reembolso en Stripe solo si es refunded y pagó con Stripe
+      if (status === 'refunded' && order.payment_method === 'stripe' && order.stripe_payment_intent_id) {
         try {
           logger.info('Procesando reembolso en Stripe', { paymentIntent: order.stripe_payment_intent_id });
           const refund = await stripe.refunds.create({

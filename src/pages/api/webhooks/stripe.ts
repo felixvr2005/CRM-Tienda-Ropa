@@ -205,6 +205,40 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   logger.info('Order created', { id: order.id, orderNumber: order.order_number });
 
+  // ── Generar factura automáticamente ──
+  try {
+    // Calcular IVA (21%) — los importes están en euros con decimales
+    const taxRate = 21;
+    const baseImponible = (totalAmount - shippingCost) / (1 + taxRate / 100);
+    const taxAmount = totalAmount - shippingCost - baseImponible;
+
+    // Generar número secuencial: FAC-YYYY-NNNNN
+    const { data: invoiceNum } = await (supabaseAdmin.rpc as any)('generate_invoice_number');
+    const invoiceNumber = invoiceNum || `FAC-${new Date().getFullYear()}-${Date.now()}`;
+
+    await (supabaseAdmin as any)
+      .from('invoices')
+      .insert({
+        invoice_number: invoiceNumber,
+        order_id: order.id,
+        customer_id: customerId,
+        customer_email: email,
+        customer_name: shippingAddress?.name || '',
+        subtotal: Math.round(subtotal * 100),
+        shipping_cost: Math.round(shippingCost * 100),
+        discount_amount: Math.round(discountAmount * 100),
+        tax_rate: taxRate,
+        tax_amount: Math.round(taxAmount * 100),
+        total_amount: Math.round(totalAmount * 100),
+        status: 'paid'
+      } as any);
+
+    logger.info('Invoice created automatically', { invoiceNumber, orderId: order.id });
+  } catch (invoiceError) {
+    // No bloquear el checkout si falla la factura
+    logger.error('Error creating invoice (non-blocking)', { error: String(invoiceError) });
+  }
+
   // Crear los items del pedido y descontar stock
   for (const item of items) {
     // Obtener información del variant

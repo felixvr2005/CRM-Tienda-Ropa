@@ -1,3 +1,5 @@
+export const prerender = true;
+
 import type { APIRoute } from 'astro';
 
 const siteUrl = 'https://essentialforce.victoriafp.online';

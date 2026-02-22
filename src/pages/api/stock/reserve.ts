@@ -54,17 +54,14 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // UPDATE ATÓMICO: solo actualiza si stock >= quantity (evita race conditions)
-    const newStock = currentStock - quantity;
-    const { error: updateError, count } = await supabaseAdmin
-      .from('product_variants')
-      .update({ stock: newStock })
-      .eq('id', variantId)
-      .gte('stock', quantity);
+    // DESCONTAR STOCK ATÓMICO via RPC (usa FOR UPDATE en PostgreSQL, sin race conditions)
+    const { error: rpcError } = await supabaseAdmin.rpc('decrease_stock', {
+      p_variant_id: variantId,
+      p_quantity: quantity
+    });
 
-    // Si count === 0, otro usuario reservó primero (race condition detectada)
-    if (updateError || count === 0) {
-      // Re-leer stock actual para dar info precisa
+    if (rpcError) {
+      // La RPC lanza excepción si stock insuficiente — releer para info precisa
       const { data: fresh } = await supabaseAdmin
         .from('product_variants')
         .select('stock')
@@ -84,6 +81,8 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    const newStock = currentStock - quantity;
+
     // Registrar cambio en stock_change_log (no bloquear si falla)
     Promise.resolve(
       supabaseAdmin
@@ -96,7 +95,7 @@ export const POST: APIRoute = async ({ request }) => {
         })
     ).catch((e: any) => logger.warn('Error logging stock change:', e));
 
-    logger.info('Stock reservado (atómico)', { variantId, quantity, newStock });
+    logger.info('Stock reservado (RPC atómico)', { variantId, quantity, newStock });
 
     // Notificar al admin si el stock bajó del umbral (fire-and-forget)
     if (newStock <= LOW_STOCK_THRESHOLD) {

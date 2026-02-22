@@ -2,6 +2,8 @@
  * API: Vaciar todos los favoritos
  * POST /api/wishlist/clear
  */
+export const prerender = false;
+
 import type { APIRoute } from 'astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 

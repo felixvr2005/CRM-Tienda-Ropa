@@ -1,3 +1,5 @@
+export const prerender = false;
+
 /**
  * API: Actualizar categoría
  * PATCH /api/admin/categories/:id

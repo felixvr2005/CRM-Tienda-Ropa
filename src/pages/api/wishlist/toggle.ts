@@ -3,6 +3,8 @@
  * POST /api/wishlist/toggle
  * Body: { productId: string }
  */
+export const prerender = false;
+
 import type { APIRoute } from 'astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 import { logger } from '@lib/logger';

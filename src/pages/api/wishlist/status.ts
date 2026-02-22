@@ -2,6 +2,8 @@
  * API: Obtener estado de favorito
  * GET /api/wishlist/status?productId=xxx
  */
+export const prerender = false;
+
 import type { APIRoute } from 'astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
 import { logger } from '@lib/logger';
