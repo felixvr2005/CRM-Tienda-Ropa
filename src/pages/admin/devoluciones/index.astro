@@ -17,6 +17,7 @@ const statusCounts = {
   approved: returnRequests?.filter((r:any) => r.status === 'approved').length || 0,
   label_sent: returnRequests?.filter((r:any) => r.status === 'label_sent').length || 0,
   shipped: returnRequests?.filter((r:any) => r.status === 'shipped').length || 0,
+  in_return: returnRequests?.filter((r:any) => r.status === 'in_return').length || 0,
   received: returnRequests?.filter((r:any) => r.status === 'received').length || 0,
   refunded: returnRequests?.filter((r:any) => r.status === 'refunded').length || 0,
   rejected: returnRequests?.filter((r:any) => r.status === 'rejected').length || 0,
@@ -28,7 +29,7 @@ const statusCounts = {
     <h1 class="text-3xl font-bold text-primary-900 mb-8">Gestión de Devoluciones</h1>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
       <div class="bg-yellow-100 p-4 rounded-lg">
         <p class="text-gray-600 text-sm">Pendientes</p>
         <p class="text-2xl font-bold text-yellow-700">{statusCounts.pending}</p>
@@ -44,6 +45,10 @@ const statusCounts = {
       <div class="bg-cyan-100 p-4 rounded-lg">
         <p class="text-gray-600 text-sm">Enviadas</p>
         <p class="text-2xl font-bold text-cyan-700">{statusCounts.shipped}</p>
+      </div>
+      <div class="bg-orange-100 p-4 rounded-lg">
+        <p class="text-gray-600 text-sm">En Camino</p>
+        <p class="text-2xl font-bold text-orange-700">{statusCounts.in_return}</p>
       </div>
       <div class="bg-indigo-100 p-4 rounded-lg">
         <p class="text-gray-600 text-sm">Recibidas</p>
@@ -86,6 +91,7 @@ const statusCounts = {
                   ret.status === 'approved' ? 'bg-blue-100 text-blue-800' :
                   ret.status === 'label_sent' ? 'bg-purple-100 text-purple-800' :
                   ret.status === 'shipped' ? 'bg-indigo-100 text-indigo-800' :
+                  ret.status === 'in_return' ? 'bg-orange-100 text-orange-800' :
                   ret.status === 'received' ? 'bg-cyan-100 text-cyan-800' :
                   ret.status === 'refunded' ? 'bg-green-100 text-green-800' :
                   ret.status === 'rejected' ? 'bg-red-100 text-red-800' :
@@ -95,6 +101,7 @@ const statusCounts = {
                    ret.status === 'approved' ? 'Aprobada' :
                    ret.status === 'label_sent' ? 'Etiqueta Env.' :
                    ret.status === 'shipped' ? 'Enviado' :
+                   ret.status === 'in_return' ? 'En Camino' :
                    ret.status === 'received' ? 'Recibido' :
                    ret.status === 'refunded' ? 'Reembolsado' :
                    ret.status === 'rejected' ? 'Rechazado' :

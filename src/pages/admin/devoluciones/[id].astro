@@ -296,6 +296,7 @@ if (!formattedReturn) {
                 formattedReturn?.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                 formattedReturn?.status === 'approved' ? 'bg-blue-100 text-blue-800' :
                 formattedReturn?.status === 'shipped' ? 'bg-indigo-100 text-indigo-800' :
+                formattedReturn?.status === 'in_return' ? 'bg-indigo-100 text-indigo-800' :
                 formattedReturn?.status === 'received' ? 'bg-cyan-100 text-cyan-800' :
                 formattedReturn?.status === 'refunded' ? 'bg-green-100 text-green-800' :
                 formattedReturn?.status === 'rejected' ? 'bg-red-100 text-red-800' :
@@ -305,7 +306,8 @@ if (!formattedReturn) {
                 {formattedReturn?.status === 'pending' ? 'PENDIENTE' :
                  formattedReturn?.status === 'approved' ? 'APROBADA' :
                  formattedReturn?.status === 'label_sent' ? 'ETIQUETA ENVIADA' :
-                 formattedReturn?.status === 'shipped' ? 'ENVIADO' :
+                 formattedReturn?.status === 'shipped' ? 'ENVIADO POR CLIENTE' :
+                 formattedReturn?.status === 'in_return' ? 'EN CAMINO (DEVOLUCION)' :
                  formattedReturn?.status === 'received' ? 'RECIBIDO' :
                  formattedReturn?.status === 'refunded' ? 'REEMBOLSADO' :
                  formattedReturn?.status === 'rejected' ? 'RECHAZADO' :
@@ -402,16 +404,24 @@ if (!formattedReturn) {
           </div>
         )}
 
-        {formattedReturn?.status === 'shipped' && (
+        {(formattedReturn?.status === 'shipped' || formattedReturn?.status === 'in_return') && (
           <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
             <h2 class="text-lg font-bold text-gray-900 mb-4">Paquete en Tránsito</h2>
             <p class="text-sm text-gray-600 mb-4">
-              El cliente ha enviado el paquete. Confirma la recepción cuando llegue al almacén.
+              El cliente ha enviado el paquete de vuelta. Confirma la recepción cuando llegue al almacén.
             </p>
             <button 
               id="mark-received-btn"
-              class="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors font-semibold"
+              class="w-full bg-cyan-600 text-white py-2 px-4 rounded-lg hover:bg-cyan-700 transition-colors font-semibold mb-3"
             >
+              Confirmar Recepción
+            </button>
+            <button 
+              id="reject-return-btn"
+              class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors font-semibold"
+            >
+              Rechazar Devolución
+            </button>
               Confirmar Recepción
             </button>
           </div>
@@ -595,6 +605,12 @@ if (!formattedReturn) {
     // Marcar como recibido
     document.getElementById('mark-received-btn')?.addEventListener('click', async () => {
       await updateReturnStatus('received', '📥 Estado actualizado: Recibido en almacén');
+    });
+
+    // Rechazar devolución (desde panel in_return/shipped)
+    document.getElementById('reject-return-btn')?.addEventListener('click', async () => {
+      if (!confirm('¿Estás seguro de rechazar esta devolución?')) return;
+      await updateReturnStatus('rejected', '❌ Devolución rechazada');
     });
 
     // Procesar reembolso

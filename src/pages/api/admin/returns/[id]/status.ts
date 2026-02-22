@@ -12,7 +12,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
     }
 
-    const validStatuses = ['pending', 'approved', 'label_sent', 'shipped', 'received', 'refunded', 'rejected'];
+    const validStatuses = ['pending', 'approved', 'label_sent', 'shipped', 'in_return', 'received', 'refunded', 'rejected'];
     if (!validStatuses.includes(status)) {
       return new Response(JSON.stringify({ error: 'Invalid status' }), { status: 400 });
     }
