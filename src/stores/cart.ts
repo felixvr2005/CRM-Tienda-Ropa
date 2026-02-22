@@ -112,6 +112,18 @@ export async function addToCart(item: Omit<CartItem, 'quantity'>, quantity: numb
     const newQty = Math.min(existingItem.quantity + quantity, existingItem.maxStock);
     quantityToReserve = newQty - existingItem.quantity;
     
+    // Si ya tiene el máximo, avisar al usuario
+    if (quantityToReserve <= 0) {
+      if (typeof window !== 'undefined' && (window as any).toast) {
+        if (existingItem.maxStock <= 0) {
+          (window as any).toast.error('Agotado', `"${item.name}" está agotado`);
+        } else {
+          (window as any).toast.warning('Límite alcanzado', `Solo hay ${existingItem.maxStock} unidades disponibles de "${item.name}". Ya tienes ${existingItem.quantity} en tu cesta.`);
+        }
+      }
+      return;
+    }
+    
     newCart = cart.map((i, idx) => {
       if (idx === existingIndex) {
         return { ...i, quantity: newQty };
@@ -121,6 +133,15 @@ export async function addToCart(item: Omit<CartItem, 'quantity'>, quantity: numb
   } else {
     // Nuevo item
     quantityToReserve = Math.min(quantity, item.maxStock);
+    
+    // Si no hay stock disponible para un item nuevo
+    if (quantityToReserve <= 0) {
+      if (typeof window !== 'undefined' && (window as any).toast) {
+        (window as any).toast.error('Sin stock', `"${item.name}" está agotado`);
+      }
+      return;
+    }
+    
     newCart = [...cart, { ...item, quantity: quantityToReserve }];
   }
   

@@ -54,34 +54,57 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // DESCONTAR STOCK ATÓMICO via RPC (usa FOR UPDATE en PostgreSQL, sin race conditions)
+    // DESCONTAR STOCK — Intentar RPC atómico primero, fallback a UPDATE directo
+    let newStock = currentStock - quantity;
+    let stockUpdated = false;
+
+    // Intentar RPC atómica (si existe la función decrease_stock)
     const { error: rpcError } = await supabaseAdmin.rpc('decrease_stock', {
       p_variant_id: variantId,
       p_quantity: quantity
     });
 
     if (rpcError) {
-      // La RPC lanza excepción si stock insuficiente — releer para info precisa
-      const { data: fresh } = await supabaseAdmin
+      logger.warn('RPC decrease_stock falló, usando UPDATE directo:', rpcError.message);
+      
+      // Fallback: UPDATE directo con condición atómica (stock >= quantity)
+      const { data: updated, error: updateError } = await supabaseAdmin
         .from('product_variants')
-        .select('stock')
+        .update({ 
+          stock: currentStock - quantity,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', variantId)
+        .gte('stock', quantity)
+        .select('stock')
         .single();
-      const freshStock = (fresh as any)?.stock ?? 0;
 
-      return new Response(
-        JSON.stringify({
-          error: freshStock === 0
-            ? `"${productName}" se ha agotado`
-            : `Solo quedan ${freshStock} unidades de "${productName}"`,
-          availableStock: freshStock,
-          productName
-        }),
-        { status: 400 }
-      );
+      if (updateError || !updated) {
+        // Re-leer stock fresco para dar mensaje preciso
+        const { data: fresh } = await supabaseAdmin
+          .from('product_variants')
+          .select('stock')
+          .eq('id', variantId)
+          .single();
+        const freshStock = (fresh as any)?.stock ?? 0;
+
+        return new Response(
+          JSON.stringify({
+            error: freshStock === 0
+              ? `"${productName}" se ha agotado`
+              : `Solo quedan ${freshStock} unidades de "${productName}"`,
+            availableStock: freshStock,
+            productName
+          }),
+          { status: 400 }
+        );
+      }
+
+      newStock = (updated as any).stock;
+      stockUpdated = true;
+    } else {
+      stockUpdated = true;
     }
-
-    const newStock = currentStock - quantity;
 
     // Registrar cambio en stock_change_log (no bloquear si falla)
     Promise.resolve(
