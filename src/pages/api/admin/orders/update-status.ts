@@ -120,7 +120,11 @@ export const PUT: APIRoute = async ({ request }) => {
     }
 
     // Si el estado es "refunded" o "cancelled", restaurar stock y (si refunded) procesar reembolso
-    if (status === 'refunded' || status === 'cancelled') {
+    // GUARD: Solo restaurar stock si el estado ANTERIOR no era ya cancelled/refunded (evita doble restauración)
+    const previousStatus = orderBefore?.status;
+    const alreadyRestoredStock = previousStatus === 'cancelled' || previousStatus === 'refunded';
+
+    if ((status === 'refunded' || status === 'cancelled') && !alreadyRestoredStock) {
       const { data: items } = await supabaseAdmin
         .from('order_items')
         .select('*')
@@ -134,6 +138,7 @@ export const PUT: APIRoute = async ({ request }) => {
                 p_variant_id: item.variant_id,
                 p_quantity: item.quantity
               });
+              logger.info('Stock restaurado', { variantId: item.variant_id, qty: item.quantity });
             }
           } catch (error) {
             logger.error('Error restoring stock:', error);

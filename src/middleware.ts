@@ -59,7 +59,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    return context.redirect('/cuenta/login?error=unauthorized');
+    return context.redirect('/admin/login');
   }
 
   // Admin verificado — continuar

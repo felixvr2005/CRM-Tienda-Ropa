@@ -150,21 +150,28 @@ export const GET: APIRoute = async ({ request }) => {
 
       const itemCount = (itemsByOrder[order.id] || []).reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
 
+      // Excluir pedidos cancelados/reembolsados del revenue (pero contarlos en totalOrders para visibilidad)
+      const countsAsRevenue = order.status !== 'cancelled' && order.status !== 'refunded';
+
       dailyData[dateStr].orders += 1;
-      dailyData[dateStr].revenue += order.total_amount || 0;
-      dailyData[dateStr].items += itemCount;
-      dailyData[dateStr].discount += order.discount_amount || 0;
-      dailyData[dateStr].shipping += order.shipping_cost || 0;
+      if (countsAsRevenue) {
+        dailyData[dateStr].revenue += order.total_amount || 0;
+        dailyData[dateStr].items += itemCount;
+        dailyData[dateStr].discount += order.discount_amount || 0;
+        dailyData[dateStr].shipping += order.shipping_cost || 0;
+      }
 
       if (!dailyData[dateStr].statuses[order.status]) {
         dailyData[dateStr].statuses[order.status] = 0;
       }
       dailyData[dateStr].statuses[order.status] += 1;
 
-      stats.totalRevenue += order.total_amount || 0;
-      stats.totalItems += itemCount;
-      stats.totalDiscount += order.discount_amount || 0;
-      stats.totalShipping += order.shipping_cost || 0;
+      if (countsAsRevenue) {
+        stats.totalRevenue += order.total_amount || 0;
+        stats.totalItems += itemCount;
+        stats.totalDiscount += order.discount_amount || 0;
+        stats.totalShipping += order.shipping_cost || 0;
+      }
     });
 
     stats.averageOrderValue = stats.totalOrders > 0 ? stats.totalRevenue / stats.totalOrders : 0;
