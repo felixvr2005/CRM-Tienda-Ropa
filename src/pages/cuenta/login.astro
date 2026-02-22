@@ -9,7 +9,22 @@ import { supabase } from '@lib/supabase';
 export const prerender = false;
 
 // Si ya está autenticado como cliente, redirigir a su cuenta
-const { data: { user } } = await supabase.auth.getUser();
+// IMPORTANTE: usar token de cookie, NUNCA getUser() sin parámetro en SSR
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+let user = null;
+
+if (accessToken) {
+  try {
+    const { data, error } = await supabase.auth.getUser(accessToken);
+    if (!error && data.user) {
+      user = data.user;
+    }
+  } catch (e) {
+    // Token inválido, limpiar y continuar al login
+    Astro.cookies.delete('sb-access-token', { path: '/' });
+    Astro.cookies.delete('sb-refresh-token', { path: '/' });
+  }
+}
 
 if (user) {
   // Verificar si NO es admin (es cliente normal)

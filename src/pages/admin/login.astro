@@ -9,26 +9,30 @@ import { supabase, supabaseAdmin } from '@lib/supabase';
 export const prerender = false;
 
 // Si ya está autenticado como admin, redirigir al dashboard
-const { data: { user } } = await supabase.auth.getUser();
+// IMPORTANTE: usar el token de la cookie, NUNCA getUser() sin parámetro en SSR
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
 
-if (user) {
-  // Verificar si es admin
-  const isAdmin = user.app_metadata?.role === 'admin' || user.user_metadata?.role === 'admin';
-  
-  if (isAdmin) {
-    return Astro.redirect('/admin');
-  }
-  
-  // Si no es admin pero está logueado, también verificar en tabla
-  const { data: adminUser } = await supabaseAdmin
-    .from('admin_users')
-    .select('id')
-    .eq('auth_user_id', user.id)
-    .eq('is_active', true)
-    .single();
-  
-  if (adminUser) {
-    return Astro.redirect('/admin');
+if (accessToken) {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    
+    if (user && !error) {
+      // Verificar si es admin en la tabla admin_users (fuente de verdad)
+      const { data: adminUser } = await supabaseAdmin
+        .from('admin_users')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .eq('is_active', true)
+        .single();
+      
+      if (adminUser) {
+        return Astro.redirect('/admin');
+      }
+    }
+  } catch (e) {
+    // Token inválido, limpiar cookies y mostrar login
+    Astro.cookies.delete('sb-access-token', { path: '/' });
+    Astro.cookies.delete('sb-refresh-token', { path: '/' });
   }
 }
 ---

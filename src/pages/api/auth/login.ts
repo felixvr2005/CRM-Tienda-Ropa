@@ -1,8 +1,9 @@
 /**
  * API: Login
+ * Usa un cliente Supabase efímero para no contaminar el singleton del servidor
  */
 import type { APIRoute } from 'astro';
-import { supabase } from '@lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export const prerender = false;
 
@@ -17,7 +18,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
     
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // IMPORTANTE: Crear un cliente efímero para signIn
+    // NUNCA usar el singleton del servidor para auth mutations
+    const ephemeralClient = createClient(
+      import.meta.env.PUBLIC_SUPABASE_URL || '',
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '',
+      { auth: { persistSession: false, autoRefreshToken: false } }
+    );
+    
+    const { data, error } = await ephemeralClient.auth.signInWithPassword({
       email,
       password,
     });
@@ -29,14 +38,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
     
-    // Set auth cookie
-    cookies.set('sb-auth-token', data.session?.access_token || '', {
-      path: '/',
-      httpOnly: true,
-      secure: import.meta.env.PROD,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
+    // Set auth cookies (nombre correcto: sb-access-token)
+    if (data.session) {
+      cookies.set('sb-access-token', data.session.access_token, {
+        path: '/',
+        httpOnly: true,
+        secure: import.meta.env.PROD,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+      cookies.set('sb-refresh-token', data.session.refresh_token, {
+        path: '/',
+        httpOnly: true,
+        secure: import.meta.env.PROD,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+    }
     
     return new Response(
       JSON.stringify({ success: true }),

@@ -8,7 +8,11 @@ import type { Database } from './database.types';
 
 // Lazy initialization para evitar errores de URL inválida durante el build
 let _supabase: SupabaseClient<Database> | null = null;
+let _supabaseServer: SupabaseClient<Database> | null = null;
 let _supabaseAdmin: SupabaseClient<Database> | null = null;
+
+/** Detecta si estamos en el servidor (SSR) o en el navegador */
+const isServer = typeof window === 'undefined';
 
 function getSupabaseUrl(): string {
   return import.meta.env.PUBLIC_SUPABASE_URL || '';
@@ -22,8 +26,8 @@ function getSupabaseServiceKey(): string {
   return import.meta.env.SUPABASE_SERVICE_KEY || '';
 }
 
-// Cliente público (para browser y SSG)
-function getClient(): SupabaseClient<Database> {
+// Cliente público para BROWSER (persistSession: true para mantener sesión)
+function getBrowserClient(): SupabaseClient<Database> {
   if (!_supabase) {
     const url = getSupabaseUrl();
     const key = getSupabaseAnonKey();
@@ -45,6 +49,36 @@ function getClient(): SupabaseClient<Database> {
     );
   }
   return _supabase;
+}
+
+// Cliente público para SERVIDOR (persistSession: false — CRÍTICO para evitar
+// que sesiones se filtren entre requests de diferentes usuarios)
+function getServerClient(): SupabaseClient<Database> {
+  if (!_supabaseServer) {
+    const url = getSupabaseUrl();
+    const key = getSupabaseAnonKey();
+    
+    if (!url || !key) {
+      logger.warn('⚠️ Supabase not configured (server)');
+    }
+    
+    _supabaseServer = createClient<Database>(
+      url || 'https://placeholder.supabase.co',
+      key || 'placeholder-key',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+  }
+  return _supabaseServer;
+}
+
+/** Retorna el cliente apropiado según el entorno */
+function getClient(): SupabaseClient<Database> {
+  return isServer ? getServerClient() : getBrowserClient();
 }
 
 // Cliente de servidor (para operaciones administrativas)
@@ -542,7 +576,17 @@ export async function signUp(email: string, password: string, userData?: {
 }
 
 export async function signIn(email: string, password: string) {
-  const client = getClient();
+  // En el servidor, usar cliente efímero; en el browser, usar el cliente normal
+  let client;
+  if (typeof window === 'undefined') {
+    client = createClient(
+      getSupabaseUrl() || 'https://placeholder.supabase.co',
+      getSupabaseAnonKey() || 'placeholder-key',
+      { auth: { persistSession: false, autoRefreshToken: false } }
+    );
+  } else {
+    client = getClient();
+  }
   
   const { data, error } = await client.auth.signInWithPassword({
     email,
@@ -555,14 +599,19 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signOut() {
-  const client = getClient();
-  await client.auth.signOut();
+  // En servidor: no-op (no hay sesión que limpiar con persistSession:false)
+  // En browser: limpia la sesión local
+  if (typeof window !== 'undefined') {
+    const client = getClient();
+    await client.auth.signOut();
+  }
 }
 
+/** @deprecated — En SSR, usar getUser(token) con token de la cookie */
 export async function getCurrentUser() {
-  const client = getClient();
-  const { data: { user } } = await client.auth.getUser();
-  return user;
+  // NUNCA llamar getUser() sin token en SSR — puede devolver sesión cacheada
+  logger.warn('getCurrentUser() called — use getUser(token) with cookie token instead');
+  return null;
 }
 
 export async function getCustomerProfile(authUserId: string) {
@@ -577,16 +626,9 @@ export async function getCustomerProfile(authUserId: string) {
 }
 
 export async function isUserAdmin(authUserId: string): Promise<boolean> {
-  const client = getClient();
-  
-  // Método 1: Verificar app_metadata del usuario (más confiable)
-  const { data: userData } = await client.auth.getUser();
-  if (userData?.user?.app_metadata?.role === 'admin') {
-    return true;
-  }
-  
-  // Método 2: Verificar en tabla admin_users
-  const { data, error } = await client
+  // Verificar en tabla admin_users (fuente de verdad única)
+  const admin = getAdminClient();
+  const { data, error } = await admin
     .from('admin_users')
     .select('id')
     .eq('auth_user_id', authUserId)
@@ -605,10 +647,16 @@ export async function isUserAdmin(authUserId: string): Promise<boolean> {
 }
 
 export async function adminSignIn(email: string, password: string) {
-  const client = getClient();
+  // IMPORTANTE: Usar un cliente efímero para signIn
+  // NUNCA usar el singleton del servidor para auth mutations
+  const ephemeral = createClient(
+    getSupabaseUrl() || 'https://placeholder.supabase.co',
+    getSupabaseAnonKey() || 'placeholder-key',
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
   
-  // Primero intentar login
-  const { data, error } = await client.auth.signInWithPassword({
+  // Intentar login con cliente efímero
+  const { data, error } = await ephemeral.auth.signInWithPassword({
     email,
     password,
   });
@@ -625,19 +673,19 @@ export async function adminSignIn(email: string, password: string) {
   const roleFromUserMeta = data.user?.user_metadata?.role;
   
   const isAdmin = roleFromAppMeta === 'admin' || 
-                  roleFromUserMeta === 'admin' ||
-                  email === 'admin@gmail.com'; // Bypass temporal para debug
+                  roleFromUserMeta === 'admin';
   
   logger.debug('Is admin check', { isAdmin, roleFromAppMeta, roleFromUserMeta });
 
   if (!isAdmin) {
-    await client.auth.signOut();
+    // No hace falta signOut — el cliente efímero se descarta solo
     return { user: null, error: 'No tienes permisos de administrador' };
   }
 
-  // Actualizar último login (ignorar errores)
+  // Actualizar último login (ignorar errores) — usar admin client
   try {
-    await client.from('admin_users').update({ last_login: new Date().toISOString() })
+    const admin = getAdminClient();
+    await admin.from('admin_users').update({ last_login: new Date().toISOString() })
       .eq('auth_user_id', data.user.id);
   } catch (e) {
     logger.warn('Error updating last_login', { error: String(e) });

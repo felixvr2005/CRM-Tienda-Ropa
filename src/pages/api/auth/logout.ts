@@ -1,9 +1,9 @@
 /**
  * API: Logout
  * Cierra sesión y redirige al login correspondiente (admin o cliente)
+ * NOTA: NO llamar signOut() en el singleton del servidor — solo limpiar cookies
  */
 import type { APIRoute } from 'astro';
-import { supabase } from '@lib/supabase';
 
 export const prerender = false;
 
@@ -11,9 +11,7 @@ export const GET: APIRoute = async ({ cookies, url }) => {
   const userType = url.searchParams.get('type') || 'customer';
   
   try {
-    await supabase.auth.signOut();
-    
-    // Eliminar todas las cookies de sesión
+    // Eliminar TODAS las cookies de sesión (no llamar signOut en el singleton)
     cookies.delete('sb-auth-token', { path: '/' });
     cookies.delete('sb-access-token', { path: '/' });
     cookies.delete('sb-refresh-token', { path: '/' });
@@ -24,7 +22,9 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': redirectUrl
+        'Location': redirectUrl,
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Clear-Site-Data': '"cookies", "storage"',
       }
     });
   } catch (error) {
@@ -43,9 +43,7 @@ export const POST: APIRoute = async ({ cookies, request }) => {
     const body = await request.json().catch(() => ({}));
     const userType = body.type || 'customer';
     
-    await supabase.auth.signOut();
-    
-    // Eliminar todas las cookies de sesión
+    // Solo limpiar cookies, NO llamar signOut() en el singleton
     cookies.delete('sb-auth-token', { path: '/' });
     cookies.delete('sb-access-token', { path: '/' });
     cookies.delete('sb-refresh-token', { path: '/' });

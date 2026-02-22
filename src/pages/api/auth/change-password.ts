@@ -2,6 +2,7 @@
 export const prerender = false;
 import { logger } from '@lib/logger';
 import { supabase, supabaseAdmin } from '@lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST({ request, cookies }: any) {
   try {
@@ -32,8 +33,15 @@ export async function POST({ request, cookies }: any) {
       );
     }
 
-    // Verificar contraseña actual intentando hacer signin
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    // Verificar contraseña actual con un cliente EFÍMERO
+    // NUNCA usar el singleton del servidor para signInWithPassword
+    const ephemeralClient = createClient(
+      import.meta.env.PUBLIC_SUPABASE_URL || '',
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '',
+      { auth: { persistSession: false, autoRefreshToken: false } }
+    );
+
+    const { data: authData, error: authError } = await ephemeralClient.auth.signInWithPassword({
       email: userEmail,
       password: currentPassword
     });

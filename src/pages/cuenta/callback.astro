@@ -3,11 +3,20 @@
  * OAuth Callback Handler
  * Procesa el retorno de proveedores OAuth (Google, etc.)
  * y establece las cookies de sesión
+ * NOTA: Usa cliente efímero para exchangeCodeForSession para no contaminar singleton
  */
 import BaseLayout from '@layouts/BaseLayout.astro';
-import { supabase, supabaseAdmin } from '@lib/supabase';
+import { supabaseAdmin } from '@lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export const prerender = false;
+
+// Cliente efímero para OAuth exchange (no contaminar singleton del servidor)
+const ephemeralClient = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL || '',
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '',
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
 
 // Obtener código de autorización de la URL
 const url = new URL(Astro.request.url);
@@ -22,8 +31,8 @@ if (error) {
   sessionError = errorDescription || error;
 } else if (code) {
   try {
-    // Intercambiar código por sesión
-    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    // Intercambiar código por sesión con cliente efímero
+    const { data, error: exchangeError } = await ephemeralClient.auth.exchangeCodeForSession(code);
     
     if (exchangeError) {
       sessionError = exchangeError.message;
