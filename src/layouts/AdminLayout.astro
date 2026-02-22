@@ -2,11 +2,39 @@
 /**
  * AdminLayout - Panel de administración
  * Sidebar con navegación y área de contenido
+ * Incluye verificación de autenticación como segunda capa de defensa
  */
 import BaseLayout from './BaseLayout.astro';
+import { supabase, supabaseAdmin } from '@lib/supabase';
 
 interface Props {
   title: string;
+}
+
+// === SEGUNDA CAPA DE SEGURIDAD (defensa en profundidad) ===
+// El middleware ya protege, pero si por algún motivo falla,
+// esta verificación impide que se renderice contenido admin.
+try {
+  const token = Astro.cookies.get('sb-access-token')?.value;
+  if (!token) {
+    return Astro.redirect('/admin/login');
+  }
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (!user || authError) {
+    return Astro.redirect('/admin/login');
+  }
+  const { data: adminUser } = await supabaseAdmin
+    .from('admin_users')
+    .select('id, is_active')
+    .eq('auth_user_id', user.id)
+    .eq('is_active', true)
+    .single();
+  if (!adminUser) {
+    return Astro.redirect('/admin/login');
+  }
+} catch (e) {
+  console.error('[AdminLayout] Auth check failed:', e);
+  return Astro.redirect('/admin/login');
 }
 
 const { title } = Astro.props;

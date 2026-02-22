@@ -16,52 +16,49 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
-  // Obtener token de la cookie
-  const token = context.cookies.get('sb-access-token')?.value;
-
-  if (!token) {
-    // Si es API, devolver 401 JSON
+  // Helper para responder según tipo de ruta
+  const denyAccess = (message: string, status = 401) => {
     if (pathname.startsWith('/api/')) {
-      return new Response(JSON.stringify({ error: 'No autenticado' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    // Si es página, redirigir a login
-    return context.redirect('/admin/login');
-  }
-
-  // Verificar el token con Supabase
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-  if (!user || authError) {
-    if (pathname.startsWith('/api/')) {
-      return new Response(JSON.stringify({ error: 'Token inválido' }), {
-        status: 401,
+      return new Response(JSON.stringify({ error: message }), {
+        status,
         headers: { 'Content-Type': 'application/json' }
       });
     }
     return context.redirect('/admin/login');
-  }
+  };
 
-  // Verificar que el usuario es admin activo
-  const { data: adminUser } = await supabaseAdmin
-    .from('admin_users')
-    .select('id, is_active')
-    .eq('auth_user_id', user.id)
-    .eq('is_active', true)
-    .single();
+  try {
+    // Obtener token de la cookie
+    const token = context.cookies.get('sb-access-token')?.value;
 
-  if (!adminUser) {
-    if (pathname.startsWith('/api/')) {
-      return new Response(JSON.stringify({ error: 'Acceso denegado — no es admin' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (!token) {
+      return denyAccess('No autenticado');
     }
-    return context.redirect('/admin/login');
-  }
 
-  // Admin verificado — continuar
-  return next();
+    // Verificar el token con Supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (!user || authError) {
+      return denyAccess('Token inválido');
+    }
+
+    // Verificar que el usuario es admin activo
+    const { data: adminUser } = await supabaseAdmin
+      .from('admin_users')
+      .select('id, is_active')
+      .eq('auth_user_id', user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (!adminUser) {
+      return denyAccess('Acceso denegado — no es admin', 403);
+    }
+
+    // Admin verificado — continuar
+    return next();
+  } catch (err) {
+    // Si hay cualquier error inesperado, NUNCA dejar pasar — redirigir a login
+    console.error('[middleware] Error verificando auth admin:', err);
+    return denyAccess('Error de autenticación', 500);
+  }
 });
