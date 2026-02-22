@@ -30,8 +30,8 @@ if (accessToken) {
       return Astro.redirect('/');
     }
     
-    // Obtener perfil del cliente
-    const { data: customerData } = await supabase
+    // Obtener perfil del cliente (service_role para bypasear RLS)
+    const { data: customerData } = await supabaseAdmin
       .from('customers')
       .select('*')
       .eq('auth_user_id', user.id)

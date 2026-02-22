@@ -5,6 +5,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
+// Obtener variables de entorno de forma compatible con Astro y Node
+function getEnvVar(name: string): string {
+  return (typeof import.meta !== 'undefined' && import.meta.env?.[name]) || process.env[name] || '';
+}
+
 interface CartItem {
   id: string;
   product_id: string;
@@ -57,9 +62,10 @@ export class CartValidator {
   private supabase;
 
   constructor() {
+    // Usar service_role para bypasear RLS (validaciones de servidor)
     this.supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!
+      getEnvVar('PUBLIC_SUPABASE_URL') || getEnvVar('SUPABASE_URL'),
+      getEnvVar('SUPABASE_SERVICE_KEY') || getEnvVar('SUPABASE_ANON_KEY')
     );
   }
 

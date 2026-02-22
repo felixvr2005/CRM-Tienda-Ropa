@@ -562,9 +562,9 @@ export async function signUp(email: string, password: string, userData?: {
 
   if (error) return { user: null, error: error.message };
 
-  // Crear perfil de cliente
+  // Crear perfil de cliente (usa service_role para bypasear RLS)
   if (data.user) {
-    await client.from('customers').insert({
+    await getAdminClient().from('customers').insert({
       auth_user_id: data.user.id,
       email: data.user.email!,
       first_name: userData?.first_name || null,
@@ -615,7 +615,7 @@ export async function getCurrentUser() {
 }
 
 export async function getCustomerProfile(authUserId: string) {
-  const client = getClient();
+  const client = getAdminClient();
   const { data } = await client
     .from('customers')
     .select('*')
@@ -696,7 +696,7 @@ export async function adminSignIn(email: string, password: string) {
 
 // Función auxiliar para verificar admin desde la DB
 async function isUserAdminFromDB(authUserId: string): Promise<boolean> {
-  const client = getClient();
+  const client = getAdminClient();
   const { data } = await client
     .from('admin_users')
     .select('id')
@@ -849,7 +849,7 @@ export async function createOrder(orderData: {
   customer_notes?: string;
   stripe_checkout_session_id?: string;
 }) {
-  const client = getClient();
+  const client = getAdminClient();
   
   // Crear orden
   const { data: order, error: orderError } = await client
@@ -904,7 +904,7 @@ export async function createOrder(orderData: {
 }
 
 export async function getCustomerOrders(customerId: string) {
-  const client = getClient();
+  const client = getAdminClient();
   
   const { data } = await client
     .from('orders')
@@ -919,7 +919,7 @@ export async function getCustomerOrders(customerId: string) {
 }
 
 export async function getOrderByNumber(orderNumber: string) {
-  const client = getClient();
+  const client = getAdminClient();
   
   const { data } = await client
     .from('orders')
@@ -1035,7 +1035,7 @@ export async function isInWishlist(customerId: string, productId: string) {
 // ============================================
 
 export async function getProductReviews(productId: string) {
-  const client = getClient();
+  const client = getAdminClient();
   
   const { data } = await client
     .from('reviews')

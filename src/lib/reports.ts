@@ -1,5 +1,5 @@
 import { logger } from '@lib/logger';
-import { supabase } from './supabase';
+import { supabaseAdmin as supabase } from './supabase';
 import type { AdminEmailData } from './email';
 
 type DateRange = 'day' | 'week' | 'month' | 'year' | 'custom';

@@ -1,6 +1,6 @@
 import { logger } from '@lib/logger';
 import type { APIRoute } from 'astro';
-import { supabase } from '@lib/supabase';
+import { supabaseAdmin as supabase } from '@lib/supabase';
 
 export const prerender = false;
 

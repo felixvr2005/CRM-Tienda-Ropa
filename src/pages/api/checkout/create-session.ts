@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
-import { supabase } from '../../../lib/supabase';
+import { supabaseAdmin as supabase } from '../../../lib/supabase';
 import { ensureEnv } from '@lib/ensureEnv';
 import { logger } from '@lib/logger';
 
