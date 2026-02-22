@@ -7,7 +7,7 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://fashionforcestore.victoriafp.online',
+  site: 'https://essentialforce.victoriafp.online',
   output: 'server',
   adapter: node({
     mode: 'standalone'
@@ -26,15 +26,15 @@ export default defineConfig({
       changefreq: 'weekly',
       priority: 0.7,
       customPages: [
-        'https://fashionforcestore.victoriafp.online/',
-        'https://fashionforcestore.victoriafp.online/productos',
-        'https://fashionforcestore.victoriafp.online/categoria/novedades',
-        'https://fashionforcestore.victoriafp.online/categoria/ofertas',
-        'https://fashionforcestore.victoriafp.online/contacto',
-        'https://fashionforcestore.victoriafp.online/sobre-nosotros',
-        'https://fashionforcestore.victoriafp.online/envios',
-        'https://fashionforcestore.victoriafp.online/terminos',
-        'https://fashionforcestore.victoriafp.online/privacidad',
+        'https://essentialforce.victoriafp.online/',
+        'https://essentialforce.victoriafp.online/productos',
+        'https://essentialforce.victoriafp.online/categoria/novedades',
+        'https://essentialforce.victoriafp.online/categoria/ofertas',
+        'https://essentialforce.victoriafp.online/contacto',
+        'https://essentialforce.victoriafp.online/sobre-nosotros',
+        'https://essentialforce.victoriafp.online/envios',
+        'https://essentialforce.victoriafp.online/terminos',
+        'https://essentialforce.victoriafp.online/privacidad',
       ],
     }),
   ],

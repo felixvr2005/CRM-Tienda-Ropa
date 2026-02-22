@@ -19,8 +19,8 @@ describe('computeShippingCost', () => {
     expect(computeShippingCost(100, 'standard', 100)).toBe(0);
   });
 
-  test('express and store methods', () => {
-    expect(computeShippingCost(10, 'express')).toBe(9.95);
+  test('store method is free', () => {
     expect(computeShippingCost(1000, 'store')).toBe(0);
+    expect(computeShippingCost(10, 'store')).toBe(0);
   });
 });

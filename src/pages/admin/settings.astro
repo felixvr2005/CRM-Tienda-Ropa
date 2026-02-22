@@ -78,12 +78,10 @@ if (Astro.request.method === 'POST') {
     if (action === 'updateShipping') {
       const freeShippingThreshold = data.free_shipping_threshold as string;
       const standardShippingCost = data.standard_shipping_cost as string;
-      const expressShippingCost = data.express_shipping_cost as string;
 
       const configs = [
         { clave: 'free_shipping_threshold', valor: freeShippingThreshold, tipo: 'number', descripcion: 'Umbral para envío gratis (€)', categoria: 'shipping' },
         { clave: 'standard_shipping_cost', valor: standardShippingCost, tipo: 'number', descripcion: 'Coste envío estándar (€)', categoria: 'shipping' },
-        { clave: 'express_shipping_cost', valor: expressShippingCost, tipo: 'number', descripcion: 'Coste envío express (€)', categoria: 'shipping' },
       ];
 
       for (const config of configs) {
@@ -287,20 +285,6 @@ const ofertasActivas = getConfig('ofertas_activas', 'false') === 'true';
               step="0.01"
               min="0"
               value={getConfig('standard_shipping_cost', '4.95')}
-              class="w-full border border-primary-300 px-4 py-2 focus:outline-none focus:border-primary-900"
-            />
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-primary-700 mb-1">
-              Envío express (€)
-            </label>
-            <input 
-              type="number"
-              name="express_shipping_cost"
-              step="0.01"
-              min="0"
-              value={getConfig('express_shipping_cost', '9.95')}
               class="w-full border border-primary-300 px-4 py-2 focus:outline-none focus:border-primary-900"
             />
           </div>

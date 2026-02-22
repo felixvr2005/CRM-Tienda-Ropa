@@ -372,7 +372,7 @@ export default function CartPageContent() {
             <div className="flex justify-center gap-3">
               <span className="text-xs text-primary-400">Visa</span>
               <span className="text-xs text-primary-400">Mastercard</span>
-              <span className="text-xs text-primary-400">PayPal</span>
+              <span className="text-xs text-primary-400">Amex</span>
             </div>
           </div>
 

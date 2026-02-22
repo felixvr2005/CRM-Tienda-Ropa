@@ -323,20 +323,6 @@ const provinces = [
                 <input
                   type="radio"
                   name="shippingMethod"
-                  value="express"
-                  class="w-4 h-4 text-primary-900 focus:ring-primary-900"
-                />
-                <div class="flex-1">
-                  <p class="font-medium">Envío Express</p>
-                  <p class="text-sm text-primary-500">24-48 horas</p>
-                </div>
-                <span class="font-medium">9,95 €</span>
-              </label>
-
-              <label class="flex items-center gap-4 p-4 border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors">
-                <input
-                  type="radio"
-                  name="shippingMethod"
                   value="store"
                   class="w-4 h-4 text-primary-900 focus:ring-primary-900"
                 />
@@ -375,19 +361,6 @@ const provinces = [
                 </svg>
               </label>
 
-              <label class="flex items-center gap-4 p-4 border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="paypal"
-                  class="w-4 h-4 text-primary-900 focus:ring-primary-900"
-                />
-                <div class="flex-1">
-                  <p class="font-medium">PayPal</p>
-                  <p class="text-sm text-primary-500">Paga de forma segura con PayPal</p>
-                </div>
-                <span class="text-xl font-bold text-blue-600">PP</span>
-              </label>
             </div>
           </section>
 
@@ -655,8 +628,7 @@ const provinces = [
   document.querySelectorAll('input[name="shippingMethod"]').forEach((radio) => {
     radio.addEventListener('change', (e) => {
       const method = (e.target as HTMLInputElement).value;
-      if (method === 'express') shippingCost = 9.95;
-      else if (method === 'store') shippingCost = 0;
+      if (method === 'store') shippingCost = 0;
       else shippingCost = getSubtotal() >= FREE_SHIPPING_THRESHOLD ? 0 : 4.95;
       updateTotals();
     });

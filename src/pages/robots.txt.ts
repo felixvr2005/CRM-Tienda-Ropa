@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
 
-const siteUrl = 'https://fashionforcestore.victoriafp.online';
+const siteUrl = 'https://essentialforce.victoriafp.online';
 
 const robotsTxt = `# robots.txt - ESSENTIAL FORCE
-# https://fashionforcestore.victoriafp.online
+# https://essentialforce.victoriafp.online
 
 User-agent: *
 Allow: /

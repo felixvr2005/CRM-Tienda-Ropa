@@ -123,7 +123,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // Leer shippingCost de metadata; fallback: calcular por método de envío
   let shippingCost = Number(metadata.shippingCost || 0);
   if (!shippingCost && shippingMethod !== 'store') {
-    shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 100 ? 0 : 4.95);
+    shippingCost = subtotal >= 100 ? 0 : 4.95;
   }
   // Intentar obtener descuento desde metadata (si la UI lo envió)
   const discountAmount = Number(metadata.discountAmount || metadata.discount_amount || 0) || 0;

@@ -190,7 +190,7 @@ if (sessionId) {
           // Leer shippingCost de metadata; fallback: calcular por método
           let shippingCost = Number(metadata.shippingCost || 0);
           if (!shippingCost && shippingCost !== 0) {
-            shippingCost = shippingMethod === 'express' ? 9.95 : (subtotal >= 100 ? 0 : 4.95);
+            shippingCost = subtotal >= 100 ? 0 : 4.95;
           }
 
           // Buscar customer
