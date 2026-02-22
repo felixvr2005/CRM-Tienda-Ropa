@@ -2,7 +2,11 @@
 /**
  * AdminLayout - Panel de administración
  * Sidebar con navegación y área de contenido
- * Incluye verificación de autenticación como segunda capa de defensa
+ * 
+ * SEGURIDAD — Defensa en profundidad (3 capas):
+ *   Capa 1: Middleware (src/middleware.ts) — protege TODAS las rutas /admin/*
+ *   Capa 2: Este layout (SSR) — verifica token + rol antes de renderizar
+ *   Capa 3: Script client-side — verifica cookie + /api/admin/check-auth
  */
 import BaseLayout from './BaseLayout.astro';
 import { supabase, supabaseAdmin } from '@lib/supabase';
@@ -11,16 +15,20 @@ interface Props {
   title: string;
 }
 
-// === SEGUNDA CAPA DE SEGURIDAD (defensa en profundidad) ===
+// === CAPA 2: VERIFICACIÓN SSR (defensa en profundidad) ===
 // El middleware ya protege, pero si por algún motivo falla,
 // esta verificación impide que se renderice contenido admin.
 try {
   const token = Astro.cookies.get('sb-access-token')?.value;
-  if (!token) {
+  if (!token || token.trim() === '') {
+    Astro.cookies.delete('sb-access-token', { path: '/' });
+    Astro.cookies.delete('sb-refresh-token', { path: '/' });
     return Astro.redirect('/admin/login');
   }
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (!user || authError) {
+    Astro.cookies.delete('sb-access-token', { path: '/' });
+    Astro.cookies.delete('sb-refresh-token', { path: '/' });
     return Astro.redirect('/admin/login');
   }
   const { data: adminUser } = await supabaseAdmin
@@ -30,12 +38,24 @@ try {
     .eq('is_active', true)
     .single();
   if (!adminUser) {
+    Astro.cookies.delete('sb-access-token', { path: '/' });
+    Astro.cookies.delete('sb-refresh-token', { path: '/' });
     return Astro.redirect('/admin/login');
   }
 } catch (e) {
   console.error('[AdminLayout] Auth check failed:', e);
+  Astro.cookies.delete('sb-access-token', { path: '/' });
+  Astro.cookies.delete('sb-refresh-token', { path: '/' });
   return Astro.redirect('/admin/login');
 }
+
+// Set no-cache headers en la respuesta (redundante con middleware, defensa extra)
+Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+Astro.response.headers.set('Pragma', 'no-cache');
+Astro.response.headers.set('Expires', '0');
+Astro.response.headers.set('X-Frame-Options', 'DENY');
+Astro.response.headers.set('X-Content-Type-Options', 'nosniff');
+Astro.response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
 
 const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
@@ -287,4 +307,61 @@ const navItems = [
   // Initial load + auto-refresh every 60s
   loadAlertCount();
   setInterval(loadAlertCount, 60000);
+</script>
+
+<!-- CAPA 3: Verificación client-side — última línea de defensa -->
+<!-- Si el HTML llegó al navegador por caché o proxy, este script expulsa al usuario -->
+<script>
+  (function adminGuardClientSide() {
+    // 1. Verificar que exista la cookie sb-access-token
+    function getCookie(name: string): string | null {
+      const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    const token = getCookie('sb-access-token');
+    if (!token) {
+      // Sin cookie → redirect inmediato
+      window.location.replace('/admin/login');
+      return;
+    }
+
+    // 2. Verificar que el JWT no esté expirado (check local sin red)
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) throw new Error('bad jwt');
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+        // Token expirado → limpiar cookies y redirect
+        document.cookie = 'sb-access-token=; path=/; max-age=0';
+        document.cookie = 'sb-refresh-token=; path=/; max-age=0';
+        window.location.replace('/admin/login');
+        return;
+      }
+    } catch {
+      document.cookie = 'sb-access-token=; path=/; max-age=0';
+      document.cookie = 'sb-refresh-token=; path=/; max-age=0';
+      window.location.replace('/admin/login');
+      return;
+    }
+
+    // 3. Verificar con el servidor que sigue siendo admin (asíncrono)
+    fetch('/api/admin/check-auth', {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.isAdmin) {
+          document.cookie = 'sb-access-token=; path=/; max-age=0';
+          document.cookie = 'sb-refresh-token=; path=/; max-age=0';
+          window.location.replace('/admin/login');
+        }
+      })
+      .catch(() => {
+        // Si la API falla, por seguridad redirigir
+        window.location.replace('/admin/login');
+      });
+  })();
 </script>
